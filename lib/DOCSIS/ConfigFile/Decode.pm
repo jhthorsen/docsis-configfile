@@ -1,27 +1,7 @@
 
-#======================
-package DOCSIS::Decode;
-#======================
-
-#  DOCSIS configuration file encoder.
-#  Copyright (c) 2001 Cornel Ciocirlan, ctrl@users.sourceforge.net.
-#  Copyright (c) 2002,2003,2004 Evvolve Media SRL,office@evvolve.com
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-#  DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
+#==================================
+package DOCSIS::ConfigFile::Decode;
+#==================================
 
 use strict;
 use warnings;
@@ -30,20 +10,20 @@ use Socket;
 
 our $ERROR     = '';
 our %SNMP_TYPE = (
-                    0x02 => [ 'INTEGER',        \&uint        ],
-                    0x04 => [ 'STRING',         \&string      ],
-                    0x05 => [ 'NULLOBJ',        sub {}        ],
-                    0x40 => [ 'IPADDRESS',      \&ip          ],
-                    0x41 => [ 'COUNTER',        \&uint        ],
-                    0x42 => [ 'UNSIGNED',       \&uint        ],
-                    0x43 => [ 'TIMETICKS',      \&uint        ],
-                    0x44 => [ 'OPAQUE',         \&uint        ],
-                    0x46 => [ 'COUNTER64',      \&bigint      ],
+                    0x02 => [ 'INTEGER',        \&uint   ],
+                    0x04 => [ 'STRING',         \&string ],
+                    0x05 => [ 'NULLOBJ',        sub {}   ],
+                    0x40 => [ 'IPADDRESS',      \&ip     ],
+                    0x41 => [ 'COUNTER',        \&uint   ],
+                    0x42 => [ 'UNSIGNED',       \&uint   ],
+                    0x43 => [ 'TIMETICKS',      \&uint   ],
+                    0x44 => [ 'OPAQUE',         \&uint   ],
+                    0x46 => [ 'COUNTER64',      \&bigint ],
                 );
 
 
 sub byte_size { #=============================================================
-    return $DOCSIS::Perl::BYTE_SIZE{lc shift} || 0;
+    return $DOCSIS::ConfigFile::BYTE_SIZE{lc shift} || 0;
 }
 
 sub snmp_type { #=============================================================
@@ -270,3 +250,115 @@ sub hexstr { #================================================================
 
 #=============================================================================
 1983;
+__END__
+
+=head1 NAME DOCSIS::ConfigFile::Decode
+
+=head1 VERSION
+
+See DOCSIS::ConfigFile
+
+=head1 FUNCTIONS
+
+=head2 byte_size
+
+=head2 snmp_type
+
+=head2 snmp_oid
+
+=head2 snmp_object
+
+=head2 bigint
+
+=head2 uint
+
+=head2 ushort
+
+=head2 ushort_list
+
+=head2 uchar
+
+=head2 vendorspec
+
+=head2 ip
+
+=head2 ether
+
+=head2 oid
+
+=head2 string
+
+=head2 strzero
+
+=head2 hexstr
+
+=head1 AUTHOR
+
+Jan Henning Thorsen, C<< <pm at flodhest.net> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to
+C<bug-docsis-perl at rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-ConfigFile>.
+I will be notified, and then you'll automatically be notified of progress on
+your bug as I make changes.
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc DOCSIS::ConfigFile
+
+You can also look for information at:
+
+=over 4
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/DOCSIS-ConfigFile>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
+
+=back
+
+=head1 ACKNOWLEDGEMENTS
+
+=head1 COPYRIGHT & LICENSE
+
+------------------------------------------------------------------------------
+THIS PROGRAM IS BASED ON THE C-PROGRAM "docsis" FROM docsis.sf.net!
+------------------------------------------------------------------------------
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+Copyright (c) 2007 Jan Henning Thorsen
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
+
+=cut

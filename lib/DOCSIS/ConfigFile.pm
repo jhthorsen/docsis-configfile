@@ -1,15 +1,15 @@
 
-#====================
-package DOCSIS::Perl;
-#====================
+#==========================
+package DOCSIS::ConfigFile;
+#==========================
 
 use strict;
 use warnings;
 use Data::Dumper;
 use Digest::MD5;
 use Digest::HMAC_MD5;
-use DOCSIS::Decode;
-use DOCSIS::Encode;
+use DOCSIS::ConfigFile::Decode;
+use DOCSIS::ConfigFile::Encode;
 use File::Basename;
 
 our $VERSION       = '0.1';
@@ -31,6 +31,7 @@ our @cmts_mic_list = (
                      );
 our @SYMBOL_TABLE  = (
 #================================================================================
+# ID                           CODE  PCODE  FUNC           L_LIMIT   H_LIMIT    #
 # identifier            docsis_code    pID  func           low_limit high_limit #
 #================================================================================
 [ "Pad",                           0,   0,  '',            0,        0          ],
@@ -344,14 +345,14 @@ sub _decode_loop { #==========================================================
 
         $code          = unpack("C", $code);
         $length        = unpack("C", $length) or next BYTE;
-        $syminfo       = $self->_find_syminfo($code, $pID);
+        $syminfo       = $self->find_syminfo($code, $pID);
         $value         = '';
         $total_length -= $length + 2;
 
         ### nested block
         if($syminfo->[&FUNC] eq 'aggregate') {
             my $aggregate = $self->_decode_loop($length, $syminfo->[&CODE]);
-            push @$cfg, value_to_cfg($syminfo, $length, undef, $aggregate);
+            push @$cfg, _value_to_cfg($syminfo, $length, undef, $aggregate);
             next BYTE;
         }
 
@@ -360,7 +361,7 @@ sub _decode_loop { #==========================================================
         my $aggregate;
 
         ### decode binary string
-        if(my $sub = DOCSIS::Decode->can($syminfo->[&FUNC])) {
+        if(my $sub = DOCSIS::ConfigFile::Decode->can($syminfo->[&FUNC])) {
             ($value, $aggregate) = $sub->($data);
             unless(defined $value) {
                 next BYTE;
@@ -368,18 +369,18 @@ sub _decode_loop { #==========================================================
         }
         else {
             @{$syminfo}[0,1,3] = ('NA', $code, 'unpack(H*)');
-            $value             = DOCSIS::Decode::hexstr($data);
+            $value             = DOCSIS::ConfigFile::Decode::hexstr($data);
         }
 
         ### do something with the result
-        push @$cfg, value_to_cfg($syminfo, $length, $value, $aggregate); 
+        push @$cfg, _value_to_cfg($syminfo, $length, $value, $aggregate); 
     }
 
     ### the end
     return $cfg;
 }
 
-sub value_to_cfg { #==========================================================
+sub _value_to_cfg { #=========================================================
 
     ### init
     my $syminfo   = shift;
@@ -466,8 +467,8 @@ sub _encode_loop { #==========================================================
 
         ### init
         my $name    = $tlv->{'name'} or next TLV;
-        my $syminfo = $self->_find_syminfo($name);
-        my $sub     = DOCSIS::Encode->can($syminfo->[&FUNC]);
+        my $syminfo = $self->find_syminfo($name);
+        my $sub     = DOCSIS::ConfigFile::Encode->can($syminfo->[&FUNC]);
         my $code    = $syminfo->[&CODE];
 
         ### nested tlv
@@ -531,7 +532,7 @@ sub _encode_loop { #==========================================================
     return $binstring;
 }
 
-sub _find_syminfo { #==========================================================
+sub find_syminfo { #==========================================================
 
     ### init
     my $self  = shift;
@@ -545,7 +546,7 @@ sub _find_syminfo { #==========================================================
     ### numeric lookup
     if($code =~ /^\d+$/) {
         for(@SYMBOL_TABLE) {
-            next unless($_->[&CODE] == $code);
+            next unless($_->[&CODE]  == $code);
             next unless($_->[&PCODE] == $pID);
             $row = $_;
             last;
@@ -612,14 +613,11 @@ sub calculate_cmts_mic { #====================================================
 
 #=============================================================================
 1983;
-package DOCSIS::Perl;
-
-use warnings;
-use strict;
+__END__
 
 =head1 NAME
 
-DOCSIS::Perl - Decodes and encodes DOCSIS config-files for cable-modems
+DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cable-modems
 
 =head1 VERSION
 
@@ -627,35 +625,77 @@ Version 0.1
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
+    use DOCSIS::ConfigFile;
 
-Perhaps a little code snippet.
+    my $obj = DOCSIS::ConfigFile->new(
+                  filehandle    => '', # used by decode
+                  read_file     => '', # used by decode
+                  write_file    => '', # used by encode
+                  shared_secret => '', # used by encode
+                  binstring     => '', # holds the data
+              )
+ 
+    $config_data = $obj->encode;
+    $config_data = $obj->decode;
 
-    use DOCSIS::Perl;
+=head1 METHODS
 
-    my $foo = DOCSIS::Perl->new();
-    ...
+=head2 new
 
-=head1 EXPORT
+Object constructor
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+=head2 decode
+
+Decodes the config-file.
+
+=head2 encode
+
+Encodes the config-file settings.
+
+=head2 find_syminfo
+
+Returns a array ref with information about the docsis symbol. The symbol can
+be either ID or a combination of CODE and PCODE.
+
+=head2 calculate_eod_and_pad
+
+Returns the EOD and padding for the config-file. Called automatically from
+inside encode().
+
+=head2 calculate_cm_mic
+
+Returns the CM MIC. Called automatically from inside encode().
+
+=head2 calculate_cmts_mic
+
+Returns the CMTS MIC. Called automatically from inside encode().
 
 =head1 FUNCTIONS
 
-=head2 function1
+=head2 ID
 
-=cut
+find_syminfo("foo")->[&ID] returns the identifier for the symbol "foo"
 
-sub function1 {
-}
+=head2 CODE
 
-=head2 function2
+find_syminfo("foo")->[&CODE] returns the docsis code for the symbol "foo"
 
-=cut
+=head2 PCODE
 
-sub function2 {
-}
+find_syminfo("foo")->[&PCODE] returns the parent docsis code for the symbol
+
+=head2 FUNC
+
+find_syminfo("foo")->[&PCODE] returns the function name to use to enc/decode
+the docsis symbol.
+
+=head2 L_LIMIT
+
+find_syminfo("foo")->[&PCODE] returns the lower limit for this value.
+
+=head2 U_LIMIT
+
+find_syminfo("foo")->[&PCODE] returns the upper limit for this value.
 
 =head1 AUTHOR
 
@@ -665,7 +705,7 @@ Jan Henning Thorsen, C<< <pm at flodhest.net> >>
 
 Please report any bugs or feature requests to
 C<bug-docsis-perl at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-Perl>.
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-ConfigFile>.
 I will be notified, and then you'll automatically be notified of progress on
 your bug as I make changes.
 
@@ -673,7 +713,7 @@ your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc DOCSIS::Perl
+    perldoc DOCSIS::ConfigFile
 
 You can also look for information at:
 
@@ -681,19 +721,19 @@ You can also look for information at:
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/DOCSIS-Perl>
+L<http://annocpan.org/dist/DOCSIS-ConfigFile>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/DOCSIS-Perl>
+L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
 
 =item * RT: CPAN's request tracker
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-Perl>
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/DOCSIS-Perl>
+L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
 
 =back
 
@@ -701,12 +741,14 @@ L<http://search.cpan.org/dist/DOCSIS-Perl>
 
 =head1 COPYRIGHT & LICENSE
 
+------------------------------------------------------------------------------
+THIS PROGRAM IS BASED ON THE C-PROGRAM "docsis" FROM docsis.sf.net!
+------------------------------------------------------------------------------
+
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
 Copyright (c) 2007 Jan Henning Thorsen
-Copyright (c) 2002,2003,2004 Evvolve Media SRL,office@evvolve.com
-Copyright (c) 2001 Cornel Ciocirlan, ctrl@users.sourceforge.net.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -725,5 +767,3 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
 
 =cut
-
-1983; # End of DOCSIS::Perl

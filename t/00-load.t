@@ -3,7 +3,7 @@
 use Test::More tests => 1;
 
 BEGIN {
-	use_ok( 'DOCSIS::Perl' );
+	use_ok( 'DOCSIS::ConfigFile' );
 }
 
-diag( "Testing DOCSIS::Perl $DOCSIS::Perl::VERSION, Perl $], $^X" );
+diag( "Testing DOCSIS::ConfigFile $DOCSIS::ConfigFile::VERSION, Perl $], $^X" );

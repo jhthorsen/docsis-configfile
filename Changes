@@ -1,5 +1,5 @@
 Revision history for DOCSIS-Perl
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.01    Mon,  3 Dec 2007 23:49:00 +0200
+        First release of DOCSIS::ConfigFile
 

@@ -5,7 +5,14 @@ package DOCSIS::ConfigFile::Syminfo;
 
 use strict;
 use warnings;
+use constant ID      => 0;
+use constant CODE    => 1;
+use constant PCODE   => 2;
+use constant FUNC    => 3;
+use constant L_LIMIT => 4;
+use constant U_LIMIT => 5;
 
+our @ROW           = ("NA", -1, -1, "NA", -1, -1);
 our @SYMBOL_TABLE  = (
 #=============================================================================
 # ID                        CODE  PCODE  FUNC           L_LIMIT   H_LIMIT
@@ -14,10 +21,10 @@ our @SYMBOL_TABLE  = (
 [ "Pad",                       0,   0,  "",            0,        0          ],
 [ "DownstreamFrequency",       1,   0,  "uint",        88000000, 860000000  ],
 [ "UpstreamChannelId",         2,   0,  "uchar",       0,        255        ],
+[ "CmMic",                     6,   0,  "mic",         0,        0          ],
+[ "CmtsMic",                   7,   0,  "mic",         0,        0          ],
 [ "NetworkAccess",             3,   0,  "uchar",       0,        1          ],
-[ "CmMic",                     6,   0,  "",            0,        0          ],
-[ "CmtsMic",                   7,   0,  "",            0,        0          ],
-[ "ClassOfService",            4,   0,  "aggregate",   0,        0          ],
+[ "ClassOfService",            4,   0,  "nested",      0,        0          ],
 [ "ClassID",                   1,   4,  "uchar",       1,        16         ],
 [ "MaxRateDown",               2,   4,  "uint",        0,        52000000   ],
 [ "MaxRateUp",                 3,   4,  "uint",        0,        10000000   ],
@@ -26,10 +33,10 @@ our @SYMBOL_TABLE  = (
 [ "MaxBurstUp",                6,   4,  "ushort",      0,        65535      ],
 [ "PrivacyEnable",             7,   4,  "uchar",       0,        1          ],
 [ "SwUpgradeFilename",         9,   0,  "string",      0,        0          ],
-[ "SnmpWriteControl",         10,   0,  "aggregate",   0,        0          ],
+[ "SnmpWriteControl",         10,   0,  "nested",      0,        0          ],
 [ "SnmpMibObject",            11,   0,  "snmp_object", 0,        0          ],
 [ "CpeMacAddress",            14,   0,  "ether",       0,        0          ],
-[ "BaselinePrivacy",          17,   0,  "aggregate",   0,        0          ],
+[ "BaselinePrivacy",          17,   0,  "nested",      0,        0          ],
 [ "AuthTimeout",               1,  17,  "uint",        1,        30         ],
 [ "ReAuthTimeout",             2,  17,  "uint",        1,        30         ],
 [ "AuthGraceTime",             3,  17,  "uint",        1,        6047999    ],
@@ -42,7 +49,7 @@ our @SYMBOL_TABLE  = (
 
  # DOCSIS 1.1-2.0
 
-[ "UsPacketClass",            22,   0,  "aggregate",   0,        0          ],
+[ "UsPacketClass",            22,   0,  "nested",      0,        0          ],
 [ "ClassifierRef",             1,  22,  "uchar",       1,        255        ],
 [ "ClassifierId",              2,  22,  "ushort",      1,        65535      ],
 [ "ServiceFlowRef",            3,  22,  "ushort",      1,        65535      ],
@@ -50,7 +57,7 @@ our @SYMBOL_TABLE  = (
 [ "RulePriority",              5,  22,  "uchar",       0,        255        ],
 [ "ActivationState",           6,  22,  "uchar",       0,        1          ],
 [ "DscAction",                 7,  22,  "uchar",       0,        2          ],
-[ "IpPacketClassifier",        9,  22,  "aggregate",   0,        0          ],
+[ "IpPacketClassifier",        9,  22,  "nested",      0,        0          ],
 [ "IpTos",                     1,   9,  "hexstr",      3,        3          ],
 [ "IpProto",                   2,   9,  "ushort",      0,        257        ],
 [ "IpSrcAddr",                 3,   9,  "ip",          0,        0          ],
@@ -61,17 +68,17 @@ our @SYMBOL_TABLE  = (
 [ "SrcPortEnd",                8,   9,  "ushort",      0,        65535      ],
 [ "DstPortStart",              9,   9,  "ushort",      0,        65535      ],
 [ "DstPortEnd",               10,   9,  "ushort",      0,        65535      ],
-[ "LLCPacketClassifier",      10,  22,  "aggregate",   0,        0          ],
+[ "LLCPacketClassifier",      10,  22,  "nested",      0,        0          ],
 [ "DstMacAddress",             1,  10,  "ether",       0,        0          ],
 [ "SrcMacAddress",             2,  10,  "ether",       0,        0          ],
 [ "EtherType",                 3,  10,  "hexstr",      0,        0          ],
-[ "IEEE 802Classifier",       11,  22,  "aggregate",   0,        0          ],
+[ "IEEE 802Classifier",       11,  22,  "nested",      0,        0          ],
 [ "UserPriority",              1,  11,  "ushort",      0,        0          ],
 [ "VlanID",                    2,  11,  "ushort",      0,        0          ],
 
  # TODO: Vendor Specific support in the IEEE802Classifier
 
-[ "DsPacketClass",            23,   0,  "aggregate",   0,        0          ],
+[ "DsPacketClass",            23,   0,  "nested",      0,        0          ],
 [ "ClassifierRef",             1,  23,  "uchar",       1,        255        ],
 [ "ClassifierId",              2,  23,  "ushort",      1,        65535      ],
 [ "ServiceFlowRef",            3,  23,  "ushort",      1,        65535      ],
@@ -79,7 +86,7 @@ our @SYMBOL_TABLE  = (
 [ "RulePriority",              5,  23,  "uchar",       0,        255        ],
 [ "ActivationState",           6,  23,  "uchar",       0,        1          ],
 [ "DscAction",                 7,  23,  "uchar",       0,        2          ],
-[ "IpPacketClassifier",        9,  23,  "aggregate",   0,        0          ],
+[ "IpPacketClassifier",        9,  23,  "nested",      0,        0          ],
 [ "IpTos",                     1,   9,  "hexstr",      3,        3          ],
 [ "IpProto",                   2,   9,  "ushort",      0,        257        ],
 [ "IpSrcAddr",                 3,   9,  "ip",          0,        0          ],
@@ -90,17 +97,17 @@ our @SYMBOL_TABLE  = (
 [ "SrcPortEnd",                8,   9,  "ushort",      0,        65535      ],
 [ "DstPortStart",              9,   9,  "ushort",      0,        65535      ],
 [ "DstPortEnd",               10,   9,  "ushort",      0,        65535      ],
-[ "LLCPacketClassifier",      10,  23,  "aggregate",   0,        0          ],
+[ "LLCPacketClassifier",      10,  23,  "nested",      0,        0          ],
 [ "DstMacAddress",             1,  10,  "ether",       0,        0          ],
 [ "SrcMacAddress",             2,  10,  "ether",       0,        0          ],
 [ "EtherType",                 3,  10,  "hexstr",      0,        255        ],
-[ "IEEE802Classifier",        11,  23,  "aggregate",   0,        0          ],
+[ "IEEE802Classifier",        11,  23,  "nested",      0,        0          ],
 [ "UserPriority",              1,  11,  "ushort",      0,        0          ],
 [ "VlanID",                    2,  11,  "ushort",      0,        0          ],
 
  # Upstream Service Flow
 
-[ "UsServiceFlow",            24,   0,  "aggregate",   0,        0          ],
+[ "UsServiceFlow",            24,   0,  "nested",      0,        0          ],
 [ "UsServiceFlowRef",          1,  24,  "ushort",      1,        65535      ],
 [ "UsServiceFlowId",           2,  24,  "uint",        1,        0xFFFFFFFF ],
 [ "ServiceClassName",          4,  24,  "strzero",     2,        16         ],
@@ -128,7 +135,7 @@ our @SYMBOL_TABLE  = (
 
   # Downstream Service Flow
 
-[ "DsServiceFlow",            25,   0,  "aggregate",   0,        0          ],
+[ "DsServiceFlow",            25,   0,  "nested",      0,        0          ],
 [ "DsServiceFlowRef",          1,  25,  "ushort",      1,        65535      ],
 [ "DsServiceFlowId",           2,  25,  "uint",        1,        0xFFFFFFFF ],
 [ "ServiceClassName",          4,  25,  "strzero",     2,        16         ],
@@ -147,7 +154,7 @@ our @SYMBOL_TABLE  = (
 
   # Payload Header Suppression - Appendix C.2.2.8
 
-[ "PHS",                      26,   0,  "aggregate",   0,        0          ],
+[ "PHS",                      26,   0,  "nested",      0,        0          ],
 [ "PHSClassifierRef",          1,  26,  "uchar",       1,        255        ],
 [ "PHSClassifierId",           2,  26,  "ushort",      1,        65535      ],
 [ "PHSServiceFlowRef",         3,  26,  "ushort",      1,        65535      ],
@@ -179,7 +186,7 @@ our @SYMBOL_TABLE  = (
 
   # SNMPv3 Kickstart
 
-[ "SnmpV3Kickstart",          34,   0,  "aggregate",   0,        0          ],
+[ "SnmpV3Kickstart",          34,   0,  "nested",      0,        0          ],
 
   # TODO: SP-RFI-v2.0 says the SecurityName is UTF8 encoded
 
@@ -188,7 +195,7 @@ our @SYMBOL_TABLE  = (
 
   # Snmpv3 Notification Receiver
 
-[ "SnmpV3TrapReceiver",       38,   0,  "aggregate",   0,        0          ],
+[ "SnmpV3TrapReceiver",       38,   0,  "nested",      0,        0          ],
 [ "SnmpV3TrapRxIP",            1,  38,  "ip",          0,        0          ],
 [ "SnmpV3TrapRxPort",          2,  38,  "ushort",      0,        0          ],
 [ "SnmpV3TrapRxType",          3,  38,  "ushort",      1,        5          ],
@@ -200,7 +207,7 @@ our @SYMBOL_TABLE  = (
 
   # Modem Capabilities Encodings
 
-[ "ModemCapabilities",         5,   0,  "aggregate",   0,        0          ],
+[ "ModemCapabilities",         5,   0,  "nested",      0,        0          ],
 [ "ConcatenationSupport",      1,   5,  "uchar",       0,        1          ],
 [ "ModemDocsisVersion",        2,   5,  "uchar",       0,        2          ],
 [ "FragmentationSupport",      3,   5,  "uchar",       0,        1          ],
@@ -212,16 +219,16 @@ our @SYMBOL_TABLE  = (
 [ "DCCSupport",               12,   5,  "uchar",       0,        1          ],
 [ "SubMgmtControl",           35,   0,  "hexstr",      3,        3          ],
 [ "SubMgmtFilters",           37,   0,  "ushort_list", 4,        4          ],
-[ "SnmpMibObject",            64,   0,  "aggregate",   1,        2048       ],
+[ "SnmpMibObject",            64,   0,  "nested",      1,        2048       ],
 
   # PacketCable MTA Configuration File Delimiter
 
 [ "MtaConfigDelimiter",      254,   0,  "uchar",       1,        255        ],
-[ "DsChannelList",            41,   0,  "aggregate",   1,        255        ],
-[ "SingleDsChannel",           1,  41,  "aggregate",   1,        255        ],
+[ "DsChannelList",            41,   0,  "nested",      1,        255        ],
+[ "SingleDsChannel",           1,  41,  "nested",      1,        255        ],
 [ "SingleDsTimeout",           1,   1,  "ushort",      0,        65535      ],
 [ "SingleDsFrequency",         2,   1,  "uint",        0,        0xFFFFFFFF ],
-[ "DsFreqRange",               2,  41,  "aggregate",   1,        255        ],
+[ "DsFreqRange",               2,  41,  "nested",      1,        255        ],
 [ "DsFreqRangeTimeout",        1,   2,  "ushort",      0,        65535      ],
 [ "DsFreqRangeStart",          2,   2,  "uint",        0,        0xFFFFFFFF ],
 [ "DsFreqRangeEnd",            3,   2,  "uint",        0,        0xFFFFFFFF ],
@@ -232,25 +239,20 @@ our @SYMBOL_TABLE  = (
 
   # Generic TLV... we only use the limits, code and length don"t matter
 
-[ "GenericTLV",                0,   0,  "aggregate",   1,        255        ],
+[ "GenericTLV",                0,   0,  "nested",      1,        255        ],
 [ "GenericTLV",              255,   0,  "",            0,        0          ],
 );
-
-my $ID    = 0;
-my $CODE  = 1;
-my $PCODE = 2;
-my @ROW   = ("", -1, -1, "", -1, -1);
 
 
 BEGIN { #=====================================================================
     no strict 'refs';
     my %sub2index = (
-        id      => 0,
-        code    => 1,
-        pcode   => 2,
-        func    => 3,
-        l_limit => 4,
-        u_limit => 5,
+        id      => ID,
+        code    => CODE,
+        pcode   => PCODE,
+        func    => FUNC,
+        l_limit => L_LIMIT,
+        u_limit => U_LIMIT,
     );
 
     for my $sub (keys %sub2index) {
@@ -271,7 +273,7 @@ sub from_id { #===============================================================
 
     ### numeric lookup
     for(@SYMBOL_TABLE) {
-        next unless($_->[$ID] eq $id);
+        next unless($_->[ID] eq $id);
         @$row = @$_;
         last;
     }
@@ -293,14 +295,27 @@ sub from_code { #=============================================================
 
     ### numeric lookup
     for(@SYMBOL_TABLE) {
-        next unless($_->[$CODE]  == $code);
-        next unless($_->[$PCODE] == $pID);
+        next unless($_->[CODE]  == $code);
+        next unless($_->[PCODE] == $pID);
         @$row = @$_;
         last;
     }
 
     ### the end
     return bless $row, $class;
+}
+
+sub undefined_func { #========================================================
+
+    ### init
+    my $self   = shift;
+    my $code   = shift;
+    my $p_code = shift;
+
+    $self->[ID]    = 'NA';
+    $self->[CODE]  = $code;
+    $self->[PCODE] = $p_code;
+    $self->[FUNC]  = 'hexstr';
 }
 
 #=============================================================================
@@ -346,7 +361,7 @@ The default return value is a blessed array.
 =head2 id
 
 Returns the identifier.
-Returns "" on error.
+Returns "NA" on error.
 
 =head2 code
 
@@ -361,7 +376,7 @@ Returns -1 on error.
 =head2 func
 
 Returns the name of the function to be used when decoding/encoding.
-Returns "" on error.
+Returns "NA" on error.
 
 =head2 l_limit
 
@@ -372,6 +387,10 @@ Returns -1 on error.
 
 Returns the upper limit numeric value.
 Returns -1 on error.
+
+=head2 undefined_func
+
+Sets up the object, with new values.
  
 =head1 AUTHOR
 
@@ -391,27 +410,8 @@ You can find documentation for this module with the perldoc command.
 
     perldoc DOCSIS::ConfigFile::Syminfo
 
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DOCSIS-ConfigFile>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
-
-=item * Search CPAN
-
+You can also look for information at
 L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-=back
 
 =head1 ACKNOWLEDGEMENTS
 

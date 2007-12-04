@@ -176,16 +176,16 @@ sub uchar { #=================================================================
 sub vendorspec { #============================================================
 
     ### init
-    my $obj       = shift;
-    my @vendor    = map { hex $_ } ($obj->{'value'} =~ /(\w{2})/g);
-    my $aggregate = $obj->{'aggregate'};
+    my $obj    = shift;
+    my @vendor = map { hex $_ } ($obj->{'value'} =~ /(\w{2})/g);
+    my $nested = $obj->{'nested'};
     my @bytes;
 
     ### check
-    return unless(ref $aggregate eq 'ARRAY');
+    return unless(ref $nested eq 'ARRAY');
 
     TLV:
-    for my $tlv (@$aggregate) {
+    for my $tlv (@$nested) {
         push @bytes, $tlv->{'type'};
         push @bytes, $tlv->{'length'};
         push @bytes, $tlv->{'value'};
@@ -271,6 +271,10 @@ sub int_to_bytes { #==========================================================
     return @bytes;
 }
 
+sub mic { #===================================================================
+    return; # should not get encoded
+}
+
 #=============================================================================
 1983;
 __END__
@@ -326,6 +330,8 @@ Returns an array-ref to an array with two elements:
 
 =head2 int_to_bytes
 
+=head2 mic
+
 =head1 AUTHOR
 
 Jan Henning Thorsen, C<< <pm at flodhest.net> >>
@@ -344,27 +350,8 @@ You can find documentation for this module with the perldoc command.
 
     perldoc DOCSIS::ConfigFile
 
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DOCSIS-ConfigFile>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
-
-=item * Search CPAN
-
+You can also look for information at
 L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-=back
 
 =head1 ACKNOWLEDGEMENTS
 

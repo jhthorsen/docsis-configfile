@@ -322,27 +322,8 @@ You can find documentation for this module with the perldoc command.
 
     perldoc DOCSIS::ConfigFile
 
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DOCSIS-ConfigFile>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
-
-=item * Search CPAN
-
+You can also look for information at
 L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-=back
 
 =head1 ACKNOWLEDGEMENTS
 

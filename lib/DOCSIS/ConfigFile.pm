@@ -34,44 +34,64 @@ our $LOGCONFIG     = {
 };
 
 
+BEGIN { #=====================================================================
+    no strict 'refs';
+    my %subs = (
+        shared_secret   => q(),
+        log             => undef,
+        advanced_output => undef,
+    );
+
+    for my $sub (keys %subs) {
+        *$sub = sub {
+            my $self = shift;
+            $self->{"__$sub"} = shift if(defined $_[0]);
+            return $self->{"__$sub"} || $subs{$sub};
+        };
+    }
+}
+
+
 sub decode { #================================================================
+    no warnings 'newline'; # don't shout on invalid filename
 
     ### init
-    my $self = shift;
-    my %args = @_;
+    my $self  = shift;
+    my $input = shift;
     my $FH;
 
-    ### setup args
-    $self->{$_} = $args{$_} for(keys %args);
+    ### no input
+    if(not defined $input) {
+        $self->log->error("Need 'something' to decode");
+        return;
+    }
 
-    ### no filehandle
-    unless(ref $self->{'filehandle'} eq 'GLOB') {
+    ### input is a binary string
+    elsif(ref $input eq 'SCALAR') {
+        open($FH, "<", $input);
+    }
 
-        ### read from file on disk
-        if($self->{'read_file'} and -r $self->{'read_file'}) {
-            if(open($FH, '<', $self->{'read_file'})) {
-                binmode $FH;
-                $self->{'filehandle'} = $FH;
-            }
-            else {
-                $self->log->error("Could not open read_file: $!");
-                return;
-            }
-        }
+    ### input is filehandle
+    elsif(ref $input eq 'GLOB') {
+        $self->log->debug("Decoding from filehandle");
+    }
 
-        ### read from string
-        elsif($self->{'binstring'}) {
-            open($FH, '<', \$self->{'binstring'});
-            binmode $FH;
-            $self->{'filehandle'} = $FH;
+    ### input is file
+    elsif(-f $input) {
+        unless(open($FH, "<", $input)) {
+            $self->log->error("Could not decode from $input: $!");
+            return;
         }
     }
 
-    ### still no filehandle
-    unless(ref $FH eq 'GLOB') {
-        return error(
-            "No valid filename, binstring or filehandle\n"
-        );
+    ### check filehandle
+    if(ref $FH eq 'GLOB') {
+        binmode $FH;
+        $self->{'decode_fh'} = $FH;
+    }
+    else {
+        $self->log->error("Could not set up filehandle for decoding");
+        return;
     }
 
     ### the end
@@ -83,13 +103,14 @@ sub _decode_loop { #==========================================================
     ### init
     my $self         = shift;
     my $total_length = shift || 0xffffffff;
-    my $pID          = shift || 0;
-    my $FH           = $self->{'filehandle'};
+    my $p_code       = shift || 0;
+    my $FH           = $self->{'decode_fh'};
+    my $decode_class = 'DOCSIS::ConfigFile::Decode';
     my $cfg          = [];
 
     BYTE:
     while($total_length > 0) {
-        my($code, $length, $syminfo, $func_name, $value);
+        my($code, $length, $syminfo, $value, $nested);
 
         ### read data header
         unless(read $FH, $code, 1) {
@@ -101,44 +122,45 @@ sub _decode_loop { #==========================================================
             last BYTE;
         }
 
+        ### fix data
         $code          = unpack("C", $code);
         $length        = unpack("C", $length) or next BYTE;
-        $syminfo       = DOCSIS::ConfigFile::Syminfo->from_code($code, $pID);
-        $value         = '';
         $total_length -= $length + 2;
+        $value         = q();
+        $syminfo       = DOCSIS::ConfigFile::Syminfo->from_code(
+                             $code, $p_code
+                         );
 
         ### nested block
-        if($syminfo->func eq 'aggregate') {
-            my $aggregate = $self->_decode_loop($length, $syminfo->code);
-            push @$cfg, _value_to_cfg($syminfo, $length, undef, $aggregate);
-            next BYTE;
+        if($syminfo->func eq 'nested') {
+            $nested = $self->_decode_loop($length, $syminfo->code);
         }
 
-        ### normal
-        read($FH, my $data, $length);
-        my $aggregate;
-
-        ### decode binary string
-        if(my $sub = DOCSIS::ConfigFile::Decode->can($syminfo->func)) {
-            my $func_name = $syminfo->func;
-            ($value, $aggregate) = $sub->($data);
-        }
+        ### flat block
         else {
-            my $func_name = "hexstr";
-            @{$syminfo}[0,1,3] = ('NA', $code, 'unpack(H*)');
-            $value             = DOCSIS::ConfigFile::Decode::hexstr($data);
+
+            ### decode function does not exist
+            unless($decode_class->can($syminfo->func)) {
+                $self->log->debug("decode function does not exist");
+                $syminfo->undefined_func($code, $p_code);
+            }
+
+            ### read and decode
+            read($FH, my $data, $length);
+            ($value, $nested) = $decode_class->can($syminfo->func)->($data);
+        }
+    
+        ### save data
+        if(defined $value or defined $nested) {
+            push @$cfg, $self->_value_to_cfg(
+                            $syminfo, $length, $value, $nested
+                        );
         }
 
-        ### could not extract data
-        unless(defined $value) {
-            $self->log->error(
-                "Could not decode data with ::Decode->$func_name"
-            );
-            next BYTE;
+        ### no data
+        else {
+            $self->log->error("Could not decode data");
         }
- 
-        ### do something with the result
-        push @$cfg, _value_to_cfg($syminfo, $length, $value, $aggregate); 
     }
 
     ### the end
@@ -148,38 +170,44 @@ sub _decode_loop { #==========================================================
 sub _value_to_cfg { #=========================================================
 
     ### init
-    my $syminfo   = shift;
-    my $length    = shift;
-    my $value     = shift;
-    my $aggregate = shift;
+    my $self    = shift;
+    my $syminfo = shift;
+    my $length  = shift;
+    my $value   = shift;
+    my $nested  = shift;
 
-    ### the end
-    return {
-        name   => $syminfo->id,
-        code   => $syminfo->code,
-        pcode  => $syminfo->pcode,
-        func   => $syminfo->func,
-        llimit => $syminfo->l_limit,
-        ulimit => $syminfo->u_limit,
-        length => $length,
-        (defined $value ? (value     => $value    ) : ()),
-        ($aggregate     ? (aggregate => $aggregate) : ()),
-    };
+    ### return config
+    if($self->advanced_output) {
+        return {
+            name   => $syminfo->id,
+            code   => $syminfo->code,
+            pcode  => $syminfo->pcode,
+            func   => $syminfo->func,
+            llimit => $syminfo->l_limit,
+            ulimit => $syminfo->u_limit,
+            length => $length,
+            (defined $value  ? (value  => $value ) : ()),
+            (defined $nested ? (nested => $nested) : ()),
+
+        };
+    }
+    else {
+        return {
+            name => $syminfo->id,
+            (defined $value  ? (value  => $value ) : ()),
+            (defined $nested ? (nested => $nested) : ()),
+        };
+    }
 }
 
 sub encode { #================================================================
 
     ### init
-    my $self = ref $_[0] ? shift(@_) : shift->new(@_);
-    my %args = @_;
-    my $config;
-
-    ### setup args
-    $self->{$_} = $args{$_} for(keys %args);
-    $config     = $self->{'config'};
+    my $self   = shift;
+    my $config = shift;
 
     ### check config
-    unless(ref $config eq 'ARRAY') {
+    if(ref $config ne 'ARRAY') {
         $self->log->error("Input is not an array ref");
         return;
     }
@@ -188,28 +216,28 @@ sub encode { #================================================================
     $self->{'cmts_mic_data'}{$_} = [] for(@cmts_mic_list);
 
     ### encode data
-    $self->{'binstring'} = $self->_encode_loop($config);
+    my $binstring = $self->_encode_loop($config);
 
     ### mta config file
     if(grep { $_->{'name'} eq 'MtaConfigDelimiter' } @$config) {
         $self->log->debug("Setting up MTA config-file");
     }
 
-    ### special cm params
+    ### add special cm params
     else {
         $self->log->debug("Setting up CM config-file");
 
         ### calculate mic, eod and pad
-        my $cm_mic   = $self->calculate_cm_mic;
-        my $cmts_mic = $self->calculate_cmts_mic($cm_mic);
-        my $eod_pad  = $self->calculate_eod_and_pad;
+        my $cm_mic   = $self->_calculate_cm_mic(\$binstring);
+        my $cmts_mic = $self->_calculate_cmts_mic($cm_mic);
+        my $eod_pad  = $self->_calculate_eod_and_pad(length $binstring);
 
         ### add mic, eod and pad
-        $self->{'binstring'} .= $cm_mic .$cmts_mic. $eod_pad;
+        $binstring .= $cm_mic .$cmts_mic. $eod_pad;
     }
 
     ### the end
-    return $self->{'binstring'};
+    return $binstring;
 }
 
 sub _encode_loop { #==========================================================
@@ -218,12 +246,12 @@ sub _encode_loop { #==========================================================
     my $self      = shift;
     my $config    = shift;
     my $level     = shift || 0;
-    my $binstring = '';
+    my $binstring = q();
 
     ### check config
-    unless(ref $config eq 'ARRAY') {
-        $self->log->error("Not an array: " .ref($config) ."\n");
-        return "";
+    if(ref $config ne 'ARRAY') {
+        $self->log->error("Not an array: " .ref $config);
+        return q();
     }
 
     TLV:
@@ -236,10 +264,10 @@ sub _encode_loop { #==========================================================
         my $code    = $syminfo->code;
 
         ### nested tlv
-        if($syminfo->func eq 'aggregate') {
+        if($syminfo->func eq 'nested') {
 
             ### set binstring
-            my $value   = $self->_encode_loop($tlv->{'aggregate'}, $level+1);
+            my $value   = $self->_encode_loop($tlv->{'nested'}, $level + 1);
             my $length  = pack "C", length $value;
             my $type    = pack "C", $code;
             $binstring .= $type .$length .$value;
@@ -256,7 +284,7 @@ sub _encode_loop { #==========================================================
 
         ### don't know what to do
         elsif(not $sub) {
-            $self->log->error("Unknown encode method: $name");
+            $self->log->error("Unknown encode method for $name");
             next TLV;
         }
 
@@ -290,8 +318,7 @@ sub _encode_loop { #==========================================================
 
         ### add to cmts mic calculation
         if(!$level and exists $self->{'cmts_mic_data'}{$code}) {
-            push @{ $self->{'cmts_mic_data'}{$code} },
-                 $type .$length .$value;
+            push @{ $self->{'cmts_mic_data'}{$code} }, "$type$length$value";
         }
     }
 
@@ -299,21 +326,23 @@ sub _encode_loop { #==========================================================
     return $binstring;
 }
 
-sub calculate_eod_and_pad { #=================================================
+sub _calculate_eod_and_pad { #================================================
 
     ### init
-    my $self = shift;
-    my $pads = 4 - (1 + length $self->{'binstring'}) % 4;
+    my $self   = shift;
+    my $length = shift;
+    my $pads   = 4 - (1 + $length) % 4;
 
     ### the end
     return pack("C", 255) .("\0" x $pads);
 }
 
-sub calculate_cm_mic { #======================================================
+sub _calculate_cm_mic { #=====================================================
 
     ### init
-    my $self   = shift;
-    my $cm_mic = pack("C*", 6, 16) .Digest::MD5::md5($self->{'binstring'});
+    my $self      = shift;
+    my $binstring = shift;
+    my $cm_mic    = pack("C*", 6, 16) .Digest::MD5::md5($$binstring);
 
     ### save to cmts_mic_data
     $self->{'cmts_mic_data'}{6} = [$cm_mic];
@@ -322,12 +351,11 @@ sub calculate_cm_mic { #======================================================
     return $cm_mic;
 }
 
-sub calculate_cmts_mic { #====================================================
+sub _calculate_cmts_mic { #===================================================
 
     ### init
     my $self          = shift;
     my $cm_mic        = shift;
-    my $shared_secret = $self->{'shared_secret'} || '';
     my $cmts_mic_data = $self->{'cmts_mic_data'};
     my $data          = "";
 
@@ -340,32 +368,22 @@ sub calculate_cmts_mic { #====================================================
 
     ### the end
     return pack("C*", 7, 16)
-          .Digest::HMAC_MD5::hmac_md5($data, $shared_secret)
+          .Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret)
           ;
-}
-
-sub log { #===================================================================
-    my $self = shift;
-    $self->{'__log'} = shift if(defined $_[0]);
-    return $self->{'__log'};
 }
 
 sub new { #===================================================================
 
     ### init
     my $class  = shift;
-    my $self   = bless {
-                    decoded       => [],
-                    filehandle    => '',
-                    read_file     => '',
-                    binstring     => '',
+    my %args   = @_;
+    my $self   = bless {}, $class;
 
-                    encoded       => '',
-                    write_file    => '',
-                    shared_secret => '',
-
-                    @_,
-                 }, $class;
+    ARGUMENT:
+    for my $k (keys %args) {
+        next ARGUMENT unless($self->can($k));
+        $self->$k($args{$k});
+    }
 
     ### init logging
     Log::Log4perl->init($LOGCONFIG) unless(Log::Log4perl->initialized);
@@ -385,75 +403,64 @@ __END__
 
 =head1 NAME
 
-DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cable-modems
+DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cablemodems
 
 =head1 VERSION
 
-Version 0.1
+Version 0.03
 
 =head1 SYNOPSIS
 
     use DOCSIS::ConfigFile;
+    use YAML;
 
     my $obj     = DOCSIS::ConfigFile->new(
-                      filehandle => $glob,
-                      read_file  => $filename,
-                      binstring  => $data,
-
-                      config        => $decoded,
-                      shared_secret => '',
+                      shared_secret   => '', # default
+                      advanced_output => 0,  # default
                   );
-    my $decoded = $obj->decode;
-    my $encoded = $obj->encode;
+
+                  $obj->shared_secret("foobar");
+    my $encoded = $obj->encode([ {...}, {...}, ... ]);
+    my $decoded = $obj->decode($filename);
+                  $obj->advanced_output(1);
+    my $dec_adv = $obj->decode(\$encoded);
+
+    print YAML::Dump($decoded); # see simple config in YAML format
+    print YAML::Dump($dec_adv); # see advanced config in YAML format
  
 =head1 METHODS
 
 =head2 new
 
-Object constructor. Takes any of the arguments C<decode> or C<encode> takes.
+Object constructor.
 
 =head2 decode
 
-Decodes the config-file. Constructor needs only one of these arguments:
+Decodes a binary config-file. Needs only one of these arguments: Filehandle,
+path to file or reference to a binary string.
 
- * filehandle => reference to an open file.
- * read_file  => path to a file to read.
- * binstring  => a string containing the binary config.
-
-Returns:
-
- * On error: undef.
- * On success: an array of hashes containing the config.
+Returns an array-ref of hashes, containing the config as a perl data
+structure.
 
 =head2 encode
 
-Encodes the config-file settings. Arguments to pass on to the constructor:
+Encodes an array of hashes, containing the DOCSIS config-file settings. Takes
+only on argument: An array-ref of hashes.
 
- * config        => array of hashes reference.
- * shared_secret => a string containing the shared secret to match in the
-                    CMTS.
+Returns a binary string.
 
-Returns:
- 
- * On error: undef
- * On success: a binary string
+=head2 shared_secret
+
+Sets or gets the shared secret.
+
+=head2 advanced_output
+
+Sets weither advanced output should be enabled. Takes 0 or 1 as argument.
+Advanced output is off (0) by default.
 
 =head2 log
 
 Returns a log-handler. Log::Log4perl by default.
-
-=head2 calculate_eod_and_pad
-
-Returns the EOD and padding for the config-file. Called automatically from
-inside encode().
-
-=head2 calculate_cm_mic
-
-Returns the CM MIC. Called automatically from inside encode().
-
-=head2 calculate_cmts_mic
-
-Returns the CMTS MIC. Called automatically from inside encode().
 
 =head1 AUTHOR
 
@@ -473,27 +480,8 @@ You can find documentation for this module with the perldoc command.
 
     perldoc DOCSIS::ConfigFile
 
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DOCSIS-ConfigFile>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
-
-=item * Search CPAN
-
+You can also look for information at
 L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-=back
 
 =head1 ACKNOWLEDGEMENTS
 

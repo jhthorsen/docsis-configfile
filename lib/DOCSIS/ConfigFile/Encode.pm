@@ -6,6 +6,7 @@ package DOCSIS::ConfigFile::Encode;
 use strict;
 use warnings;
 use bytes;
+use Math::BigInt;
 use Socket;
 
 our $ERROR     = '';
@@ -274,7 +275,9 @@ sub int_to_bytes { #==========================================================
 1983;
 __END__
 
-=head1 NAME DOCSIS::ConfigFile::Encode
+=head1 NAME
+
+DOCSIS::ConfigFile::Encode - Encode functions for a DOCSIS config-file.
 
 =head1 VERSION
 
@@ -282,9 +285,16 @@ See DOCSIS::ConfigFile
 
 =head1 FUNCTIONS
 
-=head2 byte_size
+=head2 byte_size($arg)
 
-=head2 snmp_type
+Returns the requested byte-size from DOCSIS::ConfigFile.
+
+=head2 snmp_type($arg)
+
+Returns an array-ref to an array with two elements:
+
+ 1) The numeric value of the SNMP type.
+ 2) A reference to the function to encode the value.
 
 =head2 snmp_oid
 
@@ -360,10 +370,6 @@ L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
 
 =head1 COPYRIGHT & LICENSE
 
-------------------------------------------------------------------------------
-THIS PROGRAM IS BASED ON THE C-PROGRAM "docsis" FROM docsis.sf.net!
-------------------------------------------------------------------------------
-
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
@@ -384,5 +390,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
+
+This module got its inspiration from the program docsis, http://docsis.sf.net.
 
 =cut

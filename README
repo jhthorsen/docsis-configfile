@@ -8,30 +8,49 @@ VERSION
 SYNOPSIS
         use DOCSIS::ConfigFile;
 
-        my $obj = DOCSIS::ConfigFile->new(
-                      filehandle    => '', # used by decode
-                      read_file     => '', # used by decode
-                      write_file    => '', # used by encode
-                      shared_secret => '', # used by encode
-                      binstring     => '', # holds the data
-                  )
- 
-        $config_data = $obj->encode;
-        $config_data = $obj->decode;
+        my $obj     = DOCSIS::ConfigFile->new(
+                          filehandle => $glob,
+                          read_file  => $filename,
+                          binstring  => $data,
 
+                          config        => $decoded,
+                          shared_secret => '',
+                      );
+        my $decoded = $obj->decode;
+        my $encoded = $obj->encode;
+ 
 METHODS
   new
-    Object constructor
+    Object constructor. Takes any of the arguments "decode" or "encode"
+    takes.
 
   decode
-    Decodes the config-file.
+    Decodes the config-file. Constructor needs only one of these arguments:
+
+     * filehandle => reference to an open file.
+     * read_file  => path to a file to read.
+     * binstring  => a string containing the binary config.
+
+    Returns:
+
+     * On error: undef.
+     * On success: an array of hashes containing the config.
 
   encode
-    Encodes the config-file settings.
+    Encodes the config-file settings. Arguments to pass on to the
+    constructor:
 
-  find_syminfo
-    Returns a array ref with information about the docsis symbol. The symbol
-    can be either ID or a combination of CODE and PCODE.
+     * config        => array of hashes reference.
+     * shared_secret => a string containing the shared secret to match in the
+                        CMTS.
+
+    Returns:
+
+     * On error: undef
+     * On success: a binary string
+
+  log
+    Returns a log-handler. Log::Log4perl by default.
 
   calculate_eod_and_pad
     Returns the EOD and padding for the config-file. Called automatically
@@ -42,28 +61,6 @@ METHODS
 
   calculate_cmts_mic
     Returns the CMTS MIC. Called automatically from inside encode().
-
-FUNCTIONS
-  ID
-    find_syminfo("foo")->[&ID] returns the identifier for the symbol "foo"
-
-  CODE
-    find_syminfo("foo")->[&CODE] returns the docsis code for the symbol
-    "foo"
-
-  PCODE
-    find_syminfo("foo")->[&PCODE] returns the parent docsis code for the
-    symbol
-
-  FUNC
-    find_syminfo("foo")->[&PCODE] returns the function name to use to
-    enc/decode the docsis symbol.
-
-  L_LIMIT
-    find_syminfo("foo")->[&PCODE] returns the lower limit for this value.
-
-  U_LIMIT
-    find_syminfo("foo")->[&PCODE] returns the upper limit for this value.
 
 AUTHOR
     Jan Henning Thorsen, "<pm at flodhest.net>"
@@ -96,12 +93,6 @@ SUPPORT
 
 ACKNOWLEDGEMENTS
 COPYRIGHT & LICENSE
-    ------------------------------------------------------------------------
-    ------ THIS PROGRAM IS BASED ON THE C-PROGRAM "docsis" FROM
-    docsis.sf.net!
-    ------------------------------------------------------------------------
-    ------
-
     This program is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
 
@@ -122,4 +113,7 @@ COPYRIGHT & LICENSE
     675 Mass Ave, Cambridge, MA 02139, USA.
 
     DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
+
+    This module got its inspiration from the program docsis,
+    http://docsis.sf.net.
 

@@ -6,6 +6,7 @@ package DOCSIS::ConfigFile::Decode;
 use strict;
 use warnings;
 use bytes;
+use Math::BigInt;
 use Socket;
 
 our $ERROR     = '';
@@ -252,7 +253,9 @@ sub hexstr { #================================================================
 1983;
 __END__
 
-=head1 NAME DOCSIS::ConfigFile::Decode
+=head1 NAME
+
+DOCSIS::ConfigFile::Decode - Decode functions for a DOCSIS config-file
 
 =head1 VERSION
 
@@ -260,9 +263,16 @@ See DOCSIS::ConfigFile
 
 =head1 FUNCTIONS
 
-=head2 byte_size
+=head2 byte_size(lc $arg)
 
-=head2 snmp_type
+Returns the requested byte-size from DOCSIS::ConfigFile.
+
+=head2 snmp_type(lc $arg)
+
+Returns an array-ref to an array with two elements:
+
+ 1) The string of the SNMP type.
+ 2) A reference to the function to decode the value.
 
 =head2 snmp_oid
 
@@ -271,6 +281,8 @@ See DOCSIS::ConfigFile
 =head2 bigint
 
 =head2 uint
+
+Decodes a 8bit int.
 
 =head2 ushort
 
@@ -336,10 +348,6 @@ L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
 
 =head1 COPYRIGHT & LICENSE
 
-------------------------------------------------------------------------------
-THIS PROGRAM IS BASED ON THE C-PROGRAM "docsis" FROM docsis.sf.net!
-------------------------------------------------------------------------------
-
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
@@ -360,5 +368,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
+
+This module got its inspiration from the program docsis, http://docsis.sf.net.
 
 =cut

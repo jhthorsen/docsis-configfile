@@ -1,5 +1,12 @@
 Revision history for DOCSIS-Perl
 
+0.01    Tue,  4 Dec 2007 16:10:00 +0200
+        Added deps to makefile.
+        Changed error reporting to Log4perl.
+        Added encode/decode test.
+        Moved syminfo to DOCSIS::ConfigFile::Syminfo.
+        Updated POD.
+
 0.01    Mon,  3 Dec 2007 23:49:00 +0200
         First release of DOCSIS::ConfigFile
 

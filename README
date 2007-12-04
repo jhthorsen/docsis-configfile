@@ -1,66 +1,54 @@
 NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for
-    cable-modems
+    cablemodems
 
 VERSION
-    Version 0.1
+    Version 0.03
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
+        use YAML;
 
         my $obj     = DOCSIS::ConfigFile->new(
-                          filehandle => $glob,
-                          read_file  => $filename,
-                          binstring  => $data,
-
-                          config        => $decoded,
-                          shared_secret => '',
+                          shared_secret   => '', # default
+                          advanced_output => 0,  # default
                       );
-        my $decoded = $obj->decode;
-        my $encoded = $obj->encode;
+
+                      $obj->shared_secret("foobar");
+        my $encoded = $obj->encode([ {...}, {...}, ... ]);
+        my $decoded = $obj->decode($filename);
+                      $obj->advanced_output(1);
+        my $dec_adv = $obj->decode(\$encoded);
+
+        print YAML::Dump($decoded); # see simple config in YAML format
+        print YAML::Dump($dec_adv); # see advanced config in YAML format
  
 METHODS
   new
-    Object constructor. Takes any of the arguments "decode" or "encode"
-    takes.
+    Object constructor.
 
   decode
-    Decodes the config-file. Constructor needs only one of these arguments:
+    Decodes a binary config-file. Needs only one of these arguments:
+    Filehandle, path to file or reference to a binary string.
 
-     * filehandle => reference to an open file.
-     * read_file  => path to a file to read.
-     * binstring  => a string containing the binary config.
-
-    Returns:
-
-     * On error: undef.
-     * On success: an array of hashes containing the config.
+    Returns an array-ref of hashes, containing the config as a perl data
+    structure.
 
   encode
-    Encodes the config-file settings. Arguments to pass on to the
-    constructor:
+    Encodes an array of hashes, containing the DOCSIS config-file settings.
+    Takes only on argument: An array-ref of hashes.
 
-     * config        => array of hashes reference.
-     * shared_secret => a string containing the shared secret to match in the
-                        CMTS.
+    Returns a binary string.
 
-    Returns:
+  shared_secret
+    Sets or gets the shared secret.
 
-     * On error: undef
-     * On success: a binary string
+  advanced_output
+    Sets weither advanced output should be enabled. Takes 0 or 1 as
+    argument. Advanced output is off (0) by default.
 
   log
     Returns a log-handler. Log::Log4perl by default.
-
-  calculate_eod_and_pad
-    Returns the EOD and padding for the config-file. Called automatically
-    from inside encode().
-
-  calculate_cm_mic
-    Returns the CM MIC. Called automatically from inside encode().
-
-  calculate_cmts_mic
-    Returns the CMTS MIC. Called automatically from inside encode().
 
 AUTHOR
     Jan Henning Thorsen, "<pm at flodhest.net>"
@@ -77,19 +65,8 @@ SUPPORT
 
         perldoc DOCSIS::ConfigFile
 
-    You can also look for information at:
-
-    * AnnoCPAN: Annotated CPAN documentation
-        <http://annocpan.org/dist/DOCSIS-ConfigFile>
-
-    * CPAN Ratings
-        <http://cpanratings.perl.org/d/DOCSIS-ConfigFile>
-
-    * RT: CPAN's request tracker
-        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile>
-
-    * Search CPAN
-        <http://search.cpan.org/dist/DOCSIS-ConfigFile>
+    You can also look for information at
+    <http://search.cpan.org/dist/DOCSIS-ConfigFile>
 
 ACKNOWLEDGEMENTS
 COPYRIGHT & LICENSE

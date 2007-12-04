@@ -13,7 +13,7 @@ use DOCSIS::ConfigFile::Encode;
 use Log::Log4perl;
 
 
-our $VERSION       = '0.2';
+our $VERSION       = '0.3';
 our %BYTE_SIZE     = (
     'short int'   => 2,
     'int'         => 4,

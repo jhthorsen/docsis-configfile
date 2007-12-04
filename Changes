@@ -1,6 +1,12 @@
 Revision history for DOCSIS-Perl
 
-0.01    Tue,  4 Dec 2007 16:10:00 +0200
+0.03    Tue,  4 Dec 2007 22:32:00 +0200
+        Cleaned up encode/decode test.
+        Redesigned interface - not compatible with old interface.
+        Updated POD.
+        Added support for normal/advanced output.
+
+0.02    Tue,  4 Dec 2007 16:10:00 +0200
         Added deps to makefile.
         Changed error reporting to Log4perl.
         Added encode/decode test.

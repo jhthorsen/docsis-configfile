@@ -3,7 +3,7 @@ NAME
     cablemodems
 
 VERSION
-    Version 0.03
+    Version 0.4
 
 SYNOPSIS
         use DOCSIS::ConfigFile;

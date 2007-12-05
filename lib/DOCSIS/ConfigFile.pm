@@ -13,7 +13,7 @@ use DOCSIS::ConfigFile::Encode;
 use Log::Log4perl;
 
 
-our $VERSION       = '0.3';
+our $VERSION       = '0.4';
 our %BYTE_SIZE     = (
     'short int'   => 2,
     'int'         => 4,
@@ -407,7 +407,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cablemodems
 
 =head1 VERSION
 
-Version 0.03
+Version 0.4
 
 =head1 SYNOPSIS
 

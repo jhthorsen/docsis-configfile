@@ -1,10 +1,15 @@
 Revision history for DOCSIS-Perl
 
-0.03    Tue,  4 Dec 2007 22:32:00 +0200
+0.4     Wed,  5 Dec 2007 11:23:00 +0200
+        Hopefully made a decent release for CPAN.
+        Added example script, which should be quite useful: docsis_yaml.pl.
+
+0.3     Tue,  4 Dec 2007 22:32:00 +0200
         Cleaned up encode/decode test.
         Redesigned interface - not compatible with old interface.
         Updated POD.
         Added support for normal/advanced output.
+        Sorry for the version jump - Really bad typo:/
 
 0.02    Tue,  4 Dec 2007 16:10:00 +0200
         Added deps to makefile.

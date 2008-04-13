@@ -29,7 +29,6 @@ sub snmp_type { #=============================================================
 
 sub snmp_oid { #==============================================================
 
-    ### init
     my $string    = shift or return;
     my @input_oid = split /\./, $string;
     my $subid     = 0;
@@ -58,13 +57,11 @@ sub snmp_oid { #==============================================================
         }
     }
 
-    ### the end
     return wantarray ? @encoded_oid : \@encoded_oid;
 }
 
 sub snmp_object { #===========================================================
 
-    ### init
     my $obj    = shift->{'value'} or return;
     my @oid    = snmp_oid($obj->{'oid'});
     my $type   = snmp_type($obj->{'type'});
@@ -78,14 +75,12 @@ sub snmp_object { #===========================================================
         $type->[0], int(@value), @value, # value
     );
 
-    ### the end
     return wantarray ? @ret : \@ret;
 }
 
 sub bigint { #================================================================
 
-    ### init
-    my $int64    = Math::BigInt->new(shift()->{'value'});
+    my $int64    = Math::BigInt->new(shift->{'value'});
     my $negative = $int64 < 0;
     my @bytes    = $negative ? (0x80) : ();
 
@@ -99,18 +94,15 @@ sub bigint { #================================================================
     ### bytes need a value
     @bytes = (0) unless(@bytes);
 
-    ### the end
     return wantarray ? @bytes : \@bytes;
 }
 
 sub uint { #==================================================================
 
-    ### init
     my $obj      = shift;
     my $int      = $obj->{'value'} || 0;
     my $negative = $int < 0;
     my @bytes;
-
 
     while($int) {
         my $value  = $int & 0xff;
@@ -133,13 +125,11 @@ sub uint { #==================================================================
         unshift @bytes, 0 if(!$negative and $bytes[0] > 0x79);
     }
 
-    ### the end
     return wantarray ? @bytes : \@bytes;
 }
 
 sub ushort { #================================================================
 
-    ### init
     my $obj      = shift;
     my $short    = $obj->{'value'};
     my $negative = $short < 0;
@@ -166,7 +156,6 @@ sub ushort { #================================================================
     ### bytes need a value
     @bytes = (0) unless(@bytes);
 
-    ### the end
     return wantarray ? @bytes : \@bytes;
 }
 
@@ -177,7 +166,6 @@ sub uchar { #=================================================================
 
 sub vendorspec { #============================================================
 
-    ### init
     my $obj    = shift;
     my $nested = $obj->{'nested'};
     my(@vendor, @bytes);
@@ -190,12 +178,12 @@ sub vendorspec { #============================================================
 
     TLV:
     for my $tlv (@$nested) {
+        my @value = string($tlv);
         push @bytes, $tlv->{'type'};
-        push @bytes, $tlv->{'length'};
-        push @bytes, ether($tlv);
+        push @bytes, int(@value);
+        push @bytes, @value;
     }
 
-    ### the end
     return wantarray ? @bytes : \@bytes;
 }
 
@@ -206,7 +194,6 @@ sub ip { #====================================================================
 
 sub ether { #=================================================================
 
-    ### init
     my $obj    = shift or return;
     my $string = $obj->{'value'};
 
@@ -214,28 +201,23 @@ sub ether { #=================================================================
 
     ### numeric
     if($string =~ /^\d+$/) {
-        return value_to_bytes({ int => $string });
+        return uint({ value => $string });
     }
 
     ### hex
     elsif($string =~ /^(?:0x)?([0-9a-f]+)$/i) {
-        return value_to_bytes({ hex => $1 });
+        return hexstr({ value => $1 });
     }
-}
-
-sub oid { #===================================================================
-    return snmp_oid(shift->{'value'});
 }
 
 sub string { #================================================================
 
-    ### init
     my $obj    = shift;
     my $string = $obj->{'value'};
 
     ### hex
     if($string =~ /^0x([0-9a-f]+)$/i) {
-        return value_to_bytes({ hex => $1 });
+        return hexstr({ value => $1 });
     }
 
     ### normal
@@ -247,51 +229,17 @@ sub string { #================================================================
 
 sub hexstr { #================================================================
 
-    ### init
-    my $ether = shift->{'value'};
+    my $value = shift->{'value'} || '';
+    my @bytes;
 
-    ### numeric
-    if($ether =~ /^\d+$/) {
-        return value_to_bytes({ int => $ether });
-    }
-
-    ### hex
-    elsif($ether =~ /^(?:0x)?([0-9a-f]+)$/i) {
-        return value_to_bytes({ hex => $1 });
-    }
-}
-
-sub value_to_bytes { #========================================================
-
-    ### init
-    my $data = shift || {};
-    my($value, @bytes);
-
-    ### from hex
-    if($value = $data->{'hex'}) {
-
-        return unless($value =~ /^[0-9a-fA-F]+$/);
-
+    if($value =~ /^(?:0x)?([0-9a-f]+)$/i) {
         while($value) {
             $value =~ s/(\w{1,2})$//;
             unshift @bytes, hex $1;
         }
     }
 
-    ### from int
-    elsif($value = $data->{'int'}) {
-
-        return unless($value =~ /^\d+$/);
-
-        while($value) {
-            my $v    = $value & 0xff;
-            $value >>= 8;
-            unshift @bytes, $v;
-        }
-    }
-
-    ### the end
-    return wantarray ? @bytes : \@bytes;
+    return wantarray ? @bytes: \@bytes;
 }
 
 sub mic { #===================================================================
@@ -312,6 +260,8 @@ See DOCSIS::ConfigFile
 
 =head1 FUNCTIONS
 
+Every function can return either a list or an array-ref.
+
 =head2 snmp_type($arg)
 
 Returns an array-ref to an array with two elements:
@@ -319,35 +269,77 @@ Returns an array-ref to an array with two elements:
  1) The numeric value of the SNMP type.
  2) A reference to the function to encode the value.
 
-=head2 snmp_oid
+=head2 snmp_oid($string)
 
-=head2 snmp_object
+Takes a numeric OID and byte-encodes it.
 
-=head2 bigint
+=head2 snmp_object(\%h)
 
-=head2 uint
+Takes a hash-ref (keys: oid, type, value), and returns a byte-encoded snmp-
+object.
 
-=head2 ushort
+ #-type---length---------value-----type---
+   48,    $total_length,         # object
+   6,     int(@oid),     @oid,   # oid
+   $type, int(@value),   @value, # value
 
-=head2 ushort_list
+=head2 bigint(\%h)
 
-=head2 uchar
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value could be any
+number.
 
-=head2 vendorspec
+=head2 uint(\%h)
 
-=head2 ip
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
+unsigned int.
 
-=head2 ether
+=head2 ushort(\%h)
 
-=head2 oid
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
+unsigned short int.
 
-=head2 string
+=head2 uchar(\%h)
 
-=head2 hexstr
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
+unsigned char.
 
-=head2 value_to_bytes
+=head2 vendorspec(\%h)
 
-=head2 mic
+Takes a hash-ref, and byte-encodes it.
+
+Example of the hash-ref:
+
+ {
+   value  => "0x001337", # vendors ID
+   nested => {
+     type   => "24", # vendor specific type
+     value  => "42", # vendor specific value
+   },
+ }
+
+=head2 ip(\%h)
+
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value need to an IPv4
+address.
+
+=head2 ether(\%h)
+
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value need to be a
+six or twelve byte ethernet address.
+
+=head2 string(\%h)
+
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The string could be
+anything in theory, but is often human-readable or a hex-string (leading 0x)
+
+=head2 hexstr(\%h)
+
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value can have
+leading '0x'.
+
+=head2 mic(\%h)
+
+Returns C<undef()>.
 
 =head1 AUTHOR
 

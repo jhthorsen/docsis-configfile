@@ -30,7 +30,6 @@ sub snmp_type { #=============================================================
 
 sub snmp_oid { #==============================================================
 
-    ### init
     my @input_oid   = @_;
     my @decoded_oid = (0);
     my $subid       = 0;
@@ -71,13 +70,11 @@ sub snmp_oid { #==============================================================
         $decoded_oid[1] -= 80;
     }
 
-    ### the end
     return join ".", @decoded_oid;
 }
 
 sub snmp_object { #===========================================================
 
-    ### init
     my $bin_string     = shift;
     my @data           = unpack "C*", $bin_string;
     my $seq_id         = shift @data;
@@ -94,7 +91,6 @@ sub snmp_object { #===========================================================
     ### check value
     return {} unless(defined $value);
 
-    ### the end
     return {
         oid   => $oid,
         type  => $type->[0],
@@ -104,7 +100,6 @@ sub snmp_object { #===========================================================
 
 sub bigint { #================================================================
 
-    ### init
     my @bytes = unpack 'C*', shift;
     my $value = ($bytes[0] & 0x80) ? -1 : shift @bytes;
     my $int64 = Math::BigInt->new($value);
@@ -115,13 +110,11 @@ sub bigint { #================================================================
         $int64  = ($value << 8) | $_;
     }
 
-    ### the end
     return $int64;
 }
 
 sub uint { #==================================================================
 
-    ### init
     my @bytes  = unpack 'C*', shift;
     my $length = @bytes;
     my $size   = syminfo->byte_size('int');
@@ -133,14 +126,12 @@ sub uint { #==================================================================
         return;
     }
 
-    ### the end
     $value = ($value << 8) | $_ for(@bytes);
     return $value;
 }
 
 sub ushort { #================================================================
 
-    ### init
     my $bin    = shift;
     my $length = length $bin;
     my $size   = syminfo->byte_size('short int');
@@ -151,7 +142,6 @@ sub ushort { #================================================================
         return;
     }
 
-    ### the end
     return unpack('n', $bin);
 }
 
@@ -161,7 +151,6 @@ sub uchar { #=================================================================
 
 sub vendorspec { #============================================================
 
-    ### init
     my $bin = shift;
     my($vendor, @ret, $length);
 
@@ -187,13 +176,11 @@ sub vendorspec { #============================================================
         }
     }
 
-    ### the end
     return $vendor, \@ret;
 }
 
 sub ip { #====================================================================
 
-    ### init
     my $bin     = shift;
     my $address = inet_ntoa($bin);
 
@@ -203,13 +190,11 @@ sub ip { #====================================================================
         return;
     }
 
-    ### the end
     return $address;
 }
 
 sub ether { #=================================================================
 
-    ### init
     my $bin    = shift;
     my $length = length $bin;
 
@@ -219,17 +204,11 @@ sub ether { #=================================================================
         return;
     }
 
-    ### the end
     return join ":", unpack("H2" x $length, $bin);
-}
-
-sub oid { #===================================================================
-    return snmp_oid(shift);
 }
 
 sub string { #================================================================
 
-    ### init
     my $bin = shift;
 
     ### hex string
@@ -241,10 +220,6 @@ sub string { #================================================================
     else {
         return sprintf "%s", $bin;
     }
-}
-
-sub strzero { #===============================================================
-    return sprintf "%s", shift;
 }
 
 sub hexstr { #================================================================
@@ -276,35 +251,70 @@ Returns an array-ref to an array with two elements:
  1) The string of the SNMP type.
  2) A reference to the function to decode the value.
 
-=head2 snmp_oid
+=head2 snmp_oid(@bytes)
 
-=head2 snmp_object
+Returns a numeric OID.
 
-=head2 bigint
+=head2 snmp_object($bytestring)
 
-=head2 uint
+Returns a hash-ref:
 
-Decodes a 8bit int.
+ {
+   oid   => "", # numeric OID
+   type  => "", # what kind of value (corresponding to C<snmp_type>)
+   value => "", # the oid value
+ }
 
-=head2 ushort
+=head2 bigint($bytestring)
 
-=head2 uchar
+Returns a C<Math::BigInt> object.
 
-=head2 vendorspec
+=head2 uint($bytestring)
 
-=head2 ip
+Returns an unsigned integer: 0..2**32-1
 
-=head2 ether
+=head2 ushort($bytestring)
 
-=head2 oid
+Returns an unsigned short integer: 0..2**16-1
 
-=head2 string
+=head2 uchar($bytesstring)
 
-=head2 strzero
+Returns an unsigned character: 0..2**8-1
 
-=head2 hexstr
+=head2 vendorspec($bytestring)
 
-=head2 mic
+Returns a list containing ($vendor, \%nested).
+
+Example:
+
+  "0x001337", # vendors ID
+  {
+    type   => "24", # vendor specific type
+    value  => "42", # vendor specific value
+    length => "1",  # the length of the value meassured in bytes
+  },
+
+
+=head2 ip($bytestring)
+
+Returns an IPv4-address.
+
+=head2 ether($bytestring)
+
+Returns a MAC-address.
+
+=head2 string($bytestring)
+
+Returns human-readable string if it can, or the string hex-encoded if it
+cannot.
+
+=head2 hexstr($bytestring)
+
+Returns a value, printed as hex.
+
+=head2 mic($bytestring)
+
+Returns a value, printed as hex.
 
 =head1 AUTHOR
 

@@ -15,7 +15,7 @@ use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION = '0.5';
+our $VERSION = '0.51';
 
 
 BEGIN { #=====================================================================
@@ -369,11 +369,11 @@ __END__
 
 =head1 NAME
 
-DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cablemodems
+DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-Version 0.5
+Version 0.51
 
 =head1 SYNOPSIS
 
@@ -426,7 +426,7 @@ Advanced output is off (0) by default.
 
 =head2 log
 
-Returns a log-handler. Log::Log4perl by default.
+Returns a log-handler.
 
 =head1 AUTHOR
 

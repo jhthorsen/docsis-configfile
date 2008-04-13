@@ -1,6 +1,9 @@
 Revision history for DOCSIS-Perl
 
-0.5     Sun, 13 Apr 2008 21:15:00 +0200
+0.51    Mon, 14 Apr 2008 00:19:00 +0100
+        Updated documentation
+
+0.5     Sun, 13 Apr 2008 21:15:00 +0100
         Bugfix(rt=34547): should be able to handle ->unlimited values :)
         Bugfix(rt=34548): no warnings when decoding CmMic and CmtsMic
         Extended 10-encode-decode test

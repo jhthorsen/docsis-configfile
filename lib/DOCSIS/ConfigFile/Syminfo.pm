@@ -109,7 +109,7 @@ our @SYMBOL_TABLE = (
 [ "UsServiceFlow",            24,   0,  "nested",      0,        0          ],
 [ "UsServiceFlowRef",          1,  24,  "ushort",      1,        65535      ],
 [ "UsServiceFlowId",           2,  24,  "uint",        1,        0xFFFFFFFF ],
-[ "ServiceClassName",          4,  24,  "strzero",     2,        16         ],
+[ "ServiceClassName",          4,  24,  "string",      2,        16         ],
 [ "QosParamSetType",           6,  24,  "uchar",       0,        255        ],
 [ "TrafficPriority",           7,  24,  "uchar",       0,        7          ],
 [ "MaxRateSustained",          8,  24,  "uint",        0,        0          ],
@@ -137,7 +137,7 @@ our @SYMBOL_TABLE = (
 [ "DsServiceFlow",            25,   0,  "nested",      0,        0          ],
 [ "DsServiceFlowRef",          1,  25,  "ushort",      1,        65535      ],
 [ "DsServiceFlowId",           2,  25,  "uint",        1,        0xFFFFFFFF ],
-[ "ServiceClassName",          4,  25,  "strzero",     2,        16         ],
+[ "ServiceClassName",          4,  25,  "string",      2,        16         ],
 [ "QosParamSetType",           6,  25,  "uchar",       0,        255        ],
 [ "TrafficPriority",           7,  25,  "uchar",       0,        7          ],
 [ "MaxRateSustained",          8,  25,  "uint",        0,        0xFFFFFFFF ],
@@ -200,7 +200,7 @@ our @SYMBOL_TABLE = (
 [ "SnmpV3TrapRxType",          3,  38,  "ushort",      1,        5          ],
 [ "SnmpV3TrapRxTimeout",       4,  38,  "ushort",      0,        65535      ],
 [ "SnmpV3TrapRxRetries",       5,  38,  "ushort",      0,        65535      ],
-[ "SnmpV3TrapRxFilterOID",     6,  38,  "oid",         1,        5          ],
+[ "SnmpV3TrapRxFilterOID",     6,  38,  "ushort",      1,        5          ],
 [ "SnmpV3TrapRxSecurityName",  7,  38,  "string",      1,        16         ],
 [ "DocsisTwoEnable",          39,   0,  "uchar",       0,        1          ],
 
@@ -308,7 +308,7 @@ sub from_code { #=============================================================
     return bless $row, $class;
 }
 
-sub undefined_func { #========================================================
+sub fallback_values { #=======================================================
 
     ### init
     my $self   = shift;
@@ -372,13 +372,15 @@ See DOCSIS::ConfigFile
     my $obj = DOCSIS::ConfigFile::Syminfo->from_id($docsis_symbol);
     my $obj = DOCSIS::ConfigFile::Syminfo->from_code($code, $pcode);
 
-=head1 OBJECT CONSTRUCTOR
+=head1 METHODS
 
 =head2 from_id
 
 Arguments:
 
  * 'identifier' => Name of the DOCSIS symbol
+
+Returns a C<DOCSIS::ConfigFile::Syminfo> object.
 
 =head2 from_code
 
@@ -387,11 +389,7 @@ Arguments:
  * $code  => The DOCSIS code
  * $pcode => If it's a sub-symbol
 
-=head2 Return value
-
-The default return value is a blessed array.
-
-=head1 METHODS
+Returns a C<DOCSIS::ConfigFile::Syminfo> object.
 
 =head2 id
 
@@ -423,9 +421,11 @@ Returns -1 on error.
 Returns the upper limit numeric value.
 Returns -1 on error.
 
-=head2 undefined_func
+=head2 fallback_values
 
-Sets up the object, with new values.
+Sets some default values on the current object.
+
+=head1 FUNCTIONS
 
 =head2 cmts_mic_codes
 

@@ -1,8 +1,8 @@
 name: DOCSIS::ConfigFile
-version: 0.5
+version: 0.51
 abstract: DOCSIS config-file encoder/decoder
 author: Jan Henning Thorsen
-license: gpl
+license: perl
 version_from: lib/DOCSIS/ConfigFile.pm
 installdirs: site
 distribution_type: module

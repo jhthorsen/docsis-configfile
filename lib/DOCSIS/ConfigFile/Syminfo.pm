@@ -332,7 +332,7 @@ sub cmts_mic_codes { #========================================================
             TftpTimestamp        TftpModemAddress
             UsPacketClass        DsPacketClass
             UsServiceFlow        DsServiceFlow
-            MaxClassifiers       BaselinePrivacySupport
+            MaxClassifiers       GlobalPrivacyEnable
             PHS                  SubMgmtControl
             SubMgmtCpeTable      SubMgmtFilters
             TestMode

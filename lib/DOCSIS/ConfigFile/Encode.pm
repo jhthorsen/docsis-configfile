@@ -30,7 +30,8 @@ sub snmp_type { #=============================================================
 sub snmp_oid { #==============================================================
 
     ### init
-    my @input_oid = split /\./, shift;
+    my $string    = shift or return;
+    my @input_oid = split /\./, $string;
     my $subid     = 0;
     my @encoded_oid;
 
@@ -64,7 +65,7 @@ sub snmp_oid { #==============================================================
 sub snmp_object { #===========================================================
 
     ### init
-    my $obj    = shift->{'value'};
+    my $obj    = shift->{'value'} or return;
     my @oid    = snmp_oid($obj->{'oid'});
     my $type   = snmp_type($obj->{'type'});
     my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
@@ -206,7 +207,10 @@ sub ip { #====================================================================
 sub ether { #=================================================================
 
     ### init
-    my $string = shift->{'value'};
+    my $obj    = shift or return;
+    my $string = $obj->{'value'};
+
+    return unless(defined $string);
 
     ### numeric
     if($string =~ /^\d+$/) {
@@ -226,7 +230,8 @@ sub oid { #===================================================================
 sub string { #================================================================
 
     ### init
-    my $string = shift->{'value'};
+    my $obj    = shift;
+    my $string = $obj->{'value'};
 
     ### hex
     if($string =~ /^0x([0-9a-f]+)$/i) {
@@ -243,7 +248,7 @@ sub string { #================================================================
 sub hexstr { #================================================================
 
     ### init
-    my $ether = shift()->{'value'};
+    my $ether = shift->{'value'};
 
     ### numeric
     if($ether =~ /^\d+$/) {

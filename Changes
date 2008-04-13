@@ -1,5 +1,11 @@
 Revision history for DOCSIS-Perl
 
+0.5     Sun, 13 Apr 2008 21:15:00 +0200
+        Bugfix(rt=34547): should be able to handle ->unlimited values :)
+        Bugfix(rt=34548): no warnings when decoding CmMic and CmtsMic
+        Extended 10-encode-decode test
+        Changed output format: hex-values start with '0x'
+
 0.4     Wed,  5 Dec 2007 11:23:00 +0200
         Hopefully made a decent release for CPAN.
         Added example script, which should be quite useful: docsis_yaml.pl.

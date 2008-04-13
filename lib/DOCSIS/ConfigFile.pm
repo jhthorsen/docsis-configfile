@@ -15,7 +15,7 @@ use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION   = '0.4';
+our $VERSION = '0.5';
 
 
 BEGIN { #=====================================================================
@@ -106,7 +106,6 @@ sub _decode_loop { #==========================================================
         $code          = unpack("C", $code);
         $length        = unpack("C", $length) or next BYTE;
         $total_length -= $length + 2;
-        $value         = q();
         $syminfo       = syminfo_class->from_code($code, $p_code);
 
         ### nested block
@@ -138,7 +137,7 @@ sub _decode_loop { #==========================================================
         ### no data
         else {
             $self->log->error(
-                "Could not decode data, using " .$syminfo->func
+                q(Could not decode data using ') .$syminfo->func .q(')
             );
         }
     }
@@ -374,7 +373,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files for cablemodems
 
 =head1 VERSION
 
-Version 0.4
+Version 0.5
 
 =head1 SYNOPSIS
 

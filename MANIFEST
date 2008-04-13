@@ -1,10 +1,16 @@
 Changes
-MANIFEST
-META.yml # Will be created by "make dist"
 Makefile.PL
+MANIFEST
+META.yml
 README
+examples/docsis_yaml.pl
+lib/DOCSIS/ConfigFile/Logger.pm
+lib/DOCSIS/ConfigFile/Decode.pm
+lib/DOCSIS/ConfigFile/Syminfo.pm
+lib/DOCSIS/ConfigFile/Encode.pm
 lib/DOCSIS/ConfigFile.pm
 t/00-load.t
 t/boilerplate.t
 t/pod-coverage.t
 t/pod.t
+t/10-encode_decode.t

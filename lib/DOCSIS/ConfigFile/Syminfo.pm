@@ -12,8 +12,7 @@ use constant FUNC    => 3;
 use constant L_LIMIT => 4;
 use constant U_LIMIT => 5;
 
-our @ROW           = ("NA", -1, -1, "NA", -1, -1);
-our @SYMBOL_TABLE  = (
+our @SYMBOL_TABLE = (
 #=============================================================================
 # ID                        CODE  PCODE  FUNC           L_LIMIT   H_LIMIT
 # identifier         docsis_code    pID  func           low_limit high_limit
@@ -124,14 +123,14 @@ our @SYMBOL_TABLE  = (
 
 [ "MaxConcatenatedBurst",     14,  24,  "ushort",      0,        65535      ],
 [ "SchedulingType",           15,  24,  "uchar",       0,        6          ],
-[ "RequestOrTxPolicy",        16,  24,  "hexstr",      4,        4          ],
+[ "RequestOrTxPolicy",        16,  24,  "hexstr",      0,        255        ],
 [ "NominalPollInterval",      17,  24,  "uint",        0,        0          ],
 [ "ToleratedPollJitter",      18,  24,  "uint",        0,        0          ],
 [ "UnsolicitedGrantSize",     19,  24,  "ushort",      0,        65535      ],
 [ "NominalGrantInterval",     20,  24,  "uint",        0,        0          ],
 [ "ToleratedGrantJitter",     21,  24,  "uint",        0,        0          ],
 [ "GrantsPerInterval",        22,  24,  "uchar",       0,        127        ],
-[ "IpTosOverwrite",           23,  24,  "hexstr",      2,        2          ],
+[ "IpTosOverwrite",           23,  24,  "hexstr",      0,        255        ],
 
   # Downstream Service Flow
 
@@ -177,7 +176,7 @@ our @SYMBOL_TABLE  = (
 
   # ManufacturerCVC
 
-[ "MfgCVCData",               32,   0,  "hexstr",      0,        255        ],
+[ "MfgCVCData",               32,   0,  "hexstr",      0,        0          ],
 
   # Vendor Specific
 
@@ -218,8 +217,10 @@ our @SYMBOL_TABLE  = (
 [ "UpstreamSIDSupport",        8,   5,  "uchar",       0,        255        ],
 [ "DCCSupport",               12,   5,  "uchar",       0,        1          ],
 [ "SubMgmtControl",           35,   0,  "hexstr",      3,        3          ],
+[ "SubMgmtCpeTable",          36,   0,  "hexstr",      0,        0          ],
 [ "SubMgmtFilters",           37,   0,  "ushort_list", 4,        4          ],
 [ "SnmpMibObject",            64,   0,  "nested",      1,        2048       ],
+[ "TestMode",                 40,   0,  "hexstr",      0,        1          ],
 
   # PacketCable MTA Configuration File Delimiter
 
@@ -242,6 +243,8 @@ our @SYMBOL_TABLE  = (
 [ "GenericTLV",                0,   0,  "nested",      1,        255        ],
 [ "GenericTLV",              255,   0,  "",            0,        0          ],
 );
+my @UNDEF_ROW = ("", -1, -1, "", -1, -1);
+my @cmc;
 
 
 BEGIN { #=====================================================================
@@ -266,7 +269,7 @@ sub from_id { #===============================================================
     ### init
     my $class = shift;
     my $id    = shift;
-    my $row   = [@ROW];
+    my $row   = [@UNDEF_ROW];
 
     ### no code to figure out
     return $row unless(defined $id);
@@ -288,7 +291,7 @@ sub from_code { #=============================================================
     my $class = shift;
     my $code  = shift;
     my $pID   = shift || 0;
-    my $row   = [@ROW];
+    my $row   = [@UNDEF_ROW];
 
     ### no code to figure out
     return $row unless(defined $code);
@@ -312,10 +315,42 @@ sub undefined_func { #========================================================
     my $code   = shift;
     my $p_code = shift;
 
-    $self->[ID]    = 'NA';
+    $self->[ID]    = '';
     $self->[CODE]  = $code;
     $self->[PCODE] = $p_code;
     $self->[FUNC]  = 'hexstr';
+}
+
+sub cmts_mic_codes { #========================================================
+
+    unless(@cmc) {
+        @cmc = qw/
+            DownstreamFrequency  UpstreamChannelId
+            NetworkAccess        ClassOfService
+            BaselinePrivacy      VendorSpecific
+            CmMic                MaxCPE
+            TftpTimestamp        TftpModemAddress
+            UsPacketClass        DsPacketClass
+            UsServiceFlow        DsServiceFlow
+            MaxClassifiers       BaselinePrivacySupport
+            PHS                  SubMgmtControl
+            SubMgmtCpeTable      SubMgmtFilters
+            TestMode
+        /;
+    }
+
+    return @cmc;
+}
+
+sub byte_size { #=============================================================
+    return 2  if(lc $_[1] eq 'short int');
+    return 4  if(lc $_[1] eq 'int');
+    return 4  if(lc $_[1] eq 'long int');
+    return 1  if(lc $_[1] eq 'char');
+    return 4  if(lc $_[1] eq 'float');
+    return 8  if(lc $_[1] eq 'double');
+    return 12 if(lc $_[1] eq 'long double');
+    return 16 if(lc $_[1] eq 'md5digest');
 }
 
 #=============================================================================
@@ -361,7 +396,7 @@ The default return value is a blessed array.
 =head2 id
 
 Returns the identifier.
-Returns "NA" on error.
+Returns "" on error.
 
 =head2 code
 
@@ -376,7 +411,7 @@ Returns -1 on error.
 =head2 func
 
 Returns the name of the function to be used when decoding/encoding.
-Returns "NA" on error.
+Returns "" on error.
 
 =head2 l_limit
 
@@ -391,6 +426,14 @@ Returns -1 on error.
 =head2 undefined_func
 
 Sets up the object, with new values.
+
+=head2 cmts_mic_codes
+
+Returns a list of all the codes that defines the CMTS MIC.
+
+=head2 byte_size(type)
+
+Returns the number of bytes a type takes.
  
 =head1 AUTHOR
 

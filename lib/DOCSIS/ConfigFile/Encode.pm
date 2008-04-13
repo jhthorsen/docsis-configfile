@@ -9,23 +9,19 @@ use bytes;
 use Math::BigInt;
 use Socket;
 
-our $ERROR     = '';
+our $ERROR     = q();
 our %SNMP_TYPE = (
-                     'INTEGER'   => [ 0x02, \&uint   ],
-                     'STRING'    => [ 0x04, \&string ],
-                     'NULLOBJ'   => [ 0x05, sub {}   ],
-                     'IPADDRESS' => [ 0x40, \&ip     ],
-                     'COUNTER'   => [ 0x41, \&uint   ],
-                     'UNSIGNED'  => [ 0x42, \&uint   ],
-                     'TIMETICKS' => [ 0x43, \&uint   ],
-                     'OPAQUE'    => [ 0x44, \&uint   ],
-                     'COUNTER64' => [ 0x46, \&bigint ],
-                 );
+    INTEGER   => [ 0x02, \&uint   ],
+    STRING    => [ 0x04, \&string ],
+    NULLOBJ   => [ 0x05, sub {}   ],
+    IPADDRESS => [ 0x40, \&ip     ],
+    COUNTER   => [ 0x41, \&uint   ],
+    UNSIGNED  => [ 0x42, \&uint   ],
+    TIMETICKS => [ 0x43, \&uint   ],
+    OPAQUE    => [ 0x44, \&uint   ],
+    COUNTER64 => [ 0x46, \&bigint ],
+);
 
-
-sub byte_size { #=============================================================
-    return $DOCSIS::Perl::BYTE_SIZE{lc shift} || 0;
-}
 
 sub snmp_type { #=============================================================
     return $SNMP_TYPE{uc shift} || $SNMP_TYPE{'STRING'};
@@ -62,25 +58,27 @@ sub snmp_oid { #==============================================================
     }
 
     ### the end
-    return @encoded_oid;
+    return wantarray ? @encoded_oid : \@encoded_oid;
 }
 
 sub snmp_object { #===========================================================
 
     ### init
-    my $obj   = shift()->{'value'};
-    my @oid   = snmp_oid($obj->{'oid'});
-    my $type  = snmp_type($obj->{'type'});
-    my @value = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
+    my $obj    = shift->{'value'};
+    my @oid    = snmp_oid($obj->{'oid'});
+    my $type   = snmp_type($obj->{'type'});
+    my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
+    my $length = int(@oid) + int(@value) + 4;
+    
+    my @ret = (
+      #-type--------length-------value-----type---
+        48,         $length,             # object
+        6,          int(@oid),   @oid,   # oid
+        $type->[0], int(@value), @value, # value
+    );
 
     ### the end
-    return 48,
-           int(@oid) + int(@value) + 4,
-           6,
-           int(@oid),   @oid,
-           $type->[0],
-           int(@value), @value,
-           ;
+    return wantarray ? @ret : \@ret;
 }
 
 sub bigint { #================================================================
@@ -97,8 +95,11 @@ sub bigint { #================================================================
         unshift @bytes, $value;
     }
 
+    ### bytes need a value
+    @bytes = (0) unless(@bytes);
+
     ### the end
-    return @bytes || (0);
+    return wantarray ? @bytes : \@bytes;
 }
 
 sub uint { #==================================================================
@@ -132,7 +133,7 @@ sub uint { #==================================================================
     }
 
     ### the end
-    return @bytes;
+    return wantarray ? @bytes : \@bytes;
 }
 
 sub ushort { #================================================================
@@ -161,82 +162,82 @@ sub ushort { #================================================================
         unshift @bytes, 0 for(1..2-@bytes);
     }
 
-    ### the end
+    ### bytes need a value
     @bytes = (0) unless(@bytes);
-    return @bytes;
-}
 
-sub ushort_list { #===========================================================
+    ### the end
+    return wantarray ? @bytes : \@bytes;
 }
 
 sub uchar { #=================================================================
-    return 0xff & shift()->{'value'};
+    my $value = 0xff & shift->{'value'};
+    return wantarray ? ($value) : [$value];
 }
 
 sub vendorspec { #============================================================
 
     ### init
     my $obj    = shift;
-    my @vendor = map { hex $_ } ($obj->{'value'} =~ /(\w{2})/g);
     my $nested = $obj->{'nested'};
-    my @bytes;
+    my(@vendor, @bytes);
 
     ### check
     return unless(ref $nested eq 'ARRAY');
+
+    @vendor = ether($obj);
+    @bytes  = (8, int(@vendor), @vendor);
 
     TLV:
     for my $tlv (@$nested) {
         push @bytes, $tlv->{'type'};
         push @bytes, $tlv->{'length'};
-        push @bytes, $tlv->{'value'};
+        push @bytes, ether($tlv);
     }
 
     ### the end
-    return 8, 3, @vendor, @bytes;
+    return wantarray ? @bytes : \@bytes;
 }
 
 sub ip { #====================================================================
-    return split /\./, shift()->{'value'};
+    my @value = split /\./, shift->{'value'};
+    return wantarray ? @value : [@value];
 }
 
 sub ether { #=================================================================
 
     ### init
-    my $string = shift()->{'value'};
+    my $string = shift->{'value'};
 
     ### numeric
     if($string =~ /^\d+$/) {
-        return int_to_bytes({ value => $string });
+        return value_to_bytes({ int => $string });
     }
 
     ### hex
-    elsif($string =~ /^(?:0x)?[0-9a-f]+$/i) {
-        return int_to_bytes({ value => hex($string) });
+    elsif($string =~ /^(?:0x)?([0-9a-f]+)$/i) {
+        return value_to_bytes({ hex => $1 });
     }
 }
 
 sub oid { #===================================================================
-    return snmp_oid(shift()->{'value'});
+    return snmp_oid(shift->{'value'});
 }
 
 sub string { #================================================================
 
     ### init
-    my $string = shift()->{'value'};
+    my $string = shift->{'value'};
 
     ### hex
-    if($string =~ /^0x[0-9a-f]+$/i) {
-        return int_to_bytes({ value => hex($string) });
+    if($string =~ /^0x([0-9a-f]+)$/i) {
+        return value_to_bytes({ hex => $1 });
     }
 
     ### normal
     else {
-        return map { ord $_ } split //, $string;
+        my @ret = map { ord $_ } split //, $string;
+        return wantarray ? @ret : \@ret;
     }
-}
-
-sub strzero { #===============================================================
-    uchar(@_);
 }
 
 sub hexstr { #================================================================
@@ -246,33 +247,50 @@ sub hexstr { #================================================================
 
     ### numeric
     if($ether =~ /^\d+$/) {
-        return int_to_bytes({ value => $ether });
+        return value_to_bytes({ int => $ether });
     }
 
     ### hex
-    elsif($ether =~ /^(?:0x)?[0-9a-f]+$/i) {
-        return int_to_bytes({ value => hex($ether) });
+    elsif($ether =~ /^(?:0x)?([0-9a-f]+)$/i) {
+        return value_to_bytes({ hex => $1 });
     }
 }
 
-sub int_to_bytes { #==========================================================
+sub value_to_bytes { #========================================================
 
     ### init
-    my $string = shift()->{'value'};
-    my @bytes;
+    my $data = shift || {};
+    my($value, @bytes);
 
-    while($string) {
-        my $value = $string & 0xff;
-        $string >>= 8;
-        unshift @bytes, $value;
+    ### from hex
+    if($value = $data->{'hex'}) {
+
+        return unless($value =~ /^[0-9a-fA-F]+$/);
+
+        while($value) {
+            $value =~ s/(\w{1,2})$//;
+            unshift @bytes, hex $1;
+        }
+    }
+
+    ### from int
+    elsif($value = $data->{'int'}) {
+
+        return unless($value =~ /^\d+$/);
+
+        while($value) {
+            my $v    = $value & 0xff;
+            $value >>= 8;
+            unshift @bytes, $v;
+        }
     }
 
     ### the end
-    return @bytes;
+    return wantarray ? @bytes : \@bytes;
 }
 
 sub mic { #===================================================================
-    return; # should not get encoded
+    return;
 }
 
 #=============================================================================
@@ -288,10 +306,6 @@ DOCSIS::ConfigFile::Encode - Encode functions for a DOCSIS config-file.
 See DOCSIS::ConfigFile
 
 =head1 FUNCTIONS
-
-=head2 byte_size($arg)
-
-Returns the requested byte-size from DOCSIS::ConfigFile.
 
 =head2 snmp_type($arg)
 
@@ -324,11 +338,9 @@ Returns an array-ref to an array with two elements:
 
 =head2 string
 
-=head2 strzero
-
 =head2 hexstr
 
-=head2 int_to_bytes
+=head2 value_to_bytes
 
 =head2 mic
 

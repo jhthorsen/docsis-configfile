@@ -19,9 +19,6 @@ for my $o (@$original) {
     $i++;
 }
 
-#print Dumper $decoded;
-#print Dumper $original;
-
 sub config { #================================================================
     return [
           {

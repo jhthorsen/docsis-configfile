@@ -7,31 +7,15 @@ use strict;
 use warnings;
 use Digest::MD5;
 use Digest::HMAC_MD5;
+use constant syminfo_class => "DOCSIS::ConfigFile::Syminfo";
+use constant decode_class  => "DOCSIS::ConfigFile::Decode";
+use constant encode_class  => "DOCSIS::ConfigFile::Encode";
+use DOCSIS::ConfigFile::Logger;
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
-use Log::Log4perl;
 
-
-our $VERSION       = '0.4';
-our %BYTE_SIZE     = (
-    'short int'   => 2,
-    'int'         => 4,
-    'long int'    => 4,
-    'char'        => 1,
-    'float'       => 4,
-    'double'      => 8,
-    'long double' => 12,
-    'md5digest'   => 16,
-);
-our @cmts_mic_list = qw/
-    1 2 3 4 17 43 6 18 19 20 22 23 24 25 28 29 26 35 36 37 40
-/;
-our $LOGCONFIG     = {
-    "log4perl.rootLogger"             => "ERROR, screen",
-    "log4perl.appender.screen"        => "Log::Log4perl::Appender::Screen",
-    "log4perl.appender.screen.layout" => "Log::Log4perl::Layout::SimpleLayout",
-};
+our $VERSION   = '0.4';
 
 
 BEGIN { #=====================================================================
@@ -55,7 +39,6 @@ BEGIN { #=====================================================================
 sub decode { #================================================================
     no warnings 'newline'; # don't shout on invalid filename
 
-    ### init
     my $self  = shift;
     my $input = shift;
     my $FH;
@@ -94,18 +77,15 @@ sub decode { #================================================================
         return;
     }
 
-    ### the end
     return $self->_decode_loop;
 }
 
 sub _decode_loop { #==========================================================
 
-    ### init
     my $self         = shift;
     my $total_length = shift || 0xffffffff;
     my $p_code       = shift || 0;
     my $FH           = $self->{'decode_fh'};
-    my $decode_class = 'DOCSIS::ConfigFile::Decode';
     my $cfg          = [];
 
     BYTE:
@@ -127,9 +107,7 @@ sub _decode_loop { #==========================================================
         $length        = unpack("C", $length) or next BYTE;
         $total_length -= $length + 2;
         $value         = q();
-        $syminfo       = DOCSIS::ConfigFile::Syminfo->from_code(
-                             $code, $p_code
-                         );
+        $syminfo       = syminfo_class->from_code($code, $p_code);
 
         ### nested block
         if($syminfo->func eq 'nested') {
@@ -140,14 +118,14 @@ sub _decode_loop { #==========================================================
         else {
 
             ### decode function does not exist
-            unless($decode_class->can($syminfo->func)) {
+            unless(decode_class->can($syminfo->func)) {
                 $self->log->debug("decode function does not exist");
                 $syminfo->undefined_func($code, $p_code);
             }
 
             ### read and decode
             read($FH, my $data, $length);
-            ($value, $nested) = $decode_class->can($syminfo->func)->($data);
+            ($value, $nested) = decode_class->can($syminfo->func)->($data);
         }
     
         ### save data
@@ -159,17 +137,17 @@ sub _decode_loop { #==========================================================
 
         ### no data
         else {
-            $self->log->error("Could not decode data");
+            $self->log->error(
+                "Could not decode data, using " .$syminfo->func
+            );
         }
     }
 
-    ### the end
     return $cfg;
 }
 
 sub _value_to_cfg { #=========================================================
 
-    ### init
     my $self    = shift;
     my $syminfo = shift;
     my $length  = shift;
@@ -202,7 +180,6 @@ sub _value_to_cfg { #=========================================================
 
 sub encode { #================================================================
 
-    ### init
     my $self   = shift;
     my $config = shift;
 
@@ -212,11 +189,9 @@ sub encode { #================================================================
         return;
     }
 
-    ### init cmts mic calculation
-    $self->{'cmts_mic_data'}{$_} = [] for(@cmts_mic_list);
-
     ### encode data
-    my $binstring = $self->_encode_loop($config);
+    $self->{'_cmts_mic'}  = {};
+    $self->{'_binstring'} = $self->_encode_loop($config);
 
     ### mta config file
     if(grep { $_->{'name'} eq 'MtaConfigDelimiter' } @$config) {
@@ -228,21 +203,18 @@ sub encode { #================================================================
         $self->log->debug("Setting up CM config-file");
 
         ### calculate mic, eod and pad
-        my $cm_mic   = $self->_calculate_cm_mic(\$binstring);
-        my $cmts_mic = $self->_calculate_cmts_mic($cm_mic);
-        my $eod_pad  = $self->_calculate_eod_and_pad(length $binstring);
+        my $cm_mic   = $self->_calculate_cm_mic;
+        my $cmts_mic = $self->_calculate_cmts_mic;
+        my $eod_pad  = $self->_calculate_eod_and_pad;
 
-        ### add mic, eod and pad
-        $binstring .= $cm_mic .$cmts_mic. $eod_pad;
+        $self->{'_binstring'} .= "$cm_mic$cmts_mic$eod_pad";
     }
 
-    ### the end
-    return $binstring;
+    return $self->{'_binstring'};
 }
 
 sub _encode_loop { #==========================================================
 
-    ### init
     my $self      = shift;
     my $config    = shift;
     my $level     = shift || 0;
@@ -257,11 +229,11 @@ sub _encode_loop { #==========================================================
     TLV:
     for my $tlv (@$config) {
 
-        ### init
         my $name    = $tlv->{'name'} or next TLV;
-        my $syminfo = DOCSIS::ConfigFile::Syminfo->from_id($name);
-        my $sub     = DOCSIS::ConfigFile::Encode->can($syminfo->func);
+        my $syminfo = syminfo_class->from_id($name);
+        my $sub     = encode_class->can($syminfo->func);
         my $code    = $syminfo->code;
+        my $type    = pack "C", $code;
 
         ### nested tlv
         if($syminfo->func eq 'nested') {
@@ -269,21 +241,21 @@ sub _encode_loop { #==========================================================
             ### set binstring
             my $value   = $self->_encode_loop($tlv->{'nested'}, $level + 1);
             my $length  = pack "C", length $value;
-            my $type    = pack "C", $code;
-            $binstring .= $type .$length .$value;
+            $binstring .= "$type$length$value";
 
-            ### add to cmts mic calculation
-            if(!$level and exists $self->{'cmts_mic_data'}{$code}) {
-                push @{ $self->{'cmts_mic_data'}{$code} },
-                     $type .$length .$value;
-            }
+            $self->_calculate_cmts_mic($name, "$type$length$value");
+
+            $self->log->trace(sprintf
+                q(Added nested data %s/%i [%i] 0x%s),
+                $name, $code, length($value), join("", unpack "H*", $value),
+            );
 
             ### skip ahead
             next TLV;
         }
 
         ### don't know what to do
-        elsif(not $sub) {
+        elsif(!$sub) {
             $self->log->error("Unknown encode method for $name");
             next TLV;
         }
@@ -303,10 +275,9 @@ sub _encode_loop { #==========================================================
         }
 
         ### set type, length and value
-        my @value  = $sub->($tlv);
-        my $type   = pack "C", $syminfo->code;
-        my $length = pack "C", int(@value);
-        my $value  = pack "C*", @value;
+        my $data   = $sub->($tlv) or next TLV;
+        my $length = pack "C", int(@$data);
+        my $value  = pack "C*", @$data;
 
         ### check value length
         if(length $value > 255) {
@@ -316,65 +287,65 @@ sub _encode_loop { #==========================================================
         ### save data to binstring
         $binstring .= "$type$length$value";
 
-        ### add to cmts mic calculation
-        if(!$level and exists $self->{'cmts_mic_data'}{$code}) {
-            push @{ $self->{'cmts_mic_data'}{$code} }, "$type$length$value";
-        }
+        $self->log->trace(sprintf
+            q/%s %i|%i|%s/,
+            $name, $code, length($value), join("", unpack "H*", $value),
+        );
+
+        $self->_calculate_cmts_mic($name, "$type$length$value");
     }
 
-    ### the end
     return $binstring;
 }
 
 sub _calculate_eod_and_pad { #================================================
 
-    ### init
     my $self   = shift;
-    my $length = shift;
+    my $length = length $self->{'_binstring'};
     my $pads   = 4 - (1 + $length) % 4;
 
-    ### the end
     return pack("C", 255) .("\0" x $pads);
 }
 
 sub _calculate_cm_mic { #=====================================================
 
-    ### init
-    my $self      = shift;
-    my $binstring = shift;
-    my $cm_mic    = pack("C*", 6, 16) .Digest::MD5::md5($$binstring);
+    my $self   = shift;
+    my $cm_mic = pack("C*", 6, 16) .Digest::MD5::md5($self->{'_binstring'});
 
-    ### save to cmts_mic_data
-    $self->{'cmts_mic_data'}{6} = [$cm_mic];
+    ### add to cmts mic calculation
+    $self->_calculate_cmts_mic("CmMic", $cm_mic);
 
-    ### the end
     return $cm_mic;
 }
 
 sub _calculate_cmts_mic { #===================================================
 
-    ### init
-    my $self          = shift;
-    my $cm_mic        = shift;
-    my $cmts_mic_data = $self->{'cmts_mic_data'};
-    my $data          = "";
+    my $self     = shift;
+    my $cmts_mic = $self->{'_cmts_mic'};
+    my $data;
 
-    ### re-arrage data
-    for my $k (@cmts_mic_list) {
-        for my $d (@{ $cmts_mic_data->{$k} }) {
-            $data .= $d;
-        }
+    ### add
+    if(@_ == 2) {
+        my $name = shift;
+        my $val  = shift;
+        return $cmts_mic->{ $name } .= $val;
     }
 
-    ### the end
-    return pack("C*", 7, 16)
-          .Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret)
-          ;
+    ### get mic
+    else {
+        for my $code (syminfo_class->cmts_mic_codes) {
+            $data .= $cmts_mic->{$code} || '';
+        }
+
+        return(join "",
+            pack("C*", 7, 16),
+            Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret),
+        );
+    }
 }
 
 sub new { #===================================================================
 
-    ### init
     my $class  = shift;
     my %args   = @_;
     my $self   = bless {}, $class;
@@ -385,17 +356,13 @@ sub new { #===================================================================
         $self->$k($args{$k});
     }
 
-    ### init logging
-    Log::Log4perl->init($LOGCONFIG) unless(Log::Log4perl->initialized);
-    $self->log( Log::Log4perl->get_logger($class) );
+    $self->log( DOCSIS::ConfigFile::Logger->new );
 
     ### load mibs
     $ENV{'MIBS'} = (defined $self->{'mibs'}) ? $self->{'mibs'} : 'ALL';
 
-    ### the end
     return $self;
 }
-
 
 #=============================================================================
 1983;

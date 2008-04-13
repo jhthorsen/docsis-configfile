@@ -8,24 +8,21 @@ use warnings;
 use bytes;
 use Math::BigInt;
 use Socket;
+use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
-our $ERROR     = '';
+our $ERROR     = q();
 our %SNMP_TYPE = (
-                    0x02 => [ 'INTEGER',        \&uint   ],
-                    0x04 => [ 'STRING',         \&string ],
-                    0x05 => [ 'NULLOBJ',        sub {}   ],
-                    0x40 => [ 'IPADDRESS',      \&ip     ],
-                    0x41 => [ 'COUNTER',        \&uint   ],
-                    0x42 => [ 'UNSIGNED',       \&uint   ],
-                    0x43 => [ 'TIMETICKS',      \&uint   ],
-                    0x44 => [ 'OPAQUE',         \&uint   ],
-                    0x46 => [ 'COUNTER64',      \&bigint ],
-                );
+    0x02 => [ 'INTEGER',    \&uint   ],
+    0x04 => [ 'STRING',     \&string ],
+    0x05 => [ 'NULLOBJ',    sub {}   ],
+    0x40 => [ 'IPADDRESS',  \&ip     ],
+    0x41 => [ 'COUNTER',    \&uint   ],
+    0x42 => [ 'UNSIGNED',   \&uint   ],
+    0x43 => [ 'TIMETICKS',  \&uint   ],
+    0x44 => [ 'OPAQUE',     \&uint   ],
+    0x46 => [ 'COUNTER64',  \&bigint ],
+);
 
-
-sub byte_size { #=============================================================
-    return $DOCSIS::ConfigFile::BYTE_SIZE{lc shift} || 0;
-}
 
 sub snmp_type { #=============================================================
     return $SNMP_TYPE{lc shift} || $SNMP_TYPE{4};
@@ -83,13 +80,13 @@ sub snmp_object { #===========================================================
     ### init
     my $bin_string     = shift;
     my @data           = unpack "C*", $bin_string;
-    my $seq_id         = shift  @data;
-    my $message_length = shift  @data;
-    my $obj_id         = shift  @data;
-    my $oid_length     = shift  @data;
+    my $seq_id         = shift @data;
+    my $message_length = shift @data;
+    my $obj_id         = shift @data;
+    my $oid_length     = shift @data;
     my $oid            = snmp_oid(splice @data, 0, $oid_length);
-    my $value_type     = shift  @data;
-    my $value_length   = shift  @data;
+    my $value_type     = shift @data;
+    my $value_length   = shift @data;
     my $type           = snmp_type($value_type);
     my $bin_value      = substr $bin_string, 6 + $oid_length;
     my $value          = $type->[1]->($bin_value);
@@ -127,7 +124,7 @@ sub uint { #==================================================================
     ### init
     my @bytes  = unpack 'C*', shift;
     my $length = @bytes;
-    my $size   = byte_size('int');
+    my $size   = syminfo->byte_size('int');
     my $value  = ($bytes[0] & 0x80) ? -1 : 0;
 
     ### check
@@ -146,7 +143,7 @@ sub ushort { #================================================================
     ### init
     my $bin    = shift;
     my $length = length $bin;
-    my $size   = byte_size('short int');
+    my $size   = syminfo->byte_size('short int');
 
     ### check
     if($length > $size) {
@@ -158,9 +155,6 @@ sub ushort { #================================================================
     return unpack('n', $bin);
 }
 
-sub ushort_list { #===========================================================
-}
-
 sub uchar { #=================================================================
     return join "", unpack('C', shift);
 }
@@ -168,21 +162,29 @@ sub uchar { #=================================================================
 sub vendorspec { #============================================================
 
     ### init
-    my $bin    = shift;
-    my @input  = unpack "C*", $bin;
-    my $vendor = sprintf "%02x%02x%02x", @input[2..4];
-    my @data   = @input[5..$#input];
-    my @ret;
+    my $bin = shift;
+    my($vendor, @ret, $length);
 
-    while(@data) {
-        my $type   = shift  @data;
-        my $length = shift  @data;
-        my $value  = splice @data, 0, $length;
-        push @ret, {
-            type   => $type,
-            length => $length,
-            value  => $value,
-        };
+    $bin    =~ s/.(.)// or return; # remove the two first bytes
+    $length =  unpack "C*", $1;
+
+    ### find vendor
+    if($bin =~ s/(.{$length})//) {
+        my $f   = "%02x" x $length;
+        $vendor = sprintf "0x$f", unpack "C*", $1;
+    }
+
+    while($bin =~ s/^(.)(.)//) {
+        my $type   = unpack "C*", $1;
+        my $length = unpack "C*", $2;
+
+        if($bin =~ s/(.{$length})//) {
+            push @ret, {
+                type   => $type,
+                length => $length,
+                value  => hexstr($1),
+            };
+        }
     }
 
     ### the end
@@ -232,7 +234,7 @@ sub string { #================================================================
 
     ### hex string
     if($bin =~ /[\x00-\x1f\x7f-\xff]/) {
-        return "0x" .hexstr($bin);
+        return hexstr($bin);
     }
 
     ### normal string
@@ -246,7 +248,11 @@ sub strzero { #===============================================================
 }
 
 sub hexstr { #================================================================
-    return join "", unpack "H*", shift;
+    return "0x" .join("", unpack "H*", shift);
+}
+
+sub mic { #===================================================================
+    return hexstr(@_);
 }
 
 #=============================================================================
@@ -262,10 +268,6 @@ DOCSIS::ConfigFile::Decode - Decode functions for a DOCSIS config-file
 See DOCSIS::ConfigFile
 
 =head1 FUNCTIONS
-
-=head2 byte_size(lc $arg)
-
-Returns the requested byte-size from DOCSIS::ConfigFile.
 
 =head2 snmp_type(lc $arg)
 
@@ -286,8 +288,6 @@ Decodes a 8bit int.
 
 =head2 ushort
 
-=head2 ushort_list
-
 =head2 uchar
 
 =head2 vendorspec
@@ -303,6 +303,8 @@ Decodes a 8bit int.
 =head2 strzero
 
 =head2 hexstr
+
+=head2 mic
 
 =head1 AUTHOR
 

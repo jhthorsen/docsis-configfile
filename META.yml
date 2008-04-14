@@ -1,5 +1,5 @@
 name: DOCSIS::ConfigFile
-version: 0.51
+version: 0.52
 abstract: DOCSIS config-file encoder/decoder
 author: Jan Henning Thorsen
 license: perl
@@ -8,7 +8,6 @@ installdirs: site
 distribution_type: module
 generated_by: ExtUtils::MakeMaker version 6.30_01
 requires:
-    Math::BigInt: 0
     bytes: 0
     Digest::MD5: 0
     Digest::HMAC_MD5: 0

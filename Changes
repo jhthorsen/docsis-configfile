@@ -1,5 +1,8 @@
 Revision history for DOCSIS-Perl
 
+0.52    Mon, 14 Apr 2008 12:40:00 +0100
+        Trying to fix undef $VERSION.
+
 0.51    Mon, 14 Apr 2008 00:19:00 +0100
         Updated documentation
 

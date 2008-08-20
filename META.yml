@@ -1,35 +1,28 @@
-name: DOCSIS::ConfigFile
-version_from: lib/DOCSIS/ConfigFile.pm
-abstract: DOCSIS config-file encoder/decoder
-author: Jan Henning Thorsen
-license: perl
-installdirs: site
+--- 
+abstract: Decodes and encodes DOCSIS config-files
+author: 
+  - Jan Henning Thorsen, C<< <pm at flodhest.net> >>
+build_requires: 
+  Test::More: 0
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30_01
-requires:
-    bytes: 0
-    Digest::MD5: 0
-    Digest::HMAC_MD5: 0
-    Getopt::Euclid: 0
-    Math::BigInt: 0
-    Socket: 0
-build_requires:
-    Test::More: 0
-    Test::Pod::Coverage: 1.04
-    Test::Pod: 1.14
-provides:
-    DOCSIS::ConfigFile:
-        file: lib/DOCSIS/ConfigFile.pm
-    DOCSIS::ConfigFile::Decode:
-        file: lib/DOCSIS/Decode.pm
-    DOCSIS::ConfigFile::Encode:
-        file: lib/DOCSIS/Encode.pm
-    DOCSIS::ConfigFile::Logger:
-        file: lib/DOCSIS/Logger.pm
-    DOCSIS::ConfigFile::Syminfo:
-        file: lib/DOCSIS/Syminfo.pm
-resources:
-    homepage: http://trac.flodhest.net/pm/wiki/DOCSIS-ConfigFile
-    repository: http://trac.flodhest.net/pm/browser/DOCSIS-ConfigFile
-    bugtracker: http://rt.cpan.org/Public/Dist/Display.html?Name=DOCSIS-ConfigFile
-
+generated_by: Module::Install version 0.68
+license: perl
+meta-spec: 
+  url: http://module-build.sourceforge.net/META-spec-v1.3.html
+  version: 1.3
+name: DOCSIS-ConfigFile
+no_index: 
+  directory: 
+    - examples
+    - inc
+    - t
+recommends: 
+  Log::Log4perl: 0
+requires: 
+  Digest::HMAC_MD5: 0
+  Digest::MD5: 0
+  Getopt::Euclid: 0
+  Math::BigInt: 0
+  Socket: 0
+  bytes: 0
+version: 0.52

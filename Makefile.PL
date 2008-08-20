@@ -1,24 +1,16 @@
-use strict;
-use warnings;
-use ExtUtils::MakeMaker;
+use inc::Module::Install;
 
-WriteMakefile(
-    NAME          => 'DOCSIS::ConfigFile',
-    AUTHOR        => 'Jan Henning Thorsen <pm@flodhest.net>',
-    VERSION_FROM  => 'lib/DOCSIS/ConfigFile.pm',
-    ABSTRACT_FROM => 'lib/DOCSIS/ConfigFile.pm',
-    PL_FILES      => {},
-    PREREQ_PM     => {
-                         'bytes'            => '0',
-                         'Digest::MD5'      => '2.3',
-                         'Digest::HMAC_MD5' => '1.0',
-                         'Getopt::Euclid'   => '0.1',
-                         'Math::BigInt'     => '1.7',
-                         'Socket'           => '0',
-                         'Test::More'       => '0',
-                        #'Log::Log4perl'    => '1.0', # Strongly suggested
-                        #'YAML'             => '0',   # for example script
-                     },
-    dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean         => { FILES => 'DOCSIS-ConfigFile-*' },
-);
+name     q(DOCSIS-ConfigFile);
+all_from q(lib/DOCSIS/ConfigFile.pm);
+
+requires      q(bytes)            => 0;
+requires      q(Digest::MD5)      => 0;
+requires      q(Digest::HMAC_MD5) => 0;
+requires      q(Getopt::Euclid)   => 0;
+requires      q(Math::BigInt)     => 0;
+requires      q(Socket)           => 0;
+test_requires q(Test::More)       => 0;
+recommends    q(Log::Log4perl)    => 0;
+no_index      q(directory)        => q(examples);
+
+WriteAll;

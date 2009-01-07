@@ -1,7 +1,21 @@
-
-#===================================
 package DOCSIS::ConfigFile::Syminfo;
-#===================================
+
+=head1 NAME
+
+DOCSIS::ConfigFile::Syminfo - Symbolinfo for a DOCSIS config-file
+
+=head1 VERSION
+
+See DOCSIS::ConfigFile
+
+=head1 SYNOPSIS
+
+ use DOCSIS::ConfigFile::Syminfo;
+
+ my $obj = DOCSIS::ConfigFile::Syminfo->from_id($docsis_symbol);
+ my $obj = DOCSIS::ConfigFile::Syminfo->from_code($code, $pcode);
+
+=cut
 
 use strict;
 use warnings;
@@ -246,132 +260,6 @@ our @SYMBOL_TABLE = (
 my @UNDEF_ROW = ("", -1, -1, "", -1, -1);
 my @cmc;
 
-
-BEGIN { #=====================================================================
-    no strict 'refs';
-    my %sub2index = (
-        id      => ID,
-        code    => CODE,
-        pcode   => PCODE,
-        func    => FUNC,
-        l_limit => L_LIMIT,
-        u_limit => U_LIMIT,
-    );
-
-    for my $sub (keys %sub2index) {
-        my $key = $sub2index{$sub};
-        *$sub   = sub { return shift->[$key] };
-    }
-}
-
-sub from_id { #===============================================================
-
-    ### init
-    my $class = shift;
-    my $id    = shift;
-    my $row   = [@UNDEF_ROW];
-
-    ### no code to figure out
-    return $row unless(defined $id);
-
-    ### numeric lookup
-    for(@SYMBOL_TABLE) {
-        next unless($_->[ID] eq $id);
-        @$row = @$_;
-        last;
-    }
-
-    ### the end
-    return bless $row, $class;
-}
-
-sub from_code { #=============================================================
-
-    ### init
-    my $class = shift;
-    my $code  = shift;
-    my $pID   = shift || 0;
-    my $row   = [@UNDEF_ROW];
-
-    ### no code to figure out
-    return $row unless(defined $code);
-
-    ### numeric lookup
-    for(@SYMBOL_TABLE) {
-        next unless($_->[CODE]  == $code);
-        next unless($_->[PCODE] == $pID);
-        @$row = @$_;
-        last;
-    }
-
-    ### the end
-    return bless $row, $class;
-}
-
-sub fallback_values { #=======================================================
-
-    ### init
-    my $self   = shift;
-    my $code   = shift;
-    my $p_code = shift;
-
-    $self->[ID]    = '';
-    $self->[CODE]  = $code;
-    $self->[PCODE] = $p_code;
-    $self->[FUNC]  = 'hexstr';
-}
-
-sub cmts_mic_codes { #========================================================
-
-    unless(@cmc) {
-        @cmc = qw/
-            DownstreamFrequency  UpstreamChannelId
-            NetworkAccess        ClassOfService
-            BaselinePrivacy      VendorSpecific
-            CmMic                MaxCPE
-            TftpTimestamp        TftpModemAddress
-            UsPacketClass        DsPacketClass
-            UsServiceFlow        DsServiceFlow
-            MaxClassifiers       GlobalPrivacyEnable
-            PHS                  SubMgmtControl
-            SubMgmtCpeTable      SubMgmtFilters
-            TestMode
-        /;
-    }
-
-    return @cmc;
-}
-
-sub byte_size { #=============================================================
-    return 2  if(lc $_[1] eq 'short int');
-    return 4  if(lc $_[1] eq 'int');
-    return 4  if(lc $_[1] eq 'long int');
-    return 1  if(lc $_[1] eq 'char');
-    return 4  if(lc $_[1] eq 'float');
-    return 8  if(lc $_[1] eq 'double');
-    return 12 if(lc $_[1] eq 'long double');
-    return 16 if(lc $_[1] eq 'md5digest');
-}
-
-#=============================================================================
-1983;
-__END__
-
-=head1 NAME
-
-DOCSIS::ConfigFile::Syminfo - Symbolinfo for a DOCSIS config-file
-
-=head1 VERSION
-
-See DOCSIS::ConfigFile
-
-=head1 SYNOPSIS
-
-    use DOCSIS::ConfigFile::Syminfo;
-
-    my $obj = DOCSIS::ConfigFile::Syminfo->from_id($docsis_symbol);
-    my $obj = DOCSIS::ConfigFile::Syminfo->from_code($code, $pcode);
-
 =head1 METHODS
 
 =head2 from_id
@@ -382,6 +270,24 @@ Arguments:
 
 Returns a C<DOCSIS::ConfigFile::Syminfo> object.
 
+=cut
+
+sub from_id {
+    my $class = shift;
+    my $id    = shift;
+    my $row   = [@UNDEF_ROW];
+
+    return $row unless(defined $id);
+
+    for(@SYMBOL_TABLE) {
+        next unless($_->[ID] eq $id);
+        @$row = @$_;
+        last;
+    }
+
+    return bless $row, $class;
+}
+
 =head2 from_code
 
 Arguments:
@@ -390,6 +296,26 @@ Arguments:
  * $pcode => If it's a sub-symbol
 
 Returns a C<DOCSIS::ConfigFile::Syminfo> object.
+
+=cut
+
+sub from_code {
+    my $class = shift;
+    my $code  = shift;
+    my $pID   = shift || 0;
+    my $row   = [@UNDEF_ROW];
+
+    return $row unless(defined $code);
+
+    for(@SYMBOL_TABLE) {
+        next unless($_->[CODE]  == $code);
+        next unless($_->[PCODE] == $pID);
+        @$row = @$_;
+        last;
+    }
+
+    return bless $row, $class;
+}
 
 =head2 id
 
@@ -421,9 +347,41 @@ Returns -1 on error.
 Returns the upper limit numeric value.
 Returns -1 on error.
 
+=cut
+
+BEGIN {
+    no strict 'refs';
+    my %sub2index = (
+        id      => ID,
+        code    => CODE,
+        pcode   => PCODE,
+        func    => FUNC,
+        l_limit => L_LIMIT,
+        u_limit => U_LIMIT,
+    );
+
+    for my $sub (keys %sub2index) {
+        my $key = $sub2index{$sub};
+        *$sub   = sub { return shift->[$key] };
+    }
+}
+
 =head2 fallback_values
 
 Sets some default values on the current object.
+
+=cut
+
+sub fallback_values {
+    my $self   = shift;
+    my $code   = shift;
+    my $p_code = shift;
+
+    $self->[ID]    = '';
+    $self->[CODE]  = $code;
+    $self->[PCODE] = $p_code;
+    $self->[FUNC]  = 'hexstr';
+}
 
 =head1 FUNCTIONS
 
@@ -431,56 +389,57 @@ Sets some default values on the current object.
 
 Returns a list of all the codes that defines the CMTS MIC.
 
+=cut
+
+sub cmts_mic_codes {
+    unless(@cmc) {
+        @cmc = qw/
+            DownstreamFrequency  UpstreamChannelId
+            NetworkAccess        ClassOfService
+            BaselinePrivacy      VendorSpecific
+            CmMic                MaxCPE
+            TftpTimestamp        TftpModemAddress
+            UsPacketClass        DsPacketClass
+            UsServiceFlow        DsServiceFlow
+            MaxClassifiers       GlobalPrivacyEnable
+            PHS                  SubMgmtControl
+            SubMgmtCpeTable      SubMgmtFilters
+            TestMode
+        /;
+    }
+
+    return @cmc;
+}
+
 =head2 byte_size(type)
 
 Returns the number of bytes a type takes.
- 
-=head1 AUTHOR
 
-Jan Henning Thorsen, C<< <pm at flodhest.net> >>
+=cut
+
+sub byte_size {
+    return 2  if(lc $_[1] eq 'short int');
+    return 4  if(lc $_[1] eq 'int');
+    return 4  if(lc $_[1] eq 'long int');
+    return 1  if(lc $_[1] eq 'char');
+    return 4  if(lc $_[1] eq 'float');
+    return 8  if(lc $_[1] eq 'double');
+    return 12 if(lc $_[1] eq 'long double');
+    return 16 if(lc $_[1] eq 'md5digest');
+}
+
+=head1 AUTHOR
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-docsis-perl at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-ConfigFile>.
-I will be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
 =head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc DOCSIS::ConfigFile::Syminfo
-
-You can also look for information at
-L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
 
 =head1 ACKNOWLEDGEMENTS
 
 =head1 COPYRIGHT & LICENSE
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-Copyright (c) 2007 Jan Henning Thorsen
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
-
-This module got its inspiration from the program docsis, http://docsis.sf.net.
+See L<DOCSIS::ConfigFile>
 
 =cut
+
+1;

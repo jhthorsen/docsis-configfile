@@ -18,7 +18,7 @@ for my $o (@$original) {
     $i++;
 }
 
-sub config { #================================================================
+sub config {
     return [
           {
             'name'  => 'NetworkAccess',

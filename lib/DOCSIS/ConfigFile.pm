@@ -132,7 +132,7 @@ sub _decode_loop {
 
     BYTE:
     while($total_length > 0) {
-        my($code, $length, $syminfo, $value, $nested);
+        my($code, $length, $syminfo, $value, $nested, $method);
 
         unless(read $FH, $code, 1) {
             $self->log->debug("Could not read \$code: $!");
@@ -151,14 +151,13 @@ sub _decode_loop {
         if($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
-        else {
-            unless(decode_class->can($syminfo->func)) {
-                $self->log->debug("decode function does not exist");
-                $syminfo->undefined_func($code, $p_code);
-            }
-
+        elsif(my $func = decode_class->can($syminfo->func)) {
             read($FH, my $data, $length);
-            ($value, $nested) = decode_class->can($syminfo->func)->($data);
+            ($value, $nested) = $func->($data);
+        }
+        else {
+            $self->log->debug("decode function does not exist");
+            $syminfo->undefined_func($code, $p_code);
         }
     
         if(defined $value or defined $nested) {

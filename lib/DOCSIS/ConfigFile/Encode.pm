@@ -33,19 +33,6 @@ our %SNMP_TYPE = (
 
 Every function can return either a list or an array-ref.
 
-=head2 snmp_type($arg)
-
-Returns an array-ref to an array with two elements:
-
- 1) The numeric value of the SNMP type.
- 2) A reference to the function to encode the value.
-
-=cut
-
-sub snmp_type {
-    return $SNMP_TYPE{uc shift} || $SNMP_TYPE{'STRING'};
-}
-
 =head2 snmp_oid($string)
 
 Takes a numeric OID and byte-encodes it.
@@ -99,7 +86,7 @@ object.
 sub snmp_object {
     my $obj    = shift->{'value'} or return;
     my @oid    = snmp_oid($obj->{'oid'});
-    my $type   = snmp_type($obj->{'type'});
+    my $type   = $SNMP_TYPE{$obj->{'type'}};
     my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
     my $length = int(@oid) + int(@value) + 4;
     

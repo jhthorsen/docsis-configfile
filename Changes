@@ -1,20 +1,24 @@
 Revision history for DOCSIS-Perl
 
+0.54    Thu,  8 Jan 2009 23:00:00 +0100
+        [Fixed] SNMP objects starting with "0x30 0x82 ... " fail to decode
+        [Improved] POD and formatting of code
+
 0.52    Mon, 14 Apr 2008 12:40:00 +0100
-        Trying to fix undef $VERSION.
+        [Fixed] Undefined $VERSION.
 
 0.51    Mon, 14 Apr 2008 00:19:00 +0100
         Updated documentation
 
 0.5     Sun, 13 Apr 2008 21:15:00 +0100
-        Bugfix(rt=34547): should be able to handle ->unlimited values :)
-        Bugfix(rt=34548): no warnings when decoding CmMic and CmtsMic
-        Extended 10-encode-decode test
-        Changed output format: hex-values start with '0x'
+        [Fixed#rt=34547] should be able to handle ->unlimited values :)
+        [Fixed#rt=34548] no warnings when decoding CmMic and CmtsMic
+        [Improved] Extended 10-encode-decode test
+        [Changes] Output format: hex-values start with '0x'
 
 0.4     Wed,  5 Dec 2007 11:23:00 +0200
         Hopefully made a decent release for CPAN.
-        Added example script, which should be quite useful: docsis_yaml.pl.
+        [Added] Example script  which should be quite useful: docsis_yaml.pl.
 
 0.3     Tue,  4 Dec 2007 22:32:00 +0200
         Cleaned up encode/decode test.

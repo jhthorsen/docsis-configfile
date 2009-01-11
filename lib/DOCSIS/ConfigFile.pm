@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-Version 0.53
+Version 0.54
 
 =head1 SYNOPSIS
 
@@ -41,7 +41,7 @@ use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION = '0.52';
+our $VERSION = '0.54';
 
 =head1 METHODS
 

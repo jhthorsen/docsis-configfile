@@ -26,6 +26,8 @@ use constant FUNC    => 3;
 use constant L_LIMIT => 4;
 use constant U_LIMIT => 5;
 
+my @UNDEF_ROW = ("", -1, -1, "", -1, -1);
+
 our @SYMBOL_TABLE = (
 #=============================================================================
 # ID                        CODE  PCODE  FUNC           L_LIMIT   H_LIMIT
@@ -257,8 +259,6 @@ our @SYMBOL_TABLE = (
 [ "GenericTLV",                0,   0,  "nested",      1,        255        ],
 [ "GenericTLV",              255,   0,  "",            0,        0          ],
 );
-my @UNDEF_ROW = ("", -1, -1, "", -1, -1);
-my @cmc;
 
 =head1 METHODS
 
@@ -392,23 +392,19 @@ Returns a list of all the codes that defines the CMTS MIC.
 =cut
 
 sub cmts_mic_codes {
-    unless(@cmc) {
-        @cmc = qw/
-            DownstreamFrequency  UpstreamChannelId
-            NetworkAccess        ClassOfService
-            BaselinePrivacy      VendorSpecific
-            CmMic                MaxCPE
-            TftpTimestamp        TftpModemAddress
-            UsPacketClass        DsPacketClass
-            UsServiceFlow        DsServiceFlow
-            MaxClassifiers       GlobalPrivacyEnable
-            PHS                  SubMgmtControl
-            SubMgmtCpeTable      SubMgmtFilters
-            TestMode
-        /;
-    }
-
-    return @cmc;
+    qw/
+        DownstreamFrequency  UpstreamChannelId
+        NetworkAccess        ClassOfService
+        BaselinePrivacy      VendorSpecific
+        CmMic                MaxCPE
+        TftpTimestamp        TftpModemAddress
+        UsPacketClass        DsPacketClass
+        UsServiceFlow        DsServiceFlow
+        MaxClassifiers       GlobalPrivacyEnable
+        PHS                  SubMgmtControl
+        SubMgmtCpeTable      SubMgmtFilters
+        TestMode
+    /;
 }
 
 =head2 byte_size(type)

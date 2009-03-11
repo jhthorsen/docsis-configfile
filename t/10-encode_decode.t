@@ -8,7 +8,9 @@ use DOCSIS::ConfigFile;
 my $original = config();
 my $docsis   = DOCSIS::ConfigFile->new;
 my $encoded  = $docsis->encode($original);
+warn $docsis->errors;
 my $decoded  = $docsis->decode(\$encoded);
+warn $docsis->errors;
 my $i        = 0;
 
 plan tests => scalar(@$original);
@@ -178,13 +180,5 @@ sub config {
                        },
             'name' => 'SnmpMibObject'
           },
-          {
-            'value' => '0x0a383437504624044a24ff3d2aa9b44c',
-            'name' => 'CmMic'
-          },
-          {
-            'value' => '0x48cd7059975afd973705af50f0dd98e2',
-            'name' => 'CmtsMic'
-          }
         ];
 }

@@ -65,6 +65,8 @@ Prints this help text.
 
 use strict;
 use warnings;
+use FindBin;
+use lib qq($FindBin::Bin/../lib);
 use DOCSIS::ConfigFile;
 use Getopt::Euclid;
 use YAML;
@@ -76,11 +78,11 @@ my $docsis = DOCSIS::ConfigFile->new(
 
 if(-T $ARGV{'-in'}) {
     my $config = YAML::LoadFile($ARGV{'-in'});
-    output($docsis->encode($config));
+    output($docsis, $docsis->encode($config));
 }
 else {
     my $config = $docsis->decode($ARGV{'-in'});
-    output(YAML::Dump($config));
+    output($docsis, YAML::Dump($config));
 }
 
 exit 0;
@@ -92,7 +94,12 @@ exit 0;
 =cut
 
 sub output {
-    my $data = join "", @_;
+    my $docsis = shift;
+    my $data   = join "", @_;
+
+    if(my @errors = $docsis->errors) {
+        die join "\n", @errors, q();
+    }
 
     if($ARGV{'-out'}) {
         open(my $FH, ">", $ARGV{'-out'}) or die $!;

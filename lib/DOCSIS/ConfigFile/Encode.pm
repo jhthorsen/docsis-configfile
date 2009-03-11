@@ -33,6 +33,18 @@ our %SNMP_TYPE = (
 
 Every function can return either a list or an array-ref.
 
+=head2 snmp_type
+
+Takes a string as input and returns an unsigned int. See package variable
+C<%SNMP_TYPE>.
+
+=cut
+
+sub snmp_type {
+    return unless(defined $_[0]);
+    return $SNMP_TYPE{uc($_[0])};
+}
+
 =head2 snmp_oid($string)
 
 Takes a numeric OID and byte-encodes it.
@@ -84,15 +96,18 @@ object.
 =cut
 
 sub snmp_object {
-    my $obj    = shift->{'value'} or return;
-    my @oid    = snmp_oid($obj->{'oid'});
-    my $type   = $SNMP_TYPE{$obj->{'type'}};
+    my $obj    = shift->{'value'}          or return;
+    my @oid    = snmp_oid($obj->{'oid'})   or return;
+    my $type   = snmp_type($obj->{'type'}) or return;
     my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
-    my $length = int(@oid) + int(@value) + 4;
+    my $length;
+
+    return unless(@value);
+    return unless($length = int(@oid) + int(@value));
     
     my @ret = (
       #-type--------length-------value-----type---
-        48,         $length,             # object
+        48,         $length + 4,         # object
         6,          int(@oid),   @oid,   # oid
         $type->[0], int(@value), @value, # value
     );
@@ -250,7 +265,8 @@ address.
 =cut
 
 sub ip {
-    my @value = split /\./, shift->{'value'};
+    defined $_[0]->{'value'} or return;
+    my @value = split /\./, $_[0]->{'value'};
     return wantarray ? @value : [@value];
 }
 
@@ -314,16 +330,6 @@ sub hexstr {
     }
 
     return wantarray ? @bytes: \@bytes;
-}
-
-=head2 mic(\%h)
-
-Returns empty list.
-
-=cut
-
-sub mic {
-    return;
 }
 
 =head1 AUTHOR

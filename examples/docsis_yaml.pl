@@ -8,7 +8,7 @@ docsis_yaml.pl
 
 Version 0.01
 
-=head1 USAGE
+=head1 SYNOPSIS
 
  docsis_yaml.pl [options] -i <infile> [-o <outfile>];
 
@@ -25,7 +25,7 @@ Version 0.01
 
 =over
 
-=item -i[n] <str>
+=item --in <str>
 
 =back
 
@@ -35,17 +35,21 @@ File to read.
 
 =over
 
-=item -o[ut] <str>
+=item --out <str>
 
 File to write. Default is STDOUT.
 
-=item -s[ecret] <str>
+=item --secret <str>
 
 Sets which shared secret to use, when encoding a binary file.
 
-=item -a[dvanced]
+=item --advanced
 
 Turns on advanced output, when decoding a binary file.
+
+=item --trace
+
+Turns on full debugging.
 
 =item --version
 
@@ -66,17 +70,19 @@ Prints this help text.
 use strict;
 use warnings;
 use FindBin;
+use Getopt::Long qw/:config auto_help auto_version/;
+use YAML;
 use lib qq($FindBin::Bin/../lib);
 use DOCSIS::ConfigFile;
-use Getopt::Long;
-use YAML;
 
-my $ARGS = {};
+our $VERSION = $DOCSIS::ConfigFile::VERSION;
+our $ARGS    = {};
 
 GetOptions($ARGS, qw/
     in|i=s out|o=s advanced|a secret|s=s trace
-/) or Getoptions::HelpMessage();
+/) or Getopt::Long::HelpMessage();
 
+Getopt::Long::HelpMessage() unless($ARGS->{'in'});
 $DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
 
 my $docsis = DOCSIS::ConfigFile->new(

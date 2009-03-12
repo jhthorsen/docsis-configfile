@@ -104,7 +104,7 @@ sub decode {
     }
     elsif(-f $input) { # input is filename
         unless(open($FH, "<", $input)) {
-            $self->logger(error => "Could not decode from %s:%s", $input, $!);
+            $self->logger(error => "Could not decode from $input:$!");
             return;
         }
         else {
@@ -133,17 +133,17 @@ sub _decode_loop {
 
     BYTE:
     while($total_length > 0) {
-        my($code, $length, $syminfo, $value, $nested, $method);
+        my($code, $length, $syminfo, $value, $nested, $method, $func);
 
         unless(my $bytes = read $FH, $code, 1) {
             unless(defined $bytes) {
-                $self->logger(error => "Could not read $code: %s", $!);
+                $self->logger(error => "Could not read 'code': $!");
             }
             last BYTE;
         }
         unless(my $bytes = read $FH, $length, 1) {
             unless(defined $bytes) {
-                $self->logger(error => "Could not read $length: %s", $!);
+                $self->logger(error => "Could not read 'length': $!");
             }
             last BYTE;
         }
@@ -156,7 +156,7 @@ sub _decode_loop {
         if($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
-        elsif(my $func = Decode->can($syminfo->func)) {
+        elsif($func = Decode->can($syminfo->func)) {
             read($FH, my $data, $length);
             ($value, $nested) = $func->($data);
         }
@@ -171,7 +171,7 @@ sub _decode_loop {
                         );
         }
         else {
-            $self->logger(error => q(Could not decode data using '%s'),
+            $self->logger(error => qq(Could not decode data using '$func'),
                 $syminfo->func
             );
         }
@@ -259,7 +259,7 @@ sub _encode_loop {
     my $binstring = q();
 
     if(ref $config ne 'ARRAY') {
-        $self->logger(error => "Not an array: %s" .ref($config));
+        $self->logger(error => "Not an array: " .ref($config));
         return q();
     }
 
@@ -278,7 +278,7 @@ sub _encode_loop {
         my $syminfo = Syminfo->from_id($name);
 
         unless($syminfo->func) {
-            $self->logger(error => "Unknown encode method for %s", $name);
+            $self->logger(error => "Unknown encode method for $name");
             next TLV;
         }
 
@@ -297,7 +297,8 @@ sub _encode_loop {
 
             $self->_calculate_cmts_mic($name, "$type$length$value");
 
-            $self->logger(trace => q(Added nested data %s/%s [%i] 0x%s),
+            $self->logger(trace =>
+                sprintf q(Added nested data %s/%s [%i] 0x%s),
                 $name, $code, length($value), join("", unpack "H*", $value),
             );
 
@@ -309,7 +310,7 @@ sub _encode_loop {
         #===========
 
         unless($sub = Encode->can($syminfo->func)) {
-            $self->logger(error => "Unknown encode method for %s", $name);
+            $self->logger(error => "Unknown encode method for $name");
             next TLV;
         }
         unless(defined $tlv->{'value'}) {
@@ -321,11 +322,11 @@ sub _encode_loop {
             my $value = ($tlv->{'value'} =~ /\D/) ? hex $tlv->{'value'}
                       :                                 $tlv->{'value'};
             if($value > $syminfo->u_limit) {
-                $self->logger(error => "Value too high: %s=%i", $name, $value);
+                $self->logger(error => "Value too high: $name=$value");
                 next TLV;
             }
             if($value < $syminfo->l_limit) {
-                $self->logger(error => "Value too low: %s=%i", $name, $value);
+                $self->logger(error => "Value too low: $name=$value");
                 next TLV;
             }
         }

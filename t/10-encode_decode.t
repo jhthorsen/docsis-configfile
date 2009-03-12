@@ -8,9 +8,7 @@ use DOCSIS::ConfigFile;
 my $original = config();
 my $docsis   = DOCSIS::ConfigFile->new;
 my $encoded  = $docsis->encode($original);
-warn $docsis->errors;
 my $decoded  = $docsis->decode(\$encoded);
-warn $docsis->errors;
 my $i        = 0;
 
 plan tests => scalar(@$original);

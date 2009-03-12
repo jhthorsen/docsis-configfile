@@ -68,20 +68,28 @@ use warnings;
 use FindBin;
 use lib qq($FindBin::Bin/../lib);
 use DOCSIS::ConfigFile;
-use Getopt::Euclid;
+use Getopt::Long;
 use YAML;
 
+my $ARGS = {};
+
+GetOptions($ARGS, qw/
+    in|i=s out|o=s advanced|a secret|s=s trace
+/) or Getoptions::HelpMessage();
+
+$DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
+
 my $docsis = DOCSIS::ConfigFile->new(
-                 advanced_output => ($ARGV{'-advanced'} ? 1 : 0),
-                 shared_secret   => $ARGV{'-secret'},
+                 advanced_output => ($ARGS->{'advanced'} ? 1 : 0),
+                 shared_secret   => $ARGS->{'secret'},
              );
 
-if(-T $ARGV{'-in'}) {
-    my $config = YAML::LoadFile($ARGV{'-in'});
+if(-T $ARGS->{'in'}) {
+    my $config = YAML::LoadFile($ARGS->{'in'});
     output($docsis, $docsis->encode($config));
 }
 else {
-    my $config = $docsis->decode($ARGV{'-in'});
+    my $config = $docsis->decode($ARGS->{'in'});
     output($docsis, YAML::Dump($config));
 }
 
@@ -101,8 +109,8 @@ sub output {
         die join "\n", @errors, q();
     }
 
-    if($ARGV{'-out'}) {
-        open(my $FH, ">", $ARGV{'-out'}) or die $!;
+    if($ARGS->{'out'}) {
+        open(my $FH, ">", $ARGS->{'out'}) or die $!;
         print $FH $data;
         close $FH;
     }

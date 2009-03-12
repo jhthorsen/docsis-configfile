@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-Version 0.54
+Version 0.55
 
 =head1 SYNOPSIS
 
@@ -40,7 +40,8 @@ use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION = '0.54';
+our $VERSION = '0.55';
+our $TRACE   = 0;
 
 =head1 METHODS
 
@@ -106,6 +107,9 @@ sub decode {
             $self->logger(error => "Could not decode from %s:%s", $input, $!);
             return;
         }
+        else {
+            $self->logger(debug => "Decoding from file");
+        }
     }
 
     if(ref $FH eq 'GLOB') {
@@ -131,12 +135,16 @@ sub _decode_loop {
     while($total_length > 0) {
         my($code, $length, $syminfo, $value, $nested, $method);
 
-        unless(read $FH, $code, 1) {
-            $self->logger(error => 'Could not read $code: %s', $!);
+        unless(my $bytes = read $FH, $code, 1) {
+            unless(defined $bytes) {
+                $self->logger(error => "Could not read $code: %s", $!);
+            }
             last BYTE;
         }
-        unless(read $FH, $length, 1) {
-            $self->logger(error => 'Could not read $length: %s', $!);
+        unless(my $bytes = read $FH, $length, 1) {
+            unless(defined $bytes) {
+                $self->logger(error => "Could not read $length: %s", $!);
+            }
             last BYTE;
         }
 
@@ -437,6 +445,9 @@ sub logger {
     
     if($log) {
         $log->$level($msg);
+    }
+    elsif($TRACE) {
+        warn "$level: $msg\n";
     }
 
     if($level eq 'error') {

@@ -94,46 +94,40 @@ Returns a hash-ref:
 
 =cut
 
-sub _chop {
-    my $str  = shift;
-    my $type = shift || 'C1';
-    my $n    = ($type =~ /n/ ? 2 : 1) * ($type =~ /(\d+)/)[0];
-
-    return unpack $type, $1 if($$str =~ s/^(.{$n})//s);
-    return;
-}
-
 sub snmp_object {
     my $data = shift;
-    my($byte, $length, $oid, $type, $value);
+    my($byte, $length, $oid, $type);
 
     # message
-    $byte   = _chop(\$data); # 0x30
-    $byte   = _chop(\$data); # length?
-    $length = $byte == 0x81 ? _chop(\$data)
+    $byte   = _chop(\$data, "C1"); # 0x30
+    $byte   = _chop(\$data, "C1"); # length?
+    $length = $byte == 0x81 ? _chop(\$data, "C1")
             : $byte == 0x82 ? _chop(\$data, "n1")
             : $byte;
 
     # oid
-    $byte   = _chop(\$data); # 0x06
-    $length = _chop(\$data);
+    $byte   = _chop(\$data, "C1"); # 0x06
+    $length = _chop(\$data, "C1");
     $oid    = snmp_oid( _chop(\$data, "C$length") );
 
     # value
-    $type   = $SNMP_TYPE{ _chop(\$data) };
-    $length = _chop(\$data);
-    $value  = _chop(\$data, "C$length");
+    $type   = $SNMP_TYPE{ _chop(\$data, "C1") };
+    $length = _chop(\$data, "C1");
 
-    if(defined $value) {
-        return {
-            oid   => $oid,
-            type  => $type->[0],
-            value => $value,
-        };
-    }
-    else {
-       return {} 
-    }
+    return {
+        oid   => $oid,
+        type  => $type->[0],
+        value => $type->[1]->($data),
+    };
+}
+
+sub _chop {
+    my $str  = shift;
+    my $type = shift;
+    my $n    = ($type =~ /n/ ? 2 : 1) * ($type =~ /(\d+)/)[0];
+
+    return unpack $type, $1 if($$str =~ s/^(.{$n})//s);
+    return;
 }
 
 =head2 bigint($bytestring)
@@ -294,14 +288,13 @@ cannot.
 =cut
 
 sub string {
-    my $bin = shift;
+    my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
 
-    chop $bin if($bin =~ /\x00$/); # ?
-
-    if($bin =~ /[\x00-\x1f\x7f-\xff]/) { # hex string
+    if($bin =~ /[\x01-\x1f\x7f-\xff]/) { # hex string
         return hexstr($bin);
     }
     else { # normal string
+        $bin =~ s/\x00//g;
         return sprintf "%s", $bin;
     }
 }

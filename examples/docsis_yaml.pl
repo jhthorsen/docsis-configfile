@@ -10,26 +10,29 @@ Version 0.01
 
 =head1 SYNOPSIS
 
- docsis_yaml.pl [options] -i <infile> [-o <outfile>];
+ docsis_yaml.pl [options] --decode <file> [--out <file>];
+ docsis_yaml.pl [options] --encode <file> [--out <file>];
 
  Normal decoding:
- docsis_yaml.pl -i config.bin -o config.yaml
+ docsis_yaml.pl --decode config.bin --out config.yaml
 
  Decoding with extra information
- docsis_yaml.pl -i config.bin -o config.yaml -a
+ docsis_yaml.pl --decode config.bin --out config.yaml --advanced
 
  Encoding with shared secret
- docsis_yaml.pl -i config.yaml -o config.bin -s "mysecret"
+ docsis_yaml.pl --encode <file> --out <file> --secret "mysecret"
 
 =head1 REQUIRED ARGUMENTS
 
 =over
 
-=item --in <str>
+=item --decode <path>
+
+=item --encode <path>
 
 =back
 
-File to read.
+File to encode or decode.
 
 =head1 OPTIONS
 
@@ -79,10 +82,9 @@ our $VERSION = $DOCSIS::ConfigFile::VERSION;
 our $ARGS    = {};
 
 GetOptions($ARGS, qw/
-    in|i=s out|o=s advanced|a secret|s=s trace
+    decode=s encode=s out|o=s advanced|a secret|s=s trace
 /) or Getopt::Long::HelpMessage();
 
-Getopt::Long::HelpMessage() unless($ARGS->{'in'});
 $DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
 
 my $docsis = DOCSIS::ConfigFile->new(
@@ -90,13 +92,16 @@ my $docsis = DOCSIS::ConfigFile->new(
                  shared_secret   => $ARGS->{'secret'},
              );
 
-if(-T $ARGS->{'in'}) {
-    my $config = YAML::LoadFile($ARGS->{'in'});
+if($ARGS->{'encode'}) {
+    my $config = YAML::LoadFile($ARGS->{'encode'});
     output($docsis, $docsis->encode($config));
 }
-else {
-    my $config = $docsis->decode($ARGS->{'in'});
+elsif($ARGS->{'decode'}) {
+    my $config = $docsis->decode($ARGS->{'decode'});
     output($docsis, YAML::Dump($config));
+}
+else {
+    Getopt::Long::HelpMessage();
 }
 
 exit 0;

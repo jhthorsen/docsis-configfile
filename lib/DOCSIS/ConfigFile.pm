@@ -161,8 +161,12 @@ sub _decode_loop {
             ($value, $nested) = $func->($data);
         }
         else {
-            $self->logger(debug => "Decode function does not exist");
-            $syminfo->undefined_func($code, $p_code);
+            $self->logger(fatal => join "\n",
+                "Decode function does not exist.",
+                ">> Code: $code",
+                ">> Parent code: $p_code",
+                ">> Data: $data",
+            );
         }
     
         if(defined $value or defined $nested) {

@@ -13,4 +13,5 @@ test_requires q(Test::More)       => 0;
 recommends    q(Log::Log4perl)    => 0;
 no_index      q(directory)        => q(examples);
 
+auto_install;
 WriteAll;

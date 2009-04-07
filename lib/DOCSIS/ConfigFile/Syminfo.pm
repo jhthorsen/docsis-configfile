@@ -235,7 +235,7 @@ our @SYMBOL_TABLE = (
 [ "SubMgmtControl",           35,   0,  "hexstr",      3,        3          ],
 [ "SubMgmtCpeTable",          36,   0,  "hexstr",      0,        0          ],
 [ "SubMgmtFilters",           37,   0,  "ushort_list", 4,        4          ],
-[ "SnmpMibObject",            64,   0,  "nested",      1,        2048       ],
+[ "SnmpMibObject",            64,   0,  "snmp_object", 1,        2048       ],
 [ "TestMode",                 40,   0,  "hexstr",      0,        1          ],
 
   # PacketCable MTA Configuration File Delimiter

@@ -133,23 +133,11 @@ sub _decode_loop {
 
     BYTE:
     while($total_length > 0) {
-        my($code, $length, $syminfo, $value, $nested, $method, $func);
+        my($syminfo, $value, $nested, $method, $func);
 
-        unless(my $bytes = read $FH, $code, 1) {
-            unless(defined $bytes) {
-                $self->logger(error => "Could not read 'code': $!");
-            }
-            last BYTE;
-        }
-        unless(my $bytes = read $FH, $length, 1) {
-            unless(defined $bytes) {
-                $self->logger(error => "Could not read 'length': $!");
-            }
-            last BYTE;
-        }
+        my $code   = $self->_read_code($FH) or last BYTE;
+        my $length = $self->_read_length($FH, $code) or last BYTE;
 
-        $code          = unpack("C", $code);
-        $length        = unpack("C", $length) or next BYTE;
         $total_length -= $length + 2;
         $syminfo       = Syminfo->from_code($code, $p_code);
 
@@ -187,6 +175,46 @@ sub _decode_loop {
     }
 
     return $cfg;
+}
+
+sub _read_code {
+    my $self = shift;
+    my $FH   = shift;
+    my $code;
+
+    unless(my $bytes = read $FH, $code, 1) {
+        unless(defined $bytes) {
+            $self->logger(error => "Could not read 'code': $!");
+        }
+        return;
+    }
+
+    return unpack("C", $code);
+}
+
+sub _read_length {
+    my $self  = shift;
+    my $FH    = shift;
+    my $code  = shift;
+    my $bytes = $code == 64 ? 2 : 1;
+    my $length;
+
+    unless($bytes = read $FH, $length, $bytes) {
+        unless(defined $bytes) {
+            $self->logger(error => "Could not read 'length': $!");
+        }
+        return;
+    }
+
+    # Document: PKT-SP-PROV1.5-I03-070412
+    # Chapter:  9.1 MTA Configuration File
+    if($bytes == 2) {
+        $length = unpack("S", $length) or next BYTE;
+    }
+    else {
+        $length = unpack("C", $length) or next BYTE;
+    }
+
 }
 
 sub _value_to_cfg {

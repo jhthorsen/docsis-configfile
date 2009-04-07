@@ -19,15 +19,15 @@ use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
 our $ERROR     = q();
 our %SNMP_TYPE = (
-    0x02 => [ 'INTEGER',    \&uint   ],
-    0x04 => [ 'STRING',     \&string ],
-    0x05 => [ 'NULLOBJ',    sub {}   ],
-    0x40 => [ 'IPADDRESS',  \&ip     ],
-    0x41 => [ 'COUNTER',    \&uint   ],
-    0x42 => [ 'UNSIGNED',   \&uint   ],
-    0x43 => [ 'TIMETICKS',  \&uint   ],
-    0x44 => [ 'OPAQUE',     \&uint   ],
-    0x46 => [ 'COUNTER64',  \&bigint ],
+    0x02 => [ 'INTEGER',    \&uint       ],
+    0x04 => [ 'STRING',     \&enc_string ],
+    0x05 => [ 'NULLOBJ',    sub {}       ],
+    0x40 => [ 'IPADDRESS',  \&ip         ],
+    0x41 => [ 'COUNTER',    \&uint       ],
+    0x42 => [ 'UNSIGNED',   \&uint       ],
+    0x43 => [ 'TIMETICKS',  \&uint       ],
+    0x44 => [ 'OPAQUE',     \&uint       ],
+    0x46 => [ 'COUNTER64',  \&bigint     ],
 );
 
 =head1 FUNCTIONS
@@ -207,8 +207,7 @@ Returns a list containing ($vendor, \%nested).
 
 Example:
 
-  "0x001337", # vendors ID
-  {
+  "0x001337" => { # vendors ID
     type   => "24", # vendor specific type
     value  => "42", # vendor specific value
     length => "1",  # the length of the value meassured in bytes
@@ -278,6 +277,21 @@ sub ether {
     }
 
     return join ":", unpack("H2" x $length, $bin);
+}
+
+=head2 enc_string
+
+Returns partially human readable, and partially hex-encoded string.
+Looks like an url-encoded string.
+
+=cut
+
+sub enc_string {
+    my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
+
+    $bin =~ s/([^\n\r\t\x20-\x7e])/{ sprintf "%%02x", ord $1 }/ge;
+
+    return $bin;
 }
 
 =head2 string($bytestring)

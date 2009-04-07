@@ -22,7 +22,7 @@ Version 0.01
  Encoding with shared secret
  docsis_yaml.pl --encode <file> --out <file> --secret "mysecret"
 
-=head1 REQUIRED ARGUMENTS
+=head1 OPTIONS
 
 =over
 
@@ -90,6 +90,7 @@ $DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
 my $docsis = DOCSIS::ConfigFile->new(
                  advanced_output => ($ARGS->{'advanced'} ? 1 : 0),
                  shared_secret   => $ARGS->{'secret'},
+                 log             => logger(),
              );
 
 if($ARGS->{'encode'}) {
@@ -129,6 +130,20 @@ sub output {
     else {
         print $data;
     }
+}
+
+=head2 logger
+
+=cut
+
+sub logger {
+    no warnings;
+    eval "require Log::Log4perl" or return;
+    Log::Log4perl->easy_init(
+        $ARGS->{'trace'} ? $Log::Log4perl::TRACE
+      :                    $Log::Log4perl::FATAL
+    );
+    return Log::Log4perl->get_logger;
 }
 
 =head1 AUTHOR

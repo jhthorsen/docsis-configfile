@@ -156,17 +156,22 @@ sub _decode_loop {
         if($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
-        elsif($func = Decode->can($syminfo->func)) {
-            read($FH, my $data, $length);
-            ($value, $nested) = $func->($data);
-        }
         else {
-            $self->logger(fatal => join "\n",
-                "Decode function does not exist.",
-                ">> Code: $code",
-                ">> Parent code: $p_code",
-                ">> Data: $data",
-            );
+            read($FH, my $data, $length);
+
+            if($func = Decode->can($syminfo->func)) {
+                ($value, $nested) = $func->($data);
+            }
+            else {
+                $data = Decode->can('string')->($data);
+                $self->logger(fatal => join "\n",
+                    "Decode function does not exist.",
+                    ">> Type: $code (pId=$p_code)",
+                    ">> Length: $length",
+                    ">> Data: $data"
+                );
+                $value = "Unknown TLV: $code, $length, $data";
+            }
         }
     
         if(defined $value or defined $nested) {

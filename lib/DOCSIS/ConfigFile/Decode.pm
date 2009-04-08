@@ -19,26 +19,63 @@ use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
 our $ERROR     = q();
 our %SNMP_TYPE = (
-    0x02 => [ 'INTEGER',    \&uint       ],
-    0x04 => [ 'STRING',     \&enc_string ],
-    0x05 => [ 'NULLOBJ',    sub {}       ],
-    0x40 => [ 'IPADDRESS',  \&ip         ],
-    0x41 => [ 'COUNTER',    \&uint       ],
-    0x42 => [ 'UNSIGNED',   \&uint       ],
-    0x43 => [ 'TIMETICKS',  \&uint       ],
-    0x44 => [ 'OPAQUE',     \&uint       ],
-    0x46 => [ 'COUNTER64',  \&bigint     ],
+    0x02 => [ 'INTEGER',    \&uint        ],
+    0x04 => [ 'STRING',     \&_esc_string ],
+    0x05 => [ 'NULLOBJ',    sub {}        ],
+    0x40 => [ 'IPADDRESS',  \&ip          ],
+    0x41 => [ 'COUNTER',    \&uint        ],
+    0x42 => [ 'UNSIGNED',   \&uint        ],
+    0x43 => [ 'TIMETICKS',  \&uint        ],
+    0x44 => [ 'OPAQUE',     \&uint        ],
+    0x46 => [ 'COUNTER64',  \&bigint      ],
 );
 
 =head1 FUNCTIONS
 
-=head2 snmp_oid(@bytes)
+=head2 snmp_object
 
-Returns a numeric OID.
+ $data = snmp_object($bytestring);
+
+C<$data> template:
+
+ {
+   oid   => "", # numeric OID
+   type  => "", # what kind of value (corresponding to C<snmp_type>)
+   value => "", # the oid value
+ }
 
 =cut
 
-sub snmp_oid {
+sub snmp_object {
+    my $data = shift;
+    my($byte, $length, $oid, $type, $value);
+
+    # message
+    _chop(\$data, "C1"); # 0x30
+    $byte   = _chop(\$data, "C1"); # length?
+    $length = $byte == 0x81 ? _chop(\$data, "C1")
+            : $byte == 0x82 ? _chop(\$data, "n1")
+            :                 $byte;
+
+    # oid
+    _chop(\$data, "C1"); # 0x06
+    $length = _chop(\$data, "C1");
+    $oid    = _snmp_oid( _chop(\$data, "C$length") );
+
+    # value
+    $type   = $SNMP_TYPE{ _chop(\$data, "C1") };
+    $length = $byte == 0x82 ? _chop(\$data, "S1")
+            :                 _chop(\$data, "C1");
+    $value  = $type->[1]->($data);
+
+    return {
+        oid   => $oid,
+        type  => $type->[0],
+        value => $value,
+    };
+}
+
+sub _snmp_oid {
     my @bytes  = @_;
     my @oid    = (0);
     my $subid  = 0;
@@ -82,55 +119,24 @@ sub snmp_oid {
     return join ".", @oid;
 }
 
-=head2 snmp_object($bytestring)
-
-Returns a hash-ref:
-
- {
-   oid   => "", # numeric OID
-   type  => "", # what kind of value (corresponding to C<snmp_type>)
-   value => "", # the oid value
- }
-
-=cut
-
-sub snmp_object {
-    my $data = shift;
-    my($byte, $length, $oid, $type);
-
-    # message
-    $byte   = _chop(\$data, "C1"); # 0x30
-    $byte   = _chop(\$data, "C1"); # length?
-    $length = $byte == 0x81 ? _chop(\$data, "C1")
-            : $byte == 0x82 ? _chop(\$data, "n1")
-            : $byte;
-
-    # oid
-    $byte   = _chop(\$data, "C1"); # 0x06
-    $length = _chop(\$data, "C1");
-    $oid    = snmp_oid( _chop(\$data, "C$length") );
-
-    # value
-    $type   = $SNMP_TYPE{ _chop(\$data, "C1") };
-    $length = _chop(\$data, "C1");
-
-    return {
-        oid   => $oid,
-        type  => $type->[0],
-        value => $type->[1]->($data),
-    };
-}
-
 sub _chop {
     my $str  = shift;
     my $type = shift;
-    my $n    = ($type =~ /n/ ? 2 : 1) * ($type =~ /(\d+)/)[0];
+    my $n    = ($type =~ /C/ ? 1 : 2) * ($type =~ /(\d+)/)[0];
 
     return unpack $type, $1 if($$str =~ s/^(.{$n})//s);
     return;
 }
 
-=head2 bigint($bytestring)
+sub _esc_string {
+    $_[0] =~ s/([^\t\n\x20-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
+    return $_[0];
+}
+
+
+=head2 bigint
+
+ $bigint_obj = bigint($bytestring);
 
 Returns a C<Math::BigInt> object.
 
@@ -150,7 +156,9 @@ sub bigint {
     return $int64;
 }
 
-=head2 uint($bytestring)
+=head2 uint
+
+ $int = uint($bytestring);
 
 Returns an unsigned integer: 0..2**32-1
 
@@ -172,7 +180,9 @@ sub uint {
     return $value;
 }
 
-=head2 ushort($bytestring)
+=head2 ushort
+
+ $short = ushort($bytestring);
 
 Returns an unsigned short integer: 0..2**16-1
 
@@ -191,9 +201,11 @@ sub ushort {
     return unpack('n', $bin);
 }
 
-=head2 uchar($bytesstring)
+=head2 uchar
 
-Returns an unsigned character: 0..2**8-1
+ $chr = uchar($bytesstring);
+
+Returns an unsigned character: [0..255]
 
 =cut
 
@@ -201,17 +213,17 @@ sub uchar {
     return join "", unpack('C', shift);
 }
 
-=head2 vendorspec($bytestring)
+=head2 vendorspec
 
-Returns a list containing ($vendor, \%nested).
+ ($vendor_id, $vendor_data) = vendorspec($bytestring);
 
-Example:
+Return value example:
 
-  "0x001337" => { # vendors ID
+  "0x001337" => { # vendor ID
     type   => "24", # vendor specific type
     value  => "42", # vendor specific value
     length => "1",  # the length of the value meassured in bytes
-  },
+  };
 
 =cut
 
@@ -243,7 +255,9 @@ sub vendorspec {
     return $vendor, \@ret;
 }
 
-=head2 ip($bytestring)
+=head2 ip
+
+ $ipv4_address = ip($bytestring);
 
 Returns an IPv4-address.
 
@@ -261,7 +275,9 @@ sub ip {
     return $address;
 }
 
-=head2 ether($bytestring)
+=head2 ether
+
+ $mac = ether($bytestring);
 
 Returns a MAC-address.
 
@@ -277,21 +293,6 @@ sub ether {
     }
 
     return join ":", unpack("H2" x $length, $bin);
-}
-
-=head2 enc_string
-
-Returns partially human readable, and partially hex-encoded string.
-Looks like an url-encoded string.
-
-=cut
-
-sub enc_string {
-    my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
-
-    $bin =~ s/([^\n\r\t\x20-\x7e])/{ sprintf "%%02x", ord $1 }/ge;
-
-    return $bin;
 }
 
 =head2 string($bytestring)

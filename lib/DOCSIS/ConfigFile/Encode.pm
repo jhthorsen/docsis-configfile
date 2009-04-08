@@ -18,40 +18,73 @@ use Socket;
 
 our $ERROR     = q();
 our %SNMP_TYPE = (
-    INTEGER   => [ 0x02, \&uint   ],
-    STRING    => [ 0x04, \&string ],
-    NULLOBJ   => [ 0x05, sub {}   ],
-    IPADDRESS => [ 0x40, \&ip     ],
-    COUNTER   => [ 0x41, \&uint   ],
-    UNSIGNED  => [ 0x42, \&uint   ],
-    TIMETICKS => [ 0x43, \&uint   ],
-    OPAQUE    => [ 0x44, \&uint   ],
-    COUNTER64 => [ 0x46, \&bigint ],
+    INTEGER   => [ 0x02, \&uint        ],
+    STRING    => [ 0x04, \&_esc_string ],
+    NULLOBJ   => [ 0x05, sub {}        ],
+    IPADDRESS => [ 0x40, \&ip          ],
+    COUNTER   => [ 0x41, \&uint        ],
+    UNSIGNED  => [ 0x42, \&uint        ],
+    TIMETICKS => [ 0x43, \&uint        ],
+    OPAQUE    => [ 0x44, \&uint        ],
+    COUNTER64 => [ 0x46, \&bigint      ],
 );
 
 =head1 FUNCTIONS
 
 Every function can return either a list or an array-ref.
 
-=head2 snmp_type
+=head2 snmp_object(\%h)
 
-Takes a string as input and returns an unsigned int. See package variable
-C<%SNMP_TYPE>.
+Takes a hash-ref (keys: oid, type, value), and returns a byte-encoded snmp-
+object.
+
+ #-type---length---------value-----type---
+   48,    $total_length,         # object
+   6,     int(@oid),     @oid,   # oid
+   $type, int(@value),   @value, # value
 
 =cut
 
-sub snmp_type {
-    return unless(defined $_[0]);
-    return $SNMP_TYPE{uc($_[0])};
+sub snmp_object {
+    my $obj    = shift->{'value'}           or return;
+    my @oid    = _snmp_oid($obj->{'oid'})   or return;
+    my $type   = $SNMP_TYPE{$obj->{'type'}} or return;
+    my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
+    my(@total_length, @value_length);
+
+    return unless(@value);
+
+    @value_length = (0 + @value);
+
+    while(255 <= $value_length[0]) {
+        push @value_length, $value_length[0] && 255;
+        $value_length[0] >>= 8;
+    }
+
+    @total_length = (@value + @oid + @value_length + 2);
+
+    if($total_length[0] >= 0x80) {
+        if($total_length[0] < 0xff) {
+            $total_length[1] = $total_length[0];
+            $total_length[0] = 0x81;
+        }
+        elsif($total_length[0] < 0xffff) {
+            push @total_length, unpack "C2", pack "n", $total_length[0];
+            $total_length[0] = 0x82;
+        }
+    }
+
+    my @ret = (
+      #-type--------length----------value-----type---
+        0x30,       @total_length,          # object
+        0x06,       int(@oid),      @oid,   # oid
+        $type->[0], @value_length,  @value, # value
+    );
+
+    return wantarray ? @ret : \@ret;
 }
 
-=head2 snmp_oid($string)
-
-Takes a numeric OID and byte-encodes it.
-
-=cut
-
-sub snmp_oid {
+sub _snmp_oid {
     my $string    = shift or return;
     my @input_oid = split /\./, $string;
     my $subid     = 0;
@@ -83,37 +116,16 @@ sub snmp_oid {
     return wantarray ? @encoded_oid : \@encoded_oid;
 }
 
-=head2 snmp_object(\%h)
+sub _esc_string {
+    my $obj    = shift;
+    my $string = $obj->{'value'};
+    my @ret;
 
-Takes a hash-ref (keys: oid, type, value), and returns a byte-encoded snmp-
-object.
+    $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
 
- #-type---length---------value-----type---
-   48,    $total_length,         # object
-   6,     int(@oid),     @oid,   # oid
-   $type, int(@value),   @value, # value
-
-=cut
-
-sub snmp_object {
-    my $obj    = shift->{'value'}          or return;
-    my @oid    = snmp_oid($obj->{'oid'})   or return;
-    my $type   = snmp_type($obj->{'type'}) or return;
-    my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
-    my $length;
-
-    return unless(@value);
-    return unless($length = int(@oid) + int(@value));
-    
-    my @ret = (
-      #-type--------length-------value-----type---
-        48,         $length + 4,         # object
-        6,          int(@oid),   @oid,   # oid
-        $type->[0], int(@value), @value, # value
-    );
-
-    return wantarray ? @ret : \@ret;
+    return map { ord $_ } split //, $string;
 }
+
 
 =head2 bigint(\%h)
 

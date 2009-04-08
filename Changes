@@ -1,5 +1,10 @@
 Revision history for DOCSIS-Perl
 
+0.56    Tue,  7 Apr 2009 15:41:00 +0100
+        [Improved] Partially supports decoding of TLV64
+
+0.55    ...
+
 0.54    Thu,  8 Jan 2009 23:00:00 +0100
         [Fixed] SNMP objects starting with "0x30 0x82 ... " fail to decode
         [Improved] POD and formatting of code

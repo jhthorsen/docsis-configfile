@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-Version 0.55
+Version 0.5502
 
 =head1 SYNOPSIS
 
@@ -40,7 +40,7 @@ use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION = '0.55';
+our $VERSION = '0.5502';
 our $TRACE   = 0;
 
 =head1 METHODS
@@ -131,12 +131,12 @@ sub _decode_loop {
     my $FH           = $self->{'decode_fh'};
     my $cfg          = [];
 
-    BYTE:
+    CODE:
     while($total_length > 0) {
         my($syminfo, $value, $nested, $method, $func);
 
-        my $code   = $self->_read_code($FH) or last BYTE;
-        my $length = $self->_read_length($FH, $code) or last BYTE;
+        my $code   = $self->_read_code($FH) or last CODE;
+        my $length = $self->_read_length($FH, $code) or last CODE;
 
         $total_length -= $length + 2;
         $syminfo       = Syminfo->from_code($code, $p_code);
@@ -145,7 +145,14 @@ sub _decode_loop {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
         else {
-            read($FH, my $data, $length);
+            my $bytes = read($FH, my $data, $length);
+
+            if($bytes != $length) {
+                $self->logger(
+                    fatal => "Read $bytes bytes, instead of $length"
+                );
+                next CODE;
+            }
 
             if($func = Decode->can($syminfo->func)) {
                 ($value, $nested) = $func->($data);
@@ -209,12 +216,13 @@ sub _read_length {
     # Document: PKT-SP-PROV1.5-I03-070412
     # Chapter:  9.1 MTA Configuration File
     if($bytes == 2) {
-        $length = unpack("S", $length) or next BYTE;
+        $length = unpack "n", $length or return;
     }
     else {
-        $length = unpack("C", $length) or next BYTE;
+        $length = unpack "C", $length or return;
     }
 
+    return $length;
 }
 
 sub _value_to_cfg {
@@ -356,8 +364,8 @@ sub _encode_loop {
         }
 
         if($syminfo->l_limit or $syminfo->u_limit) {
-            my $value = ($tlv->{'value'} =~ /\D/) ? hex $tlv->{'value'}
-                      :                                 $tlv->{'value'};
+            my $value = ($tlv->{'value'} =~ /\D/) ? length $tlv->{'value'}
+                      :                                    $tlv->{'value'};
             if($value > $syminfo->u_limit) {
                 $self->logger(error => "Value too high: $name=$value");
                 next TLV;
@@ -373,13 +381,9 @@ sub _encode_loop {
             next TLV;
         }
 
-        $length = pack "C", int(@$data);
+        $length = (@$data > 255) ? pack("n", int @$data)
+                :                  pack("C", int @$data);
         $value  = pack "C*", @$data;
-
-        if(length $value > 255) {
-            $self->logger(error => "Value is too long in TLV#$i");
-            next TLV;
-        }
 
         $binstring .= "$type$length$value";
 

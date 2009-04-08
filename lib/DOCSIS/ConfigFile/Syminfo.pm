@@ -49,7 +49,7 @@ our @SYMBOL_TABLE = (
 [ "PrivacyEnable",             7,   4,  "uchar",       0,        1          ],
 [ "SwUpgradeFilename",         9,   0,  "string",      0,        0          ],
 [ "SnmpWriteControl",         10,   0,  "nested",      0,        0          ],
-[ "SnmpMibObject",            11,   0,  "snmp_object", 0,        0          ],
+[ "SnmpMibObject",            11,   0,  "snmp_object", 0,        255        ],
 [ "CpeMacAddress",            14,   0,  "ether",       0,        0          ],
 [ "BaselinePrivacy",          17,   0,  "nested",      0,        0          ],
 [ "AuthTimeout",               1,  17,  "uint",        1,        30         ],
@@ -235,7 +235,7 @@ our @SYMBOL_TABLE = (
 [ "SubMgmtControl",           35,   0,  "hexstr",      3,        3          ],
 [ "SubMgmtCpeTable",          36,   0,  "hexstr",      0,        0          ],
 [ "SubMgmtFilters",           37,   0,  "ushort_list", 4,        4          ],
-[ "SnmpMibObject",            64,   0,  "snmp_object", 1,        2048       ],
+[ "SnmpMibObject64",          64,   0,  "snmp_object", 1,        65535      ],
 [ "TestMode",                 40,   0,  "hexstr",      0,        1          ],
 
   # PacketCable MTA Configuration File Delimiter

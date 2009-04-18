@@ -19,7 +19,7 @@ use Socket;
 our $ERROR     = q();
 our %SNMP_TYPE = (
     INTEGER   => [ 0x02, \&uint        ],
-    STRING    => [ 0x04, \&_esc_string ],
+    STRING    => [ 0x04, \&string      ],
     NULLOBJ   => [ 0x05, sub {}        ],
     IPADDRESS => [ 0x40, \&ip          ],
     COUNTER   => [ 0x41, \&uint        ],
@@ -115,17 +115,6 @@ sub _snmp_oid {
 
     return wantarray ? @encoded_oid : \@encoded_oid;
 }
-
-sub _esc_string {
-    my $obj    = shift;
-    my $string = $obj->{'value'};
-    my @ret;
-
-    $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
-
-    return map { ord $_ } split //, $string;
-}
-
 
 =head2 bigint(\%h)
 
@@ -262,7 +251,7 @@ sub vendorspec {
     for my $tlv (@$nested) {
         my @value = string($tlv);
         push @bytes, $tlv->{'type'};
-        push @bytes, int(@value);
+        push @bytes, int @value;
         push @bytes, @value;
     }
 
@@ -314,11 +303,12 @@ sub string {
     my $obj    = shift;
     my $string = $obj->{'value'};
 
-    if($string =~ /^0x([0-9a-f]+)$/i) { # hex
-        return hexstr({ value => $1 });
+    if(ref $string) { # hex
+        return hexstr({ value => $$string });
     }
     else { # normal
-        my @ret = map { ord $_ } split //, $string;
+        $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
+        my @ret =  map { ord $_ } split //, $string;
         return wantarray ? @ret : \@ret;
     }
 }
@@ -334,10 +324,11 @@ sub hexstr {
     my $value = shift->{'value'} || '';
     my @bytes;
 
-    if($value =~ /^(?:0x)?([0-9a-f]+)$/i) {
+    $value =~ s/^(?:0x)//;
+
+    if($value =~ /^([0-9a-f]+)$/i) {
         while($value) {
-            $value =~ s/(\w{1,2})$//;
-            unshift @bytes, hex $1;
+            $value =~ s/(\w{1,2})$// and unshift @bytes, hex $1;
         }
     }
 

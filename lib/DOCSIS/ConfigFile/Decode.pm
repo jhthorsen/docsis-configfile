@@ -15,6 +15,7 @@ use warnings;
 use bytes;
 use Math::BigInt;
 use Socket;
+use DOCSIS::ConfigFile::Syminfo;
 use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
 our $ERROR     = q();
@@ -76,9 +77,9 @@ sub snmp_object {
 }
 
 sub _snmp_oid {
-    my @bytes  = @_;
-    my @oid    = (0);
-    my $subid  = 0;
+    my @bytes = @_;
+    my @oid   = (0);
+    my $subid = 0;
 
     for my $id (@bytes) {
         if($subid & 0xfe000000) {
@@ -142,9 +143,9 @@ sub bigint {
     my $int64 = Math::BigInt->new($value);
 
     # setup int64
-    for(@bytes) {
-        $_     ^= 0xff if($value < 0);
-        $int64  = ($value << 8) | $_;
+    for my $chunk (@bytes) {
+        $chunk ^= 0xff if($value < 0);
+        $int64  = ($int64 << 8) | $chunk;
     }
 
     return $int64;
@@ -241,7 +242,7 @@ sub vendorspec {
             push @ret, {
                 type   => $type,
                 length => $length,
-                value  => hexstr($1),
+                value  => string($1),
             };
         }
     }
@@ -286,7 +287,7 @@ sub ether {
         return;
     }
 
-    return join ":", unpack("H2" x $length, $bin);
+    return join "", unpack("H2" x $length, $bin);
 }
 
 =head2 string($bytestring)
@@ -300,7 +301,7 @@ sub string {
     my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
 
     if($bin =~ /[^\t\n\r\x20-\xef]/) { # hex string
-        return hexstr($bin);
+        return \hexstr($bin); # reference
     }
     else { # normal string
         $bin =~ s/\x00//g;

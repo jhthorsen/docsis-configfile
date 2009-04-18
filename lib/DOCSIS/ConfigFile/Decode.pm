@@ -20,7 +20,7 @@ use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 our $ERROR     = q();
 our %SNMP_TYPE = (
     0x02 => [ 'INTEGER',    \&uint        ],
-    0x04 => [ 'STRING',     \&_esc_string ],
+    0x04 => [ 'STRING',     \&string,     ],
     0x05 => [ 'NULLOBJ',    sub {}        ],
     0x40 => [ 'IPADDRESS',  \&ip          ],
     0x41 => [ 'COUNTER',    \&uint        ],
@@ -127,12 +127,6 @@ sub _chop {
     return unpack $type, $1 if($$str =~ s/^(.{$n})//s);
     return;
 }
-
-sub _esc_string {
-    $_[0] =~ s/([^\t\n\x20-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
-    return $_[0];
-}
-
 
 =head2 bigint
 
@@ -305,12 +299,13 @@ cannot.
 sub string {
     my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
 
-    if($bin =~ /[\x01-\x1f\x7f-\xff]/) { # hex string
+    if($bin =~ /[^\t\n\r\x20-\xef]/) { # hex string
         return hexstr($bin);
     }
     else { # normal string
         $bin =~ s/\x00//g;
-        return sprintf "%s", $bin;
+        $bin =~ s/([^\t\n\x20-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
+        return $bin;
     }
 }
 

@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-Version 0.5503
+Version 0.5506
 
 =head1 SYNOPSIS
 
@@ -33,14 +33,15 @@ use strict;
 use warnings;
 use Digest::MD5;
 use Digest::HMAC_MD5;
-use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
-use constant Decode  => "DOCSIS::ConfigFile::Decode";
-use constant Encode  => "DOCSIS::ConfigFile::Encode";
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION = '0.5503';
+use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
+use constant Decode  => "DOCSIS::ConfigFile::Decode";
+use constant Encode  => "DOCSIS::ConfigFile::Encode";
+
+our $VERSION = '0.5506';
 our $TRACE   = 0;
 
 =head1 METHODS

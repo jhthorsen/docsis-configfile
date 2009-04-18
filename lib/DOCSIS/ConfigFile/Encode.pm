@@ -249,7 +249,7 @@ sub vendorspec {
 
     TLV:
     for my $tlv (@$nested) {
-        my @value = string($tlv);
+        my @value = hexstr($tlv);
         push @bytes, $tlv->{'type'};
         push @bytes, int @value;
         push @bytes, @value;
@@ -303,8 +303,8 @@ sub string {
     my $obj    = shift;
     my $string = $obj->{'value'};
 
-    if(ref $string) { # hex
-        return hexstr({ value => $$string });
+    if($string =~ /^0x[a-z0-9]+$/i) { # hex
+        return hexstr({ value => $string });
     }
     else { # normal
         $string =~ s/%(\w\w)/{ chr hex $1 }/ge;

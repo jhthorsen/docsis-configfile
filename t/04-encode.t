@@ -53,13 +53,13 @@ test_encode(snmp_object =>
         value => {
             oid   => "1.3.6.1.6.3",
             type  => "STRING",
-            value => \"0x002244",
+            value => "0x002244",
         }
     },
     {
         oid   => "1.3.6.1.6.3",
         type  => "STRING",
-        value => \"0x002244",
+        value => "0x002244",
     },
     "snmp_object with hexstring"
 );
@@ -71,7 +71,7 @@ test_encode(vendorspec =>
             {
                 type => 0x02,
                 length => 0x04,
-                value => \"0xff",
+                value => "0xff",
             },
         ],
     },
@@ -79,7 +79,7 @@ test_encode(vendorspec =>
         {
             type => 0x02,
             length => 0x1,
-            value => \"0xff",
+            value => "0xff",
         }
     ]
 );

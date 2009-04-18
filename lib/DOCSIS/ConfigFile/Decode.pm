@@ -242,7 +242,7 @@ sub vendorspec {
             push @ret, {
                 type   => $type,
                 length => $length,
-                value  => string($1),
+                value  => hexstr($1),
             };
         }
     }
@@ -301,7 +301,7 @@ sub string {
     my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
 
     if($bin =~ /[^\t\n\r\x20-\xef]/) { # hex string
-        return \hexstr($bin); # reference
+        return hexstr($bin); # reference
     }
     else { # normal string
         $bin =~ s/\x00//g;

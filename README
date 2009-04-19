@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    Version 0.52
+    Version 0.56
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
@@ -21,10 +21,17 @@ SYNOPSIS
 
         print YAML::Dump($decoded); # see simple config in YAML format
         print YAML::Dump($dec_adv); # see advanced config in YAML format
- 
+
 METHODS
-  new
+  new(%args)
     Object constructor.
+
+    Arguments can be:
+
+     shared_secret   => Shared secret in encoded cm config file
+     advanced_output => Advanced decoded config format
+     mibs            => will set $ENV{MIBS} to load custom mibs
+     log             => Custom logger
 
   decode
     Decodes a binary config-file. Needs only one of these arguments:
@@ -46,8 +53,19 @@ METHODS
     Sets weither advanced output should be enabled. Takes 0 or 1 as
     argument. Advanced output is off (0) by default.
 
-  log
-    Returns a log-handler.
+  errors
+    Retrieves the errors if encode() or decode() fails.
+
+  logger
+CONSTANTS
+  Decode
+    Returns DOCSIS::ConfigFile::Decode.
+
+  Encode
+    Returns DOCSIS::ConfigFile::Encode.
+
+  Syminfo
+    Returns DOCSIS::ConfigFile::Syminfo.
 
 AUTHOR
     Jan Henning Thorsen, "<pm at flodhest.net>"

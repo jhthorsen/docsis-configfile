@@ -39,8 +39,8 @@ Takes a hash-ref (keys: oid, type, value), and returns a byte-encoded snmp-
 object.
 
  #-type---length---------value-----type---
-   48,    $total_length,         # object
-   6,     int(@oid),     @oid,   # oid
+   0x30,  $total_length,         # object
+   0x06,  int(@oid),     @oid,   # oid
    $type, int(@value),   @value, # value
 
 =cut
@@ -50,38 +50,41 @@ sub snmp_object {
     my @oid    = _snmp_oid($obj->{'oid'})   or return;
     my $type   = $SNMP_TYPE{$obj->{'type'}} or return;
     my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
-    my(@total_length, @value_length);
 
     return unless(@value);
 
-    @value_length = (0 + @value);
-
-    while(255 <= $value_length[0]) {
-        push @value_length, $value_length[0] && 255;
-        $value_length[0] >>= 8;
-    }
-
-    @total_length = (@value + @oid + @value_length + 2);
-
-    if($total_length[0] >= 0x80) {
-        if($total_length[0] < 0xff) {
-            $total_length[1] = $total_length[0];
-            $total_length[0] = 0x81;
-        }
-        elsif($total_length[0] < 0xffff) {
-            push @total_length, unpack "C2", pack "n", $total_length[0];
-            $total_length[0] = 0x82;
-        }
-    }
-
-    my @ret = (
+    my @oid_length   = _snmp_length(0 + @oid);
+    my @value_length = _snmp_length(0 + @value);
+    my @total_length = _snmp_length(3 + @value + @oid + @value_length);
+    my @bytes        = (
       #-type--------length----------value-----type---
         0x30,       @total_length,          # object
-        0x06,       int(@oid),      @oid,   # oid
+        0x06,       @oid_length,    @oid,   # oid
         $type->[0], @value_length,  @value, # value
     );
 
-    return wantarray ? @ret : \@ret;
+    return wantarray ? @bytes : \@bytes;
+}
+
+sub _snmp_length {
+    my $length = shift;
+
+    if($length < 0x80) {
+        return $length;
+    }
+    elsif($length < 0xff) {
+        return 0x81, $length;
+    }
+    elsif($length < 0xffff) {
+        my @bytes;
+        while($length) {
+            unshift @bytes, $length & 0xff;
+            $length >>= 8;
+        }
+        return 0x82, @bytes;
+    }
+
+    die "too long snmp length";
 }
 
 sub _snmp_oid {
@@ -303,10 +306,10 @@ sub string {
     my $obj    = shift;
     my $string = $obj->{'value'};
 
-    if($string =~ /^0x[a-z0-9]+$/i) { # hex
+    if($string =~ /^0x[a-z0-9]+$/i) {
         return hexstr({ value => $string });
     }
-    else { # normal
+    else {
         $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
         my @ret =  map { ord $_ } split //, $string;
         return wantarray ? @ret : \@ret;

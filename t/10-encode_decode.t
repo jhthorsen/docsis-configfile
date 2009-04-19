@@ -5,6 +5,8 @@ use warnings;
 use Test::More;
 use DOCSIS::ConfigFile;
 
+#$DOCSIS::ConfigFile::TRACE = 1;
+
 my $original = config();
 my $docsis   = DOCSIS::ConfigFile->new;
 my $encoded  = $docsis->encode($original);
@@ -108,8 +110,8 @@ sub config {
             'value' => '0xfd620bb324fb572b125078840666300d06092a8648801197310b30090603550406130255533139303706a3051197310b30090603550406130255533139303706a305203666c65205365727669636520496e7465726661636203593353051b00005040613025553311d301b060355',
           },
           {
-            'value' => '0x0011ee',
             'name' => 'VendorSpecific',
+            'value' => '0x0011ee',
             'nested' => [
                           {
                             'length' => 1,
@@ -163,20 +165,20 @@ sub config {
                         ]
           },
           {
+            'name' => 'SnmpMibObject',
             'value' => {
                          'value' => 'foo-42.bin',
                          'oid' => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2',
                          'type' => 'STRING'
                        },
-            'name' => 'SnmpMibObject'
           },
           {
+            'name' => 'SnmpMibObject',
             'value' => {
                          'value' => '1.6.4.1',
                          'oid' => '1.3.6.1.4.1.1429.77.1.6.1.1.7.2',
                          'type' => 'IPADDRESS'
                        },
-            'name' => 'SnmpMibObject'
           },
         ];
 }

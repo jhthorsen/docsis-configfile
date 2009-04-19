@@ -52,21 +52,17 @@ sub snmp_object {
     my($byte, $length, $oid, $type, $value);
 
     # message
-    _chop(\$data, "C1"); # 0x30
-    $byte   = _chop(\$data, "C1"); # length?
-    $length = $byte == 0x81 ? _chop(\$data, "C1")
-            : $byte == 0x82 ? _chop(\$data, "n1")
-            :                 $byte;
+    $type   = _chop(\$data, "C1"); # 0x30
+    $length = _snmp_length(\$data);
 
     # oid
-    _chop(\$data, "C1"); # 0x06
-    $length = _chop(\$data, "C1");
+    $type   = _chop(\$data, "C1"); # 0x06
+    $length = _snmp_length(\$data);
     $oid    = _snmp_oid( _chop(\$data, "C$length") );
 
     # value
     $type   = $SNMP_TYPE{ _chop(\$data, "C1") };
-    $length = $byte == 0x82 ? _chop(\$data, "S1")
-            :                 _chop(\$data, "C1");
+    $length = _snmp_length(\$data);
     $value  = $type->[1]->($data);
 
     return {
@@ -74,6 +70,27 @@ sub snmp_object {
         type  => $type->[0],
         value => $value,
     };
+}
+
+sub _snmp_length {
+    my $data   = shift;
+    my $length = _chop($data, "C1"); # length?
+
+    if($length <= 0x80) {
+        return $length;
+    }
+    elsif($length == 0x81) {
+        return _chop($data, "C1");
+    }
+    elsif($length == 0x82) {
+        $length = 0;
+        for my $byte (_chop($data, "C2")) {
+            $length = $length << 8 | $byte;
+        }
+        return $length;
+    }
+
+    die "too long snmp length";
 }
 
 sub _snmp_oid {
@@ -300,11 +317,10 @@ cannot.
 sub string {
     my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
 
-    if($bin =~ /[^\t\n\r\x20-\xef]/) { # hex string
-        return hexstr($bin); # reference
+    if($bin =~ /[^\t\n\r\x20-\xEF]/) {
+        return hexstr($bin);
     }
-    else { # normal string
-        $bin =~ s/\x00//g;
+    else {
         $bin =~ s/([^\t\n\x20-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
         return $bin;
     }

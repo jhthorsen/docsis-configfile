@@ -126,23 +126,27 @@ sub decode {
 }
 
 sub _decode_loop {
-    my $self         = shift;
-    my $total_length = shift || 0xffffffff;
-    my $p_code       = shift || 0;
-    my $FH           = $self->{'decode_fh'};
-    my $cfg          = [];
+    my $self    = shift;
+    my $tlength = shift || 0xffffffff;
+    my $p_code  = shift || 0;
+    my $FH      = $self->{'decode_fh'};
+    my $cfg     = [];
 
     CODE:
-    while($total_length > 0) {
-        my($syminfo, $value, $nested, $method, $func);
+    while($tlength > 0) {
+        my($value, $nested, $func);
 
-        my $code   = $self->_read_code($FH) or last CODE;
-        my $length = $self->_read_length($FH, $code) or last CODE;
+        my $code     = $self->_read_code($FH) or last CODE;
+        my $syminfo  = Syminfo->from_code($code, $p_code);
+        my $length   = $self->_read_length($FH, $code, $syminfo->length);
 
-        $total_length -= $length + 2;
-        $syminfo       = Syminfo->from_code($code, $p_code);
+        $tlength -= $length + 2;
 
-        if($syminfo->func eq 'nested') {
+        if(!$syminfo->func) {
+            $self->logger(fatal => "code=$code, pcode=$p_code is undefined");
+            last CODE;
+        }
+        elsif($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
         else {
@@ -204,14 +208,14 @@ sub _read_length {
     my $self  = shift;
     my $FH    = shift;
     my $code  = shift;
-    my $bytes = $code == 64 ? 2 : 1;
+    my $bytes = shift;
     my $length;
 
     unless($bytes = read $FH, $length, $bytes) {
         unless(defined $bytes) {
             $self->logger(error => "Could not read 'length': $!");
         }
-        return;
+        return 0;
     }
 
     # Document: PKT-SP-PROV1.5-I03-070412
@@ -311,6 +315,7 @@ sub _encode_loop {
 
     TLV:
     for my $tlv (@$config) {
+
         unless(ref $tlv eq 'HASH') {
             $self->logger(error => "Invalid TLV#$i");
             next TLV;
@@ -322,75 +327,71 @@ sub _encode_loop {
 
         my $name    = $tlv->{'name'};
         my $syminfo = Syminfo->from_id($name);
+        my($type, $length, $value, @error);
 
         unless($syminfo->func) {
             $self->logger(error => "Unknown encode method for $name");
             next TLV;
         }
 
-        my $code = $syminfo->code;
-        my $type = pack "C", $code;
-        my($sub, $data, $length, $value);
-
-        #==========
-        # is nested
-        #==========
-
         if($syminfo->func eq 'nested') {
-            my $value   = $self->_encode_loop($tlv->{'nested'}, $level+1, $i);
-            my $length  = pack "C", length $value;
-            $binstring .= "$type$length$value";
-
-            $self->_calculate_cmts_mic($name, "$type$length$value");
-
-            $self->logger(trace =>
-                sprintf q(Added nested data %s/%s [%i] 0x%s),
-                $name, $code, length($value), join("", unpack "H*", $value),
-            );
-
-            next TLV;
+            $value = $self->_encode_loop($tlv->{'nested'}, $level+1, $i);
         }
+        else {
+            my $sub = Encode->can($syminfo->func);
 
-        #===========
-        # not nested
-        #===========
-
-        unless($sub = Encode->can($syminfo->func)) {
-            $self->logger(error => "Unknown encode method for $name");
-            next TLV;
-        }
-        unless(defined $tlv->{'value'}) {
-            $self->logger(error => "Missing value in TLV#$i");
-            next TLV;
-        }
-
-        if($syminfo->l_limit or $syminfo->u_limit) {
-            my $value = ($tlv->{'value'} =~ /\D/) ? length $tlv->{'value'}
-                      :                                    $tlv->{'value'};
-            if($value > $syminfo->u_limit) {
-                $self->logger(error => "Value too high: $name=$value");
+            unless($sub) {
+                $self->logger(error => "Unknown encode method for $name");
                 next TLV;
             }
-            if($value < $syminfo->l_limit) {
-                $self->logger(error => "Value too low: $name=$value");
+            unless(defined $tlv->{'value'}) {
+                $self->logger(error => "Missing value in TLV#$i");
                 next TLV;
+            }
+
+            unless(defined( $value = $sub->($tlv) )) {
+                $self->logger(error => "Undefined value for TLV#$i");
+                next TLV;
+            }
+
+            $value = pack "C*", @$value;
+        }
+
+        SIBLING:
+        for my $o (@{ $syminfo->siblings }) {
+            next unless($o->l_limit or $o->u_limit);
+
+            my $length = $tlv->{'value'} =~ /^\d+$/
+                            ? $tlv->{'value'} : length $value;
+
+            if($length > $o->u_limit) {
+                push @error, "$name: $length > " .$o->u_limit;
+            }
+            elsif($length < $o->l_limit) {
+                push @error, "$name: $length < " .$o->l_limit;
+            }
+            else {
+                $syminfo = $o;
+                @error   = ();
+                last SIBLING;
             }
         }
 
-        unless(defined( $data = $sub->($tlv) )) {
-            $self->logger(error => "Undefined value for TLV#$i");
+        if(@error) {
+            $self->logger(fatal => $_) for(@error);
             next TLV;
         }
 
-        $length = (@$data > 255) ? pack("n", int @$data)
-                :                  pack("C", int @$data);
-        $value  = pack "C*", @$data;
+        $type   = $syminfo->code;
+        $length = ($syminfo->length == 2) ? pack("n", length $value)
+                :                           pack("C", length $value);
 
-        $binstring .= "$type$length$value";
-
-        $self->logger(trace => sprintf q(%s %i|%i|%s),
-            $name, $code, length($value), join("", unpack "H*", $value),
+        $self->logger(trace => sprintf q(name=%s type=%i, length=%i),
+            $name, $type, length($value)
         );
+
+        $type       = pack "C", $type;
+        $binstring .= "$type$length$value";
 
         $self->_calculate_cmts_mic($name, "$type$length$value");
     }

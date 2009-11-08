@@ -1,5 +1,6 @@
 #!perl -T
 
+use lib q(lib);
 eval 'use Test::Pod::Coverage 1.04';
 
 if($@) {

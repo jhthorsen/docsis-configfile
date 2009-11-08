@@ -180,7 +180,7 @@ sub uint {
     my @bytes  = unpack 'C*', shift;
     my $length = @bytes;
     my $size   = syminfo->byte_size('int');
-    my $value  = ($bytes[0] & 0x80) ? -1 : 0;
+    my $value  = 0;
 
     if($length > $size) {
         $ERROR = "length mismatch: $length > $size";
@@ -188,6 +188,7 @@ sub uint {
     }
 
     $value = ($value << 8) | $_ for(@bytes);
+    $value *= -1 if($bytes[3] & 0x80);
 
     return $value;
 }

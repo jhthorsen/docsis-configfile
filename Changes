@@ -1,5 +1,8 @@
 Revision history for DOCSIS-Perl
 
+0.58    Tue,  8 Dec 2009 22:45:00 +0100
+        Fix 01-pod-coverage.t
+
 0.57    Sun,  8 Nov 2009 16:52:00 +0100
         Fix decode of uint
 

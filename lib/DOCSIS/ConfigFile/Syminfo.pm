@@ -25,29 +25,11 @@ use warnings;
 my %FROM_CODE;
 my %FROM_ID;
 
-{
-    my @keys = qw/id code pcode func l_limit u_limit length/;
-    my(@row, $key, $id);
-
-    while(<DATA>) {
-        next if(/^#/);
-
-        @row = split /\s+/;
-        next unless(@row == 7);
-
-        $key = join ",", $row[1], $row[2];
-        $id  = $row[0];
-
-        $FROM_CODE{$key} = { map { $_ => shift @row } @keys };
-        push @{ $FROM_ID{$id} }, $FROM_CODE{$key};
-    }
-}
-
 =head1 CLASS METHODS
 
 =head2 add_symbol
 
- $class->add_symbol(\@row);
+ $class->add_symbol(\%row);
 
 =cut
 
@@ -225,9 +207,8 @@ See L<DOCSIS::ConfigFile>
 
 =cut
 
-1;
-
-__DATA__
+BEGIN {
+    my $SYM_INFO = q[
 #============================================================================
 # ID                    CODE PCODE  FUNC         L_LIMIT   H_LIMIT     LENGTH
 # identifier     docsis_code   pID  func         low_limit high_limit  length
@@ -457,3 +438,41 @@ TftpModemAddress          20    0   ip           0         0           1
 
 GenericTLV                 0    0   nested       1         255         1
 GenericTLV               255    0                0         0           1
+    ];
+
+    #
+    # Convert $SYM_INFO string (table above) to something useful
+    #
+    # Using *DATA seems to breack DBIx::Class, without any good reason
+    # Didn't bother to trace the rabit, so instead the config is read from
+    # a string now.
+    #
+    #  Error:  Couldn't load class (Quelea::App) because: Can't call method "isa" on an undefined value at /usr/share/perl5/DBIx/Class/Schema.pm line 244.
+    #  at /usr/share/perl5/DBIx/Class/Schema.pm line 244
+    #       DBIx::Class::Schema::load_namespaces('Quelea::Schema', 'default_resultset_class', 'ResultSet') called at /path/to/Quelea-Schema/lib/Quelea/Schema.pm line 38
+    #       require Quelea/Schema.pm called at lib/Quelea/App.pm line 23
+    #       Quelea::App::BEGIN() called at /path/to/Quelea-Schema/lib/Quelea/Schema.pm line 0
+    #       eval {...} called at /path/to/Quelea-Schema/lib/Quelea/Schema.pm line 0
+    #       require Quelea/App.pm called at /usr/local/lib/perl/5.10.0/Class/MOP.pm line 98
+    #       Class::MOP::__ANON__() called at /usr/local/share/perl/5.10.0/Try/Tiny.pm line 42
+    #       eval {...} called at /usr/local/share/perl/5.10.0/Try/Tiny.pm line 39
+    #  ...
+
+    my @keys = qw/id code pcode func l_limit u_limit length/;
+
+    for(split /\n/, $SYM_INFO) {
+        next if(/^#/);
+
+        my @row = split /\s+/;
+
+        next if(@row != 7);
+
+        my $key = join ",", $row[1], $row[2];
+        my $id  = $row[0];
+
+        $FROM_CODE{$key} = { map { $_ => shift @row } @keys };
+        push @{ $FROM_ID{$id} }, $FROM_CODE{$key};
+    }
+}
+
+1;

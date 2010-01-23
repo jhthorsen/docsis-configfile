@@ -1,5 +1,8 @@
 Revision history for DOCSIS-Perl
 
+0.59    Sat, 23 Jan 2010 10:19:00 +0100
+        Fix symbol table is read from a string
+
 0.58    Tue,  8 Dec 2009 22:45:00 +0100
         Fix 01-pod-coverage.t
 

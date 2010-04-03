@@ -1,10 +1,8 @@
 #!/usr/bin/perl
-
-use Test::More tests => 1;
-use lib q(lib);
-
-BEGIN {
-	use_ok( 'DOCSIS::ConfigFile' );
-}
-
-diag( "Testing DOCSIS::ConfigFile $DOCSIS::ConfigFile::VERSION, Perl $], $^X" );
+use lib qw(lib);
+use Test::More;
+plan tests => 4;
+use_ok('DOCSIS::ConfigFile');
+use_ok('DOCSIS::ConfigFile::Encode');
+use_ok('DOCSIS::ConfigFile::Decode');
+use_ok('DOCSIS::ConfigFile::Syminfo');

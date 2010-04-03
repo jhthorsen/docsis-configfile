@@ -1,55 +1,60 @@
 Revision history for DOCSIS-Perl
 
-0.59    Sat, 23 Jan 2010 10:19:00 +0100
+0.5901   Sat Apr  3 13:04:38 CEST 2010
+      - Update t/
+      - Update Changes
+      - Fix dist structure
+
+0.59    Sat 23 Jan 10:19:00 CET 2010
         Fix symbol table is read from a string
 
-0.58    Tue,  8 Dec 2009 22:45:00 +0100
+0.58    Tue  8 Dec 22:45:00 CET 2009
         Fix 01-pod-coverage.t
 
-0.57    Sun,  8 Nov 2009 16:52:00 +0100
+0.57    Sun  8 Nov 16:52:00 CET 2009
         Fix decode of uint
 
-0.56    Tue,  7 Apr 2009 15:41:00 +0100
+0.56    Tue  7 Apr 15:41:00 CEST 2009
         Add decoding of TLV64
         Fix string(): better detection for hexstrings
         Add add_symbol() for custom syminfo symbols
 
 0.55    ...
 
-0.54    Thu,  8 Jan 2009 23:00:00 +0100
+0.54    Thu  8 Jan 23:00:00 CET 2009
         Fix SNMP objects starting with "0x30 0x82 ... " fail to decode
         Update POD and formatting of code
 
-0.52    Mon, 14 Apr 2008 12:40:00 +0100
+0.52    Mon 14 Apr 12:40:00 CEST 2008
         Fix undefined $VERSION.
 
-0.51    Mon, 14 Apr 2008 00:19:00 +0100
+0.51    Mon 14 Apr 00:19:00 CEST 2008
         Update POD
 
-0.5     Sun, 13 Apr 2008 21:15:00 +0100
+0.5     Sun 13 Apr 21:15:00 CEST 2008
         Fix RT34547 should be able to handle ->unlimited values :)
         Fix RT34548 no warnings when decoding CmMic and CmtsMic
         Update 10-encode-decode test
         Change output format: hex-values start with '0x'
 
-0.4     Wed,  5 Dec 2007 11:23:00 +0200
+0.4     Wed  5 Dec 11:23:00 CET 2007
         Hopefully made a decent release for CPAN.
         Add example script  which should be quite useful: docsis_yaml.pl.
 
-0.3     Tue,  4 Dec 2007 22:32:00 +0200
+0.3     Tue  4 Dec 22:32:00 CET 2007
         Update encode/decode test.
         API change: not compatible with old version.
         Update POD.
         Add support for normal/advanced output.
         (Sorry for the version jump - Really bad typo)
 
-0.02    Tue,  4 Dec 2007 16:10:00 +0200
+0.02    Tue  4 Dec 16:10:00 CET 2007
         Add deps to makefile.
         Change error reporting to Log4perl.
         Add encode/decode test.
         Move syminfo to DOCSIS::ConfigFile::Syminfo.
         Update POD.
 
-0.01    Mon,  3 Dec 2007 23:49:00 +0200
+0.01    Mon  3 Dec 23:49:00 CET 2007
         First release of DOCSIS::ConfigFile
 

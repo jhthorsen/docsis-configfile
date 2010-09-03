@@ -188,7 +188,7 @@ sub uint {
     }
 
     $value = ($value << 8) | $_ for(@bytes);
-    $value *= -1 if($bytes[3] & 0x80);
+    $value *= -1 if($bytes[3] and $bytes[3] & 0x80);
 
     return $value;
 }

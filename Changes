@@ -1,5 +1,8 @@
 Revision history for DOCSIS-Perl
 
+0.60
+      - Fix uninitialized warnings in Decode::uint()
+
 0.5901   Sat Apr  3 13:04:38 CEST 2010
       - Update t/
       - Update Changes

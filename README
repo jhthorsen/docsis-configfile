@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.5901
+    0.60
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
@@ -31,7 +31,6 @@ METHODS
      shared_secret   => Shared secret in encoded cm config file
      advanced_output => Advanced decoded config format
      mibs            => will set $ENV{MIBS} to load custom mibs
-     log             => Custom logger
 
   decode
     Decodes a binary config-file. Needs only one of these arguments:
@@ -53,10 +52,6 @@ METHODS
     Sets weither advanced output should be enabled. Takes 0 or 1 as
     argument. Advanced output is off (0) by default.
 
-  errors
-    Retrieves the errors if encode() or decode() fails.
-
-  logger
 CONSTANTS
   Decode
     Returns DOCSIS::ConfigFile::Decode.

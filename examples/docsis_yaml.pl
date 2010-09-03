@@ -72,6 +72,7 @@ Prints this help text.
 
 use strict;
 use warnings;
+use autodie;
 use FindBin;
 use Getopt::Long qw/:config auto_help auto_version/;
 use YAML;
@@ -90,7 +91,6 @@ $DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
 my $docsis = DOCSIS::ConfigFile->new(
                  advanced_output => ($ARGS->{'advanced'} ? 1 : 0),
                  shared_secret   => $ARGS->{'secret'},
-                 log             => logger(),
              );
 
 if($ARGS->{'encode'}) {
@@ -117,33 +117,14 @@ sub output {
     my $docsis = shift;
     my $data   = join "", @_;
 
-    if(my @errors = $docsis->errors) {
-        die join "\n", @errors, q();
-    }
-
     if($ARGS->{'out'}) {
-        open(my $FH, ">", $ARGS->{'out'}) or die $!;
+        open my $FH, ">", $ARGS->{'out'};
         print $FH $data;
         close $FH;
     }
-    
     else {
         print $data;
     }
-}
-
-=head2 logger
-
-=cut
-
-sub logger {
-    no warnings;
-    eval "require Log::Log4perl" or return;
-    Log::Log4perl->easy_init(
-        $ARGS->{'trace'} ? $Log::Log4perl::TRACE
-      :                    $Log::Log4perl::FATAL
-    );
-    return Log::Log4perl->get_logger;
 }
 
 =head1 AUTHOR

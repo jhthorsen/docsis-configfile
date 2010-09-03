@@ -338,6 +338,17 @@ sub hexstr {
     return wantarray ? @bytes: \@bytes;
 }
 
+=head2 mic
+
+Cannot encode CM/CMTS mic without complete information about
+the config file, so this function returns an empty list.
+
+=cut
+
+sub mic {
+    return wantarray ? () : [];
+}
+
 =head1 AUTHOR
 
 =head1 BUGS

@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-0.5901
+0.60
 
 =head1 SYNOPSIS
 
@@ -27,6 +27,55 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
     print YAML::Dump($decoded); # see simple config in YAML format
     print YAML::Dump($dec_adv); # see advanced config in YAML format
 
+=head1 DESCRIPTION
+
+An instance from this class can be used to encode or decode
+L<DOCSIS|http://www.cablelabs.com> (Data over Cable Service Interface
+Specifications) config files. These files are usually served using a
+L<TFTP server|POE::Component::TFTPd>, after a
+L<cable modem|http://en.wikipedia.org/wiki/Cable_modem> or MTA
+(Multimedia Terminal Adapter) has recevied an IP address from a
+L<DHCP|Net::ISC::DHCPd> server. These files are
+L<binary encode|DOCSIS::ConfigFile::Encode> using a variety of
+functions, but all the data in the file are constructed by TLVs
+(type-length-value) blocks. These can be nested and concatenated.
+
+This module is used as a layer between any human readable data and
+the binary structure. The config file in human readable format can
+look something like this:
+
+    [
+        { name => NetworkAccess => value => 1 },
+        { name => GlobalPrivacyEnable => value => 1 },
+        { name => MaxCPE => value => 10 },
+        { name => BaselinePrivacy =>
+            nested => [
+                { name => AuthTimeout => value => 10 },
+                { name => ReAuthTimeout => value => 10 },
+                { name => AuthGraceTime => value => 600 },
+                { name => OperTimeout => value => 1 },
+                { name => ReKeyTimeout => value => 1 },
+                { name => TEKGraceTime => value => 600 },
+                { name => AuthRejectTimeout => value => 60 },
+                { name => SAMapWaitTimeout => value => 1 },
+                { name => SAMapMaxRetries => value => 4 }
+            ]
+        },
+    ]
+
+There is also an optional L</advanced_output> flag which can include
+more information, but this is what is required/default: An array-ref
+of hash-refs, containing a C<name> and a C<value> (or C<nested> for
+nested data structures). The rest will this module figure out.
+
+=head1 FAULT HANDLING
+
+As for version C<0.60>, this module has changed from holding errors
+in an attribute to actively reporting errors, using C<confess()>,
+C<carp()> and the module L<autodie> for reporting system errors from
+C<open()> and friends. Constructing the object, and changing attribute
+values are still safe to do, but L</encode> and L</decode> might die.
+
 =cut
 
 use strict;
@@ -42,7 +91,7 @@ use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";
 use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
-our $VERSION = '0.5901';
+our $VERSION = '0.60';
 our $TRACE   = 0;
 
 =head1 METHODS
@@ -142,7 +191,7 @@ sub _decode_loop {
                 carp $value;
             }
         }
-    
+
         if(defined $value or defined $nested) {
             push @$cfg, $self->_value_to_cfg($syminfo, $length, $value, $nested);
             next CODE;

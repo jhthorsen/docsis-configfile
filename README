@@ -22,6 +22,50 @@ SYNOPSIS
         print YAML::Dump($decoded); # see simple config in YAML format
         print YAML::Dump($dec_adv); # see advanced config in YAML format
 
+DESCRIPTION
+    An instance from this class can be used to encode or decode <DOCSIS>
+    (Data over Cable Service Interface Specifications) config files. These
+    files are usually served using a TFTP server, after a <cable modem> or
+    MTA (Multimedia Terminal Adapter) has recevied an IP address from a DHCP
+    server. These files are binary encode using a variety of functions, but
+    all the data in the file are constructed by TLVs (type-length-value)
+    blocks. These can be nested and concatenated.
+
+    This module is used as a layer between any human readable data and the
+    binary structure. The config file in human readable format can look
+    something like this:
+
+        [
+            { name => NetworkAccess => value => 1 },
+            { name => GlobalPrivacyEnable => value => 1 },
+            { name => MaxCPE => value => 10 },
+            { name => BaselinePrivacy =>
+                nested => [
+                    { name => AuthTimeout => value => 10 },
+                    { name => ReAuthTimeout => value => 10 },
+                    { name => AuthGraceTime => value => 600 },
+                    { name => OperTimeout => value => 1 },
+                    { name => ReKeyTimeout => value => 1 },
+                    { name => TEKGraceTime => value => 600 },
+                    { name => AuthRejectTimeout => value => 60 },
+                    { name => SAMapWaitTimeout => value => 1 },
+                    { name => SAMapMaxRetries => value => 4 }
+                ]
+            },
+        ]
+
+    There is also an optional "advanced_output" flag which can include more
+    information, but this is what is required/default: An array-ref of
+    hash-refs, containing a "name" and a "value" (or "nested" for nested
+    data structures). The rest will this module figure out.
+
+FAULT HANDLING
+    As for version 0.60, this module has changed from holding errors in an
+    attribute to actively reporting errors, using "confess()", "carp()" and
+    the module autodie for reporting system errors from "open()" and
+    friends. Constructing the object, and changing attribute values are
+    still safe to do, but "encode" and "decode" might die.
+
 METHODS
   new(%args)
     Object constructor.

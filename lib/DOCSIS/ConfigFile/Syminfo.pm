@@ -248,7 +248,7 @@ UsPacketClass             22    0   nested       0         0           1
 ClassifierRef              1   22   uchar        1         255         1
 ClassifierId               2   22   ushort       1         65535       1
 ServiceFlowRef             3   22   ushort       1         65535       1
-ServiceFlowId              4   22   uint         1         0xFFFFFFFF  1
+ServiceFlowId              4   22   uint         1         4294967295  1
 RulePriority               5   22   uchar        0         255         1
 ActivationState            6   22   uchar        0         1           1
 DscAction                  7   22   uchar        0         2           1
@@ -277,7 +277,7 @@ DsPacketClass             23    0   nested       0         0           1
 ClassifierRef              1   23   uchar        1         255         1
 ClassifierId               2   23   ushort       1         65535       1
 ServiceFlowRef             3   23   ushort       1         65535       1
-ServiceFlowId              4   23   uint         1         0xFFFFFFFF  1
+ServiceFlowId              4   23   uint         1         4294967295  1
 RulePriority               5   23   uchar        0         255         1
 ActivationState            6   23   uchar        0         1           1
 DscAction                  7   23   uchar        0         2           1
@@ -304,7 +304,7 @@ VlanID                     2   11   ushort       0         0           1
 
 UsServiceFlow             24    0   nested       0         0           1
 UsServiceFlowRef           1   24   ushort       1         65535       1
-UsServiceFlowId            2   24   uint         1         0xFFFFFFFF  1
+UsServiceFlowId            2   24   uint         1         4294967295  1
 ServiceClassName           4   24   string       2         16          1
 QosParamSetType            6   24   uchar        0         255         1
 TrafficPriority            7   24   uchar        0         7           1
@@ -332,13 +332,13 @@ IpTosOverwrite            23   24   hexstr       0         255         1
 
 DsServiceFlow             25    0   nested       0         0           1
 DsServiceFlowRef           1   25   ushort       1         65535       1
-DsServiceFlowId            2   25   uint         1         0xFFFFFFFF  1
+DsServiceFlowId            2   25   uint         1         4294967295  1
 ServiceClassName           4   25   string       2         16          1
 QosParamSetType            6   25   uchar        0         255         1
 TrafficPriority            7   25   uchar        0         7           1
-MaxRateSustained           8   25   uint         0         0xFFFFFFFF  1
-MaxTrafficBurst            9   25   uint         0         0xFFFFFFFF  1
-MinReservedRate           10   25   uint         0         0xFFFFFFFF  1
+MaxRateSustained           8   25   uint         0         4294967295  1
+MaxTrafficBurst            9   25   uint         0         4294967295  1
+MinReservedRate           10   25   uint         0         4294967295  1
 MinResPacketSize          11   25   ushort       0         65535       1
 ActQosParamsTimeout       12   25   ushort       0         65535       1
 AdmQosParamsTimeout       13   25   ushort       0         65535       1
@@ -353,7 +353,7 @@ PHS                       26    0   nested       0         0           1
 PHSClassifierRef           1   26   uchar        1         255         1
 PHSClassifierId            2   26   ushort       1         65535       1
 PHSServiceFlowRef          3   26   ushort       1         65535       1
-PHSServiceFlowId           4   26   uint         1         0xFFFFFFFF  1
+PHSServiceFlowId           4   26   uint         1         4294967295  1
 
 # Payload Header Suppression Rule - Appendix C.2.2.10
 
@@ -424,20 +424,20 @@ MtaConfigDelimiter       254    0   uchar        1         255         1
 DsChannelList             41    0   nested       1         255         1
 SingleDsChannel            1   41   nested       1         255         1
 SingleDsTimeout            1    1   ushort       0         65535       1
-SingleDsFrequency          2    1   uint         0         0xFFFFFFFF  1
+SingleDsFrequency          2    1   uint         0         4294967295  1
 DsFreqRange                2   41   nested       1         255         1
 DsFreqRangeTimeout         1    2   ushort       0         65535       1
-DsFreqRangeStart           2    2   uint         0         0xFFFFFFFF  1
-DsFreqRangeEnd             3    2   uint         0         0xFFFFFFFF  1
-DsFreqRangeStepSize        4    2   uint         0         0xFFFFFFFF  1
+DsFreqRangeStart           2    2   uint         0         4294967295  1
+DsFreqRangeEnd             3    2   uint         0         4294967295  1
+DsFreqRangeStepSize        4    2   uint         0         4294967295  1
 DefaultScanTimeout         3   41   ushort       0         65535       1
-TftpTimestamp             19    0   uint         0         0xFFFFFFFF  1
+TftpTimestamp             19    0   uint         0         4294967295  1
 TftpModemAddress          20    0   ip           0         0           1
 
 # Generic TLV... we only use the limits  code and length dont matter
 
-GenericTLV                 0    0   nested       1         255         1
-GenericTLV               255    0                0         0           1
+GenericTLV                 0    0   nested       0         255         1
+GenericTLV               255    0   nested       0         0           1
     ];
 
     #

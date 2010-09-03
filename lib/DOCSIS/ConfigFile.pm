@@ -299,7 +299,7 @@ sub _encode_loop {
         for my $o (@{ $syminfo->siblings }) {
             next unless($o->l_limit or $o->u_limit);
 
-            my $length = $tlv->{'value'} =~ /^\d+$/ ? $tlv->{'value'} : length $value;
+            my $length = $value =~ /^\d+$/ ? $value : length $value;
 
             if($length > $o->u_limit) {
                 push @error, sprintf '%s/%s: %s > %s', $o->pcode, $o->code, $length, $o->u_limit;

@@ -31,6 +31,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 use strict;
 use warnings;
+use autodie;
 use Digest::MD5;
 use Digest::HMAC_MD5;
 use DOCSIS::ConfigFile::Syminfo;
@@ -55,23 +56,14 @@ Arguments can be:
  shared_secret   => Shared secret in encoded cm config file
  advanced_output => Advanced decoded config format
  mibs            => will set $ENV{MIBS} to load custom mibs
- log             => Custom logger
 
 =cut
 
 sub new {
     my $class = shift;
-    my $self  = bless {@_}, $class;
-
-    $self->{'log'} = _init_logger() unless($self->{'log'});
-
+    my $args = ref $_[0] eq 'HASH' ? $_[0] : {@_};
+    my $self = bless $args, $class;
     return $self;
-}
-
-sub _init_logger {
-    eval "require Log::Log4perl" or return;
-    Log::Log4perl->initialized   or return;
-    Log::Log4perl->get_logger    or return;
 }
 
 =head2 decode
@@ -87,40 +79,25 @@ structure.
 sub decode {
     no warnings 'newline'; # don't shout on invalid filename
 
-    my $self  = shift;
-    my $input = shift;
+    my $self = shift;
+    my $input = shift || '__undefined_input__';
     my $FH;
 
-    $self->{'error'} = [];
-
-    if(not defined $input) { # no input
-        $self->logger(error => "Need 'something' to decode");
-        return;
-    }
-    elsif(ref $input eq 'SCALAR') { # binary string
-        open($FH, "<", $input);
+    if(ref $input eq 'SCALAR') { # binary string
+        open $FH, '<', $input;
     }
     elsif(ref $input eq 'GLOB') { # input is filehandle
-        $self->logger(debug => "Decoding from filehandle");
+        $FH = $input;
     }
     elsif(-f $input) { # input is filename
-        unless(open($FH, "<", $input)) {
-            $self->logger(error => "Could not decode from $input:$!");
-            return;
-        }
-        else {
-            $self->logger(debug => "Decoding from file");
-        }
-    }
-
-    if(ref $FH eq 'GLOB') {
-        binmode $FH;
-        $self->{'decode_fh'} = $FH;
+        open $FH, '<', $input;
     }
     else {
-        $self->logger(error => "Could not set up filehandle for decoding");
-        return;
+        confess 'Usage: $self->decode( ScalarRef|GlobRef|Filename )';
     }
+
+    binmode $FH;
+    $self->{'decode_fh'} = $FH;
 
     return $self->_decode_loop;
 }
@@ -138,25 +115,22 @@ sub _decode_loop {
 
         my $code     = $self->_read_code($FH) or last CODE;
         my $syminfo  = Syminfo->from_code($code, $p_code);
-        my $length   = $self->_read_length($FH, $code, $syminfo->length);
+        my $length   = $self->_read_length($FH, $syminfo->length);
 
         $tlength -= $length + 2;
 
         if(!$syminfo->func) {
-            $self->logger(fatal => "code=$code, pcode=$p_code is undefined");
+            carp sprintf 'Undefined decode function for PCODE/CODE (%s/%s)', $p_code, $code;
             last CODE;
         }
         elsif($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
         else {
-            my $bytes = read($FH, my $data, $length);
+            my $bytes = read $FH, my($data), $length;
 
             if($bytes != $length) {
-                $self->logger(
-                    fatal => "Read $bytes bytes, instead of $length"
-                );
-                next CODE;
+                confess sprintf 'Read (%s) bytes instead of (%s) while decoding PCODE/CODE (%s/%s)', $bytes, $length, $p_code, $code;
             }
 
             if($func = Decode->can($syminfo->func)) {
@@ -164,26 +138,17 @@ sub _decode_loop {
             }
             else {
                 $data = Decode->can('string')->($data);
-                $self->logger(fatal => join "\n",
-                    "Decode function does not exist.",
-                    ">> Type: $code (pId=$p_code)",
-                    ">> Length: $length",
-                    ">> Data: $data"
-                );
-                $value = "Unknown TLV: $code, $length, $data";
+                $value = sprintf 'Unknown TLV: T=%s/%s L=%s, V=%s', $p_code, $code, $length, $data;
+                carp $value;
             }
         }
     
         if(defined $value or defined $nested) {
-            push @$cfg, $self->_value_to_cfg(
-                            $syminfo, $length, $value, $nested
-                        );
+            push @$cfg, $self->_value_to_cfg($syminfo, $length, $value, $nested);
+            next CODE;
         }
-        else {
-            $self->logger(error => qq(Could not decode data using '$func'),
-                $syminfo->func
-            );
-        }
+
+        carp sprintf 'Could not decode PCODE/CODE (%s/%s) using function (%s)', $p_code, $code, $func;
     }
 
     return $cfg;
@@ -191,43 +156,25 @@ sub _decode_loop {
 
 sub _read_code {
     my $self = shift;
-    my $FH   = shift;
+    my $FH = shift;
     my $code;
 
-    unless(my $bytes = read $FH, $code, 1) {
-        unless(defined $bytes) {
-            $self->logger(error => "Could not read 'code': $!");
-        }
-        return;
-    }
+    read $FH, $code, 1;
 
-    return unpack("C", $code);
+    return unpack 'C', $code;
 }
 
 sub _read_length {
-    my $self  = shift;
-    my $FH    = shift;
-    my $code  = shift;
-    my $bytes = shift;
-    my $length;
-
-    unless($bytes = read $FH, $length, $bytes) {
-        unless(defined $bytes) {
-            $self->logger(error => "Could not read 'length': $!");
-        }
-        return 0;
-    }
+    my $self = shift;
+    my $read = read $_[0], my($length), $_[1];
 
     # Document: PKT-SP-PROV1.5-I03-070412
     # Chapter:  9.1 MTA Configuration File
-    if($bytes == 2) {
-        $length = unpack "n", $length or return;
-    }
-    else {
-        $length = unpack "C", $length or return;
-    }
-
-    return $length;
+    return $read == 0 ? 0
+         : $read == 1 ? unpack('C', $length)
+         : $read == 2 ? unpack('n', $length)
+         :              0xffffffff # weird way to enforce error later on...
+         ;
 }
 
 sub _value_to_cfg {
@@ -248,7 +195,6 @@ sub _value_to_cfg {
             length => $length,
             (defined $value  ? (value  => $value ) : ()),
             (defined $nested ? (nested => $nested) : ()),
-
         };
     }
     else {
@@ -271,25 +217,20 @@ Returns a binary string.
 
 sub encode {
     my $self   = shift;
-    my $config = shift;
-
-    $self->{'error'} = [];
+    my $config = shift || '__undefined_input__';
 
     if(ref $config ne 'ARRAY') {
-        $self->logger(error => "Input is not an array ref");
-        return;
+        confess 'Usage: $self->encode( ArrayRef[HashRef] )';
     }
 
     $self->{'cmts_mic'}  = {};
-    $self->{'binstring'} = $self->_encode_loop($config);
-
-    return $self->{'binstring'} = q() if(@{ $self->{'error'} });
+    $self->{'binstring'} = $self->_encode_loop($config) || q();
 
     if(grep { $_->{'name'} eq 'MtaConfigDelimiter' } @$config) {
-        $self->logger(debug => "Setting up MTA config-file");
+        $self->{'_MtaConfigDelimiter'} = 1; # for internal usage
     }
     else {
-        $self->logger(debug => "Setting up CM config-file");
+        $self->{'_DefaultConfigDelimiter'} = 1; # for internal usage
 
         my $cm_mic   = $self->_calculate_cm_mic;
         my $cmts_mic = $self->_calculate_cmts_mic;
@@ -303,26 +244,23 @@ sub encode {
 
 sub _encode_loop {
     my $self      = shift;
-    my $config    = shift;
+    my $config    = shift || '__undefined_input__';
     my $level     = shift || 0;
     my $i         = shift || 0;
     my $binstring = q();
 
     if(ref $config ne 'ARRAY') {
-        $self->logger(error => "Not an array: " .ref($config));
-        return q();
+        confess sprintf 'Input is not an array ref: %s', $config;
     }
 
     TLV:
     for my $tlv (@$config) {
 
         unless(ref $tlv eq 'HASH') {
-            $self->logger(error => "Invalid TLV#$i");
-            next TLV;
+            confess sprintf 'Invalid TLV#%s: %s', $i, $tlv || '__undefined_tlv__';
         }
         unless($tlv->{'name'}) {
-            $self->logger(error => "Missing name in TLV#$i");
-            next TLV;
+            confess sprintf 'Missing name in TLV#%s: %s', $i, join(',', keys %$tlv);
         }
 
         my $name    = $tlv->{'name'};
@@ -330,7 +268,7 @@ sub _encode_loop {
         my($type, $length, $value, @error);
 
         unless($syminfo->func) {
-            $self->logger(error => "Unknown encode method for $name");
+            carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
             next TLV;
         }
 
@@ -341,34 +279,33 @@ sub _encode_loop {
             my $sub = Encode->can($syminfo->func);
 
             unless($sub) {
-                $self->logger(error => "Unknown encode method for $name");
+                carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
                 next TLV;
             }
             unless(defined $tlv->{'value'}) {
-                $self->logger(error => "Missing value in TLV#$i");
+                confess sprintf 'Missing value in TLV#%s/%s', $i, $name;
                 next TLV;
             }
 
             unless(defined( $value = $sub->($tlv) )) {
-                $self->logger(error => "Undefined value for TLV#$i");
+                carp sprintf 'Undefined encoded value for TLV#%s/%s', $i, $name;
                 next TLV;
             }
 
-            $value = pack "C*", @$value;
+            $value = pack 'C*', @$value;
         }
 
         SIBLING:
         for my $o (@{ $syminfo->siblings }) {
             next unless($o->l_limit or $o->u_limit);
 
-            my $length = $tlv->{'value'} =~ /^\d+$/
-                            ? $tlv->{'value'} : length $value;
+            my $length = $tlv->{'value'} =~ /^\d+$/ ? $tlv->{'value'} : length $value;
 
             if($length > $o->u_limit) {
-                push @error, "$name: $length > " .$o->u_limit;
+                push @error, sprintf '%s/%s: %s > %s', $o->pcode, $o->code, $length, $o->u_limit;
             }
             elsif($length < $o->l_limit) {
-                push @error, "$name: $length < " .$o->l_limit;
+                push @error, sprintf '%s/%s: %s < %s', $o->pcode, $o->code, $length, $o->l_limit;
             }
             else {
                 $syminfo = $o;
@@ -378,17 +315,14 @@ sub _encode_loop {
         }
 
         if(@error) {
-            $self->logger(fatal => $_) for(@error);
-            next TLV;
+            confess sprintf 'Invalid value for %s: %s', $name, join(', ', @error);
         }
 
         $type   = $syminfo->code;
         $length = ($syminfo->length == 2) ? pack("n", length $value)
                 :                           pack("C", length $value);
 
-        $self->logger(trace => sprintf q(name=%s type=%i, length=%i),
-            $name, $type, length($value)
-        );
+        #carp 'name=%s type=%i, length=%i', $name, $type, length($value);
 
         $type       = pack "C", $type;
         $binstring .= "$type$length$value";
@@ -462,43 +396,8 @@ Advanced output is off (0) by default.
 
 sub advanced_output {
     my $self = shift;
-    $self->{'advanced_output'} = shift if(@_);
-    return $self->{'advanced_output'} ||= q();
-}
-
-=head2 errors
-
-Retrieves the errors if L<encode()> or L<decode()> fails.
-
-=cut
-
-sub errors {
-    $_[0]->{'error'} ||= [];
-    return wantarray ? @{ $_[0]->{'error'} } : $_[0]->{'error'};
-}
-
-=head2 logger
-
-=cut
-
-sub logger {
-    my $self  = shift;
-    my $level = shift;
-    my $msg   = sprintf shift(@_), @_;
-    my $log   = $self->{'log'};
-    
-    if($log) {
-        $log->$level($msg);
-    }
-    elsif($TRACE) {
-        warn "$level: $msg\n";
-    }
-
-    if($level eq 'error') {
-        push @{ $self->{'error'} }, $msg;
-    }
-
-    return 1;
+    $self->{'advanced_output'} = $_[0] if(@_);
+    return $self->{'advanced_output'} || 0;
 }
 
 =head1 CONSTANTS

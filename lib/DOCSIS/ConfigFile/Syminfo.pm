@@ -443,7 +443,7 @@ GenericTLV               255    0                0         0           1
     #
     # Convert $SYM_INFO string (table above) to something useful
     #
-    # Using *DATA seems to breack DBIx::Class, without any good reason
+    # Using *DATA seems to break DBIx::Class, without any good reason
     # Didn't bother to trace the rabit, so instead the config is read from
     # a string now.
     #

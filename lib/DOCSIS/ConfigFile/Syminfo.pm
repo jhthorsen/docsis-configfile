@@ -38,7 +38,7 @@ sub add_symbol {
     my $row   = shift;
 
     $FROM_CODE{ join("-", $row->{'code'}, $row->{'pcode'}) } = $row;
-    push @{ $FROM_ID{ $row->{'id'} } }, $row; 
+    push @{ $FROM_ID{ $row->{'id'} } }, $row;
 
     return 1;
 }

@@ -1,7 +1,12 @@
 Revision history for DOCSIS-Perl
 
-0.60
+0.60     Sat Sep  4 00:26:27 CEST 2010
       - Fix uninitialized warnings in Decode::uint()
+        Contributor: canni
+      - Change from logger() and errors() to carp() and confess()
+      - Add Encode::mic() to avoid warnings about
+        Undefined decode function for PCODE/CODE (0/255)
+      - Add DESCRIPTION
 
 0.5901   Sat Apr  3 13:04:38 CEST 2010
       - Update t/

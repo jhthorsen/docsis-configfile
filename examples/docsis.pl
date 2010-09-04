@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-docsis_yaml.pl
+docsis.pl - Encode and decode DOCSIS config files
 
 =head1 VERSION
 
@@ -10,17 +10,17 @@ Version 0.01
 
 =head1 SYNOPSIS
 
- docsis_yaml.pl [options] --decode <file> [--out <file>];
- docsis_yaml.pl [options] --encode <file> [--out <file>];
+ docsis.pl [options] --decode <file> [--out <file>];
+ docsis.pl [options] --encode <file> [--out <file>];
 
  Normal decoding:
- docsis_yaml.pl --decode config.bin --out config.yaml
+ docsis.pl --decode config.bin --out config.json
 
  Decoding with extra information
- docsis_yaml.pl --decode config.bin --out config.yaml --advanced
+ docsis.pl --decode config.bin --out config.json --advanced
 
  Encoding with shared secret
- docsis_yaml.pl --encode <file> --out <file> --secret "mysecret"
+ docsis.pl --encode <file> --out <file> --secret "mysecret"
 
 =head1 OPTIONS
 
@@ -70,23 +70,28 @@ Prints this help text.
 
 =cut
 
+BEGIN {
+    for my $module (qw/ autodie FindBin Getopt::Long JSON /) {
+        eval "use $module (); 1" or die "The '$module' module is required. Run 'cpan -i $module' to install it";
+    }
+}
+
 use strict;
 use warnings;
-use autodie;
-use FindBin;
-use Getopt::Long qw/:config auto_help auto_version/;
-use YAML;
 use lib qq($FindBin::Bin/../lib);
 use DOCSIS::ConfigFile;
 
 our $VERSION = $DOCSIS::ConfigFile::VERSION;
-our $ARGS    = {};
+our $ARGS = {};
 
+Getopt::Long->import(qw/:config auto_help auto_version/);
 GetOptions($ARGS, qw/
-    decode=s encode=s out|o=s advanced|a secret|s=s trace
+    decode=s
+    encode=s
+    out|o=s
+    advanced|a
+    secret|s=s
 /) or Getopt::Long::HelpMessage();
-
-$DOCSIS::ConfigFile::TRACE = $ARGS->{'trace'};
 
 my $docsis = DOCSIS::ConfigFile->new(
                  advanced_output => ($ARGS->{'advanced'} ? 1 : 0),
@@ -94,12 +99,13 @@ my $docsis = DOCSIS::ConfigFile->new(
              );
 
 if($ARGS->{'encode'}) {
-    my $config = YAML::LoadFile($ARGS->{'encode'});
-    output($docsis, $docsis->encode($config));
+    open my $FH, '<', $ARGS->{'encode'};
+    my $config = JSON->new->decode(do { local $/; <$FH> });
+    output($docsis, $docsis->ascii->encode($config));
 }
 elsif($ARGS->{'decode'}) {
     my $config = $docsis->decode($ARGS->{'decode'});
-    output($docsis, YAML::Dump($config));
+    output($docsis, JSON->new->pretty->ascii->encode($config));
 }
 else {
     Getopt::Long::HelpMessage();
@@ -118,7 +124,7 @@ sub output {
     my $data   = join "", @_;
 
     if($ARGS->{'out'}) {
-        open my $FH, ">", $ARGS->{'out'};
+        open my $FH, '>', $ARGS->{'out'};
         print $FH $data;
         close $FH;
     }
@@ -129,7 +135,7 @@ sub output {
 
 =head1 AUTHOR
 
-Jan Henning Thorsen < jan.henning at flodhest.net >
+Jan Henning Thorsen C<< jhthorsen at cpan.org >>
 
 =head1 COPYRIGHT
 

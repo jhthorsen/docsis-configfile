@@ -144,11 +144,13 @@ sub new {
 
 =head2 decode
 
-Decodes a binary config-file. Needs only one of these arguments: Filehandle,
-path to file or reference to a binary string.
+    $array_ref = $self->decode($path_to_file);
+    $array_ref = $self->decode(\$binary_string);
+    $array_ref = $self->decode($FH);
 
-Returns an array-ref of hashes, containing the config as a perl data
-structure.
+This method decodes a binary config file stored in either a file on disk,
+a binary string, or a filehandle. It returns an array-ref of hashes,
+containing the config as a perl data structure.
 
 =cut
 
@@ -284,10 +286,10 @@ sub _value_to_cfg {
 
 =head2 encode
 
-Encodes an array of hashes, containing the DOCSIS config-file settings. Takes
-only on argument: An array-ref of hashes.
+    $binary_str = $self->encode([ { ... }, ... ]);
 
-Returns a binary string.
+Encodes an array of hashes, containing the DOCSIS config-file settings and
+returns a binary encoded string.
 
 =cut
 

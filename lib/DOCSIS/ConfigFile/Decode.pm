@@ -156,13 +156,18 @@ Returns a C<Math::BigInt> object.
 
 sub bigint {
     my @bytes = unpack 'C*', shift;
-    my $value = ($bytes[0] & 0x80) ? -1 : shift @bytes;
-    my $int64 = Math::BigInt->new($value);
+    my $negative = $bytes[0] & 0x80;
+    my $int64 = Math::BigInt->new(0);
 
     # setup int64
     for my $chunk (@bytes) {
-        $chunk ^= 0xff if($value < 0);
-        $int64  = ($int64 << 8) | $chunk;
+        $chunk ^= 0xff if($negative);
+        $int64 = ($int64 << 8) | $chunk;
+    }
+
+    if($negative) {
+        $int64 *= -1;
+        $int64 -= 1;
     }
 
     return $int64;
@@ -173,18 +178,26 @@ sub bigint {
 =cut
 
 sub int {
-    my @bytes  = unpack 'C*', shift;
+    my @bytes = unpack 'C*', shift;
     my $length = @bytes;
-    my $size   = syminfo->byte_size('int');
-    my $value  = 0;
+    my $size = syminfo->byte_size('int');
+    my $negative = $bytes[0] & 0x80;
+    my $value = 0;
 
     if($length > $size) {
         $ERROR = "length mismatch: $length > $size";
         return;
     }
 
-    $value = ($value << 8) | $_ for(@bytes);
-    $value *= -1 if($bytes[3] and $bytes[3] & 0x80);
+    for my $chunk (@bytes) {
+        $chunk ^= 0xff if($negative);
+        $value = ($value << 8) | $chunk;
+    }
+
+    if($negative) {
+        $value *= -1;
+        $value -= 1;
+    }
 
     return $value;
 }

@@ -333,17 +333,12 @@ sub _encode_loop {
 
     TLV:
     for my $tlv (@$config) {
+        confess sprintf 'Invalid TLV#%s: %s', $i, $tlv || '__undefined_tlv__' unless(ref $tlv eq 'HASH');
+        confess sprintf 'Missing name in TLV#%s: %s', $i, join(',', keys %$tlv) unless($tlv->{'name'});
 
-        unless(ref $tlv eq 'HASH') {
-            confess sprintf 'Invalid TLV#%s: %s', $i, $tlv || '__undefined_tlv__';
-        }
-        unless($tlv->{'name'}) {
-            confess sprintf 'Missing name in TLV#%s: %s', $i, join(',', keys %$tlv);
-        }
-
-        my $name    = $tlv->{'name'};
+        my $name = $tlv->{'name'};
         my $syminfo = Syminfo->from_id($name);
-        my($type, $length, $value, @error);
+        my($type, $length, $value);
 
         unless($syminfo->func) {
             carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
@@ -362,9 +357,7 @@ sub _encode_loop {
             }
             unless(defined $tlv->{'value'}) {
                 confess sprintf 'Missing value in TLV#%s/%s', $i, $name;
-                next TLV;
             }
-
             unless(defined( $value = $sub->($tlv) )) {
                 carp sprintf 'Undefined encoded value for TLV#%s/%s', $i, $name;
                 next TLV;
@@ -373,36 +366,13 @@ sub _encode_loop {
             $value = pack 'C*', @$value;
         }
 
-        SIBLING:
-        for my $o (@{ $syminfo->siblings }) {
-            next unless($o->l_limit or $o->u_limit);
-
-            my $length = $value =~ /^\d+$/ ? $value : length $value;
-
-            if($length > $o->u_limit) {
-                push @error, sprintf '%s/%s: %s > %s', $o->pcode, $o->code, $length, $o->u_limit;
-            }
-            elsif($length < $o->l_limit) {
-                push @error, sprintf '%s/%s: %s < %s', $o->pcode, $o->code, $length, $o->l_limit;
-            }
-            else {
-                $syminfo = $o;
-                @error   = ();
-                last SIBLING;
-            }
-        }
-
-        if(@error) {
-            confess sprintf 'Invalid value for %s: %s', $name, join(', ', @error);
-        }
-
-        $type   = $syminfo->code;
-        $length = ($syminfo->length == 2) ? pack("n", length $value)
-                :                           pack("C", length $value);
+        $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, \$value);
+        $type = $syminfo->code;
+        $length = ($syminfo->length == 2) ? pack('n', length $value) : pack('C', length $value);
 
         #carp 'name=%s type=%i, length=%i', $name, $type, length($value);
 
-        $type       = pack "C", $type;
+        $type = pack "C", $type;
         $binstring .= "$type$length$value";
 
         $self->_calculate_cmts_mic($name, "$type$length$value");
@@ -412,6 +382,33 @@ sub _encode_loop {
     }
 
     return $binstring;
+}
+
+sub _syminfo_from_syminfo_siblings {
+    my($self, $syminfo, $value) = @_;
+    my @error;
+
+    SIBLING:
+    for my $sibling (@{ $syminfo->siblings }) {
+        unless($sibling->l_limit or $sibling->u_limit) {
+            next SIBLING;
+        }
+
+        my $length = $$value =~ /^\d+$/ ? $$value : length $$value;
+
+        if($length > $sibling->u_limit) {
+            push @error, sprintf '%s/%s: %s > %s', $sibling->pcode, $sibling->code, $length, $sibling->u_limit;
+        }
+        elsif($length < $sibling->l_limit) {
+            push @error, sprintf '%s/%s: %s < %s', $sibling->pcode, $sibling->code, $length, $sibling->l_limit;
+        }
+        else {
+            return $sibling;
+        }
+    }
+
+    confess sprintf 'Invalid value for %s: %s', $syminfo->id, join(', ', @error) if(@error);
+    return $syminfo;
 }
 
 sub _calculate_eod_and_pad {

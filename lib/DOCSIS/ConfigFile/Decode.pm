@@ -20,7 +20,7 @@ use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
 our $ERROR     = q();
 our %SNMP_TYPE = (
-    0x02 => [ 'INTEGER',    \&uint        ],
+    0x02 => [ 'INTEGER',    \&int         ],
     0x04 => [ 'STRING',     \&string,     ],
     0x05 => [ 'NULLOBJ',    sub {}        ],
     0x40 => [ 'IPADDRESS',  \&ip          ],
@@ -168,15 +168,11 @@ sub bigint {
     return $int64;
 }
 
-=head2 uint
-
- $int = uint($bytestring);
-
-Returns an unsigned integer: 0..2**32-1
+=head2 int
 
 =cut
 
-sub uint {
+sub int {
     my @bytes  = unpack 'C*', shift;
     my $length = @bytes;
     my $size   = syminfo->byte_size('int');
@@ -189,6 +185,30 @@ sub uint {
 
     $value = ($value << 8) | $_ for(@bytes);
     $value *= -1 if($bytes[3] and $bytes[3] & 0x80);
+
+    return $value;
+}
+
+=head2 uint
+
+ $int = uint($bytestring);
+
+Returns an unsigned integer: 0..2**32-1
+
+=cut
+
+sub uint {
+    my @bytes = unpack 'C*', shift;
+    my $length = @bytes;
+    my $size = syminfo->byte_size('int');
+    my $value = 0;
+
+    if($length > $size) {
+        $ERROR = "length mismatch: $length > $size";
+        return;
+    }
+
+    $value = ($value << 8) | $_ for(@bytes);
 
     return $value;
 }

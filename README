@@ -97,7 +97,9 @@ METHODS
         $binary_str = $self->encode([ { ... }, ... ]);
 
     Encodes an array of hashes, containing the DOCSIS config-file settings
-    and returns a binary encoded string.
+    and returns a binary encoded string. See "DESCRIPTION" and the unit
+    tests for example input. For other structures, see the table generated
+    by "dump_symbol_tree" in DOCSIS::ConfigFile::Syminfo.
 
 CONSTANTS
   Decode

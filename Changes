@@ -1,6 +1,7 @@
 Revision history for DOCSIS-Perl
 
 0.0601
+      - Fix use Carp qw/.../
       - Add support for Syminfo->dump_symbol_tree()
       - Restructured symbol table and documentation
 

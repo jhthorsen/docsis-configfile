@@ -81,6 +81,7 @@ values are still safe to do, but L</encode> and L</decode> might die.
 use strict;
 use warnings;
 use autodie;
+use Carp qw/ carp confess /;
 use Digest::MD5;
 use Digest::HMAC_MD5;
 use DOCSIS::ConfigFile::Syminfo;

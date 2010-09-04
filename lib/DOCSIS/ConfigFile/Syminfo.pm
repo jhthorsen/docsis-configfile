@@ -81,6 +81,50 @@ sub add_symbol {
     return 1;
 }
 
+=head2 dump_symbol_tree
+
+    $str = $self->dump_symbol_tree;
+
+This method will return a dump of the symbol tree, similar to
+L<Data::Dumper>.
+
+Curious of the config tree which is supported by default? Run the
+command below, to see the syminfo tree:
+
+    perl -e'print +(require DOCSIS::ConfigFile::Syminfo)->dump_symbol_tree'
+
+=cut
+
+sub dump_symbol_tree {
+    my $class = shift;
+    my $pcode = shift || 0;
+    my $_seen = shift || {};
+    my $_indent = shift || 0;
+    my @str;
+
+    for my $symbol (sort { $a->{'id'} cmp $b->{'id'} } values %FROM_CODE) {
+        next if($_seen->{$symbol});
+        next if($symbol->{'pcode'} != $pcode);
+        next if($symbol->{'code'} == 0);
+        my $width = 40 - $_indent * 2;
+
+        $_seen->{$symbol} = 1;
+
+        # [qw/ UpstreamChannelId         2     0   uchar        0         255         1 /],
+        push @str, sprintf("%s%-${width}s %3i %3i  %-11s %10i %10i\n",
+            ('  ' x $_indent),
+            (map { defined $symbol->{$_} ? $symbol->{$_} : '' } @OBJECT_ATTRIBUTES),
+        );
+
+        if($symbol->{'func'} eq 'nested') {
+            push @str, $class->dump_symbol_tree($symbol->{'code'}, $_seen, $_indent + 1);
+        }
+    }
+
+    return @str if wantarray;
+    return join '', map { (' ' x $pcode) . "$_\n" } @str;
+}
+
 =head2 from_id
 
     $self = $class->from_id($ID);
@@ -317,7 +361,7 @@ __PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
     [qw/ DstMacAddress             1    10   ether        0         0           1 /],
     [qw/ SrcMacAddress             2    10   ether        0         0           1 /],
     [qw/ EtherType                 3    10   hexstr       0         0           1 /],
-    [qw/ IEEE802 Classifier        11   22   nested       0         0           1 /],
+    [qw/ IEEE802Classifier        11    22   nested       0         0           1 /],
     [qw/ UserPriority              1    11   ushort       0         0           1 /],
     [qw/ VlanID                    2    11   ushort       0         0           1 /],
 
@@ -477,4 +521,4 @@ __PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
 #        ID                     CODE PCODE   FUNC         L_LIMIT   H_LIMIT     LENGTH
 #=====================================================================================
 
-1;
+__PACKAGE__;

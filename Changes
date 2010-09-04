@@ -1,6 +1,7 @@
 Revision history for DOCSIS-Perl
 
 0.0601
+      - Add support for Syminfo->dump_symbol_tree()
       - Restructured symbol table and documentation
 
 0.60     Sat Sep  4 00:26:27 CEST 2010

@@ -1,5 +1,11 @@
 Revision history for DOCSIS-Perl
 
+0.6003
+      - Fix uint() cannot return negative integers
+        Contributor: canni
+      - Add int() to handle (possible) signed integers
+        Contributor: canni
+
 0.6002   Sat Sep  4 11:34:58 CEST 2010
       - Fix dump_symbol_tree() can print large numbers
       - Fix dump_symbol_tree() can also follow "vendorspec"

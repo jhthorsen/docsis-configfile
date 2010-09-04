@@ -18,7 +18,7 @@ use Socket;
 
 our $ERROR     = q();
 our %SNMP_TYPE = (
-    INTEGER   => [ 0x02, \&uint        ],
+    INTEGER   => [ 0x02, \&int         ],
     STRING    => [ 0x04, \&string      ],
     NULLOBJ   => [ 0x05, sub {}        ],
     IPADDRESS => [ 0x40, \&ip          ],
@@ -143,23 +143,20 @@ sub bigint {
     return wantarray ? @bytes : \@bytes;
 }
 
-=head2 uint(\%h)
-
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
-unsigned int.
+=head2 int
 
 =cut
 
-sub uint {
-    my $obj      = shift;
-    my $int      = $obj->{'value'} || 0;
+sub int {
+    my $obj = shift;
+    my $int = $obj->{'value'} || 0;
     my $negative = $int < 0;
     my @bytes;
 
     while($int) {
         my $value  = $int & 0xff;
-        $int     >>= 8;
-        $value    ^= 0xff if($negative);
+        $int >>= 8;
+        $value ^= 0xff if($negative);
         unshift @bytes, $value;
     }
 
@@ -178,6 +175,38 @@ sub uint {
     return wantarray ? @bytes : \@bytes;
 }
 
+=head2 uint(\%h)
+
+Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
+unsigned int.
+
+=cut
+
+sub uint {
+    my $obj = shift;
+    my $int = $obj->{'value'} || 0;
+    my @bytes;
+
+    while($int) {
+        my $value = $int & 0xff;
+        $int >>= 8;
+        unshift @bytes, $value;
+    }
+
+    unless($obj->{'snmp'}) {
+        unshift @bytes, 0 for(1..4-@bytes);
+    }
+    unless(@bytes) {
+        @bytes = (0);
+    }
+
+    if($obj->{'snmp'}) {
+        unshift @bytes, 0 if($bytes[0] > 0x79);
+    }
+
+    return wantarray ? @bytes : \@bytes;
+}
+
 =head2 ushort(\%h)
 
 Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
@@ -186,24 +215,21 @@ unsigned short int.
 =cut
 
 sub ushort {
-    my $obj      = shift;
-    my $short    = $obj->{'value'};
-    my $negative = $short < 0;
+    my $obj = shift;
+    my $short = $obj->{'value'};
     my @bytes;
 
     if($obj->{'snmp'}) {
-        unshift @bytes, 0 if(!$negative and $short > 0x79);
+        unshift @bytes, 0 if($short > 0x79);
     }
 
     while($short) {
-        my $value  = $short & 0xff;
-        $short   >>= 8;
-        $value    ^= 0xff if($negative);
+        my $value = $short & 0xff;
+        $short >>= 8;
         unshift @bytes, $value;
     }
 
     unless($obj->{'snmp'}) {
-        $bytes[0] |= 0x80 if($negative);
         unshift @bytes, 0 for(1..2-@bytes);
     }
 
@@ -248,13 +274,13 @@ sub vendorspec {
     return unless(ref $nested eq 'ARRAY');
 
     @vendor = ether($obj);
-    @bytes  = (8, int(@vendor), @vendor);
+    @bytes  = (8, CORE::int(@vendor), @vendor);
 
     TLV:
     for my $tlv (@$nested) {
         my @value = hexstr($tlv);
         push @bytes, $tlv->{'type'};
-        push @bytes, int @value;
+        push @bytes, CORE::int(@value);
         push @bytes, @value;
     }
 

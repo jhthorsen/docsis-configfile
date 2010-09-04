@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.60
+    0.0601
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
@@ -66,9 +66,17 @@ FAULT HANDLING
     friends. Constructing the object, and changing attribute values are
     still safe to do, but "encode" and "decode" might die.
 
+ATTRIBUTES
+  shared_secret
+    Sets or gets the shared secret.
+
+  advanced_output
+    Sets weither advanced output should be enabled. Takes 0 or 1 as
+    argument. Advanced output is off (0) by default.
+
 METHODS
-  new(%args)
-    Object constructor.
+  new
+        $self = $class->new(\%args);
 
     Arguments can be:
 
@@ -77,24 +85,19 @@ METHODS
      mibs            => will set $ENV{MIBS} to load custom mibs
 
   decode
-    Decodes a binary config-file. Needs only one of these arguments:
-    Filehandle, path to file or reference to a binary string.
+        $array_ref = $self->decode($path_to_file);
+        $array_ref = $self->decode(\$binary_string);
+        $array_ref = $self->decode($FH);
 
-    Returns an array-ref of hashes, containing the config as a perl data
-    structure.
+    This method decodes a binary config file stored in either a file on
+    disk, a binary string, or a filehandle. It returns an array-ref of
+    hashes, containing the config as a perl data structure.
 
   encode
-    Encodes an array of hashes, containing the DOCSIS config-file settings.
-    Takes only on argument: An array-ref of hashes.
+        $binary_str = $self->encode([ { ... }, ... ]);
 
-    Returns a binary string.
-
-  shared_secret
-    Sets or gets the shared secret.
-
-  advanced_output
-    Sets weither advanced output should be enabled. Takes 0 or 1 as
-    argument. Advanced output is off (0) by default.
+    Encodes an array of hashes, containing the DOCSIS config-file settings
+    and returns a binary encoded string.
 
 CONSTANTS
   Decode

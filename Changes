@@ -1,5 +1,10 @@
 Revision history for DOCSIS-Perl
 
+0.0602
+      - Fix dump_symbol_tree() can print large numbers
+      - Fix dump_symbol_tree() can also follow "vendorspec"
+      - Fix remove duplicates from Syminfo table
+
 0.0601   Sat Sep  4 04:02:29 CEST 2010
       - Fix use Carp qw/.../
       - Add support for Syminfo->dump_symbol_tree()

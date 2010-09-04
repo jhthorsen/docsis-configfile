@@ -32,7 +32,7 @@ the physical layer and not the config file.
 use strict;
 use warnings;
 use autodie;
-use Carp qw/ cluck confess /;
+use Carp qw/ cluck carp confess /;
 
 my %FROM_CODE;
 my %FROM_ID;
@@ -62,6 +62,7 @@ with the new symbol, so others can use it as well.
 sub add_symbol {
     my $class = shift;
     my $symbol = shift;
+    my $key;
 
     # meant for internal usage...
     if(ref $symbol eq 'ARRAY') {
@@ -75,7 +76,10 @@ sub add_symbol {
         );
     }
 
-    $FROM_CODE{ join('-', $symbol->{'pcode'}, $symbol->{'code'}) } = $symbol;
+    $key = join '-', $symbol->{'pcode'}, $symbol->{'code'};
+
+    #carp "$key exists!" if($FROM_CODE{$key});
+    $FROM_CODE{$key} = $symbol;
     push @{ $FROM_ID{ $symbol->{'id'} } }, $symbol;
 
     return 1;
@@ -110,13 +114,13 @@ sub dump_symbol_tree {
 
         $_seen->{$symbol} = 1;
 
-        # [qw/ UpstreamChannelId         2     0   uchar        0         255         1 /],
-        push @str, sprintf("%s%-${width}s %3i %3i  %-11s %10i %10i\n",
+        #               UpstreamChannelId   2   0  uchar    0  255    1
+        push @str, sprintf("%s%-${width}s %3s %3s  %-11s %10s %10s\n",
             ('  ' x $_indent),
             (map { defined $symbol->{$_} ? $symbol->{$_} : '' } @OBJECT_ATTRIBUTES),
         );
 
-        if($symbol->{'func'} eq 'nested') {
+        if($symbol->{'func'} =~ qr{nested|vendorspec}) {
             push @str, $class->dump_symbol_tree($symbol->{'code'}, $_seen, $_indent + 1);
         }
     }
@@ -375,23 +379,23 @@ __PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
     [qw/ ActivationState           6    23   uchar        0         1           1 /],
     [qw/ DscAction                 7    23   uchar        0         2           1 /],
     [qw/ IpPacketClassifier        9    23   nested       0         0           1 /],
-    [qw/ IpTos                     1     9   hexstr       3         3           1 /],
-    [qw/ IpProto                   2     9   ushort       0         257         1 /],
-    [qw/ IpSrcAddr                 3     9   ip           0         0           1 /],
-    [qw/ IpSrcMask                 4     9   ip           0         0           1 /],
-    [qw/ IpDstAddr                 5     9   ip           0         0           1 /],
-    [qw/ IpDstMask                 6     9   ip           0         0           1 /],
-    [qw/ SrcPortStart              7     9   ushort       0         65535       1 /],
-    [qw/ SrcPortEnd                8     9   ushort       0         65535       1 /],
-    [qw/ DstPortStart              9     9   ushort       0         65535       1 /],
-    [qw/ DstPortEnd               10     9   ushort       0         65535       1 /],
+    #[qw/ IpTos                     1     9   hexstr       3         3           1 /], # already defined
+    #[qw/ IpProto                   2     9   ushort       0         257         1 /], # already defined
+    #[qw/ IpSrcAddr                 3     9   ip           0         0           1 /], # already defined
+    #[qw/ IpSrcMask                 4     9   ip           0         0           1 /], # already defined
+    #[qw/ IpDstAddr                 5     9   ip           0         0           1 /], # already defined
+    #[qw/ IpDstMask                 6     9   ip           0         0           1 /], # already defined
+    #[qw/ SrcPortStart              7     9   ushort       0         65535       1 /], # already defined
+    #[qw/ SrcPortEnd                8     9   ushort       0         65535       1 /], # already defined
+    #[qw/ DstPortStart              9     9   ushort       0         65535       1 /], # already defined
+    #[qw/ DstPortEnd               10     9   ushort       0         65535       1 /], # already defined
     [qw/ LLCPacketClassifier      10    23   nested       0         0           1 /],
-    [qw/ DstMacAddress             1    10   ether        0         0           1 /],
-    [qw/ SrcMacAddress             2    10   ether        0         0           1 /],
-    [qw/ EtherType                 3    10   hexstr       0         255         1 /],
+    #[qw/ DstMacAddress             1    10   ether        0         0           1 /], # already defined
+    #[qw/ SrcMacAddress             2    10   ether        0         0           1 /], # already defined
+    #[qw/ EtherType                 3    10   hexstr       0         255         1 /], # already defined
     [qw/ IEEE802Classifier        11    23   nested       0         0           1 /],
-    [qw/ UserPriority              1    11   ushort       0         0           1 /],
-    [qw/ VlanID                    2    11   ushort       0         0           1 /],
+    #[qw/ UserPriority              1    11   ushort       0         0           1 /], # already defined
+    #[qw/ VlanID                    2    11   ushort       0         0           1 /], # already defined
 
     # Upstream Service Flow
     [qw/ UsServiceFlow            24     0   nested       0         0           1 /],
@@ -514,7 +518,7 @@ __PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
     [qw/ TftpModemAddress         20     0   ip           0         0           1 /],
 
     # Generic TLV... we only use the limits  code and length dont matter
-    [qw/ GenericTLV                0     0   nested       0         255         1 /],
+    #[qw/ GenericTLV                0     0   nested       0         255         1 /],
     [qw/ GenericTLV              255     0   nested       0         0           1 /],
 );
 #-------------------------------------------------------------------------------------

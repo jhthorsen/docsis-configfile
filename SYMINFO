@@ -24,12 +24,12 @@ DownstreamFrequency                        1   0  uint          88000000  860000
 DsChannelList                             41   0  nested               1        255
   DefaultScanTimeout                       3  41  ushort               0      65535
   DsFreqRange                              2  41  nested               1        255
-    DsFreqRangeEnd                         3   2  uint                 0         -1
-    DsFreqRangeStart                       2   2  uint                 0         -1
-    DsFreqRangeStepSize                    4   2  uint                 0         -1
+    DsFreqRangeEnd                         3   2  uint                 0 4294967295
+    DsFreqRangeStart                       2   2  uint                 0 4294967295
+    DsFreqRangeStepSize                    4   2  uint                 0 4294967295
     DsFreqRangeTimeout                     1   2  ushort               0      65535
   SingleDsChannel                          1  41  nested               1        255
-    SingleDsFrequency                      2   1  uint                 0         -1
+    SingleDsFrequency                      2   1  uint                 0 4294967295
     SingleDsTimeout                        1   1  ushort               0      65535
 DsPacketClass                             23   0  nested               0          0
   ActivationState                          6  23  uchar                0          1
@@ -52,21 +52,21 @@ DsPacketClass                             23   0  nested               0        
     SrcPortStart                           7   9  ushort               0      65535
   LLCPacketClassifier                     10  23  nested               0          0
     DstMacAddress                          1  10  ether                0          0
-    EtherType                              3  10  hexstr               0        255
+    EtherType                              3  10  hexstr               0          0
     SrcMacAddress                          2  10  ether                0          0
   RulePriority                             5  23  uchar                0        255
-  ServiceFlowId                            4  23  uint                 1         -1
+  ServiceFlowId                            4  23  uint                 1 4294967295
   ServiceFlowRef                           3  23  ushort               1      65535
 DsServiceFlow                             25   0  nested               0          0
   ActQosParamsTimeout                     12  25  ushort               0      65535
   AdmQosParamsTimeout                     13  25  ushort               0      65535
-  DsServiceFlowId                          2  25  uint                 1         -1
+  DsServiceFlowId                          2  25  uint                 1 4294967295
   DsServiceFlowRef                         1  25  ushort               1      65535
   MaxDsLatency                            14  25  uint                 0          0
-  MaxRateSustained                         8  25  uint                 0         -1
-  MaxTrafficBurst                          9  25  uint                 0         -1
+  MaxRateSustained                         8  25  uint                 0 4294967295
+  MaxTrafficBurst                          9  25  uint                 0 4294967295
   MinResPacketSize                        11  25  ushort               0      65535
-  MinReservedRate                         10  25  uint                 0         -1
+  MinReservedRate                         10  25  uint                 0 4294967295
   QosParamSetType                          6  25  uchar                0        255
   ServiceClassName                         4  25  string               2         16
   TrafficPriority                          7  25  uchar                0          7
@@ -93,7 +93,7 @@ PHS                                       26   0  nested               0        
   PHSField                                 7  26  hexstr               1        255
   PHSIndex                                 8  26  uchar                1        255
   PHSMask                                  9  26  hexstr               1        255
-  PHSServiceFlowId                         4  26  uint                 1         -1
+  PHSServiceFlowId                         4  26  uint                 1 4294967295
   PHSServiceFlowRef                        3  26  ushort               1      65535
   PHSSize                                 10  26  uchar                1        255
   PHSVerify                               11  26  uchar                0          1
@@ -118,7 +118,7 @@ SwUpgradeFilename                          9   0  string               0        
 SwUpgradeServer                           21   0  ip                   0          0
 TestMode                                  40   0  hexstr               0          1
 TftpModemAddress                          20   0  ip                   0          0
-TftpTimestamp                             19   0  uint                 0         -1
+TftpTimestamp                             19   0  uint                 0 4294967295
 UpstreamChannelId                          2   0  uchar                0        255
 UsPacketClass                             22   0  nested               0          0
   ActivationState                          6  22  uchar                0          1
@@ -129,7 +129,7 @@ UsPacketClass                             22   0  nested               0        
   IpPacketClassifier                       9  22  nested               0          0
   LLCPacketClassifier                     10  22  nested               0          0
   RulePriority                             5  22  uchar                0        255
-  ServiceFlowId                            4  22  uint                 1         -1
+  ServiceFlowId                            4  22  uint                 1 4294967295
   ServiceFlowRef                           3  22  ushort               1      65535
 UsServiceFlow                             24   0  nested               0          0
   ActQosParamsTimeout                     12  24  ushort               0      65535
@@ -151,6 +151,8 @@ UsServiceFlow                             24   0  nested               0        
   ToleratedPollJitter                     18  24  uint                 0          0
   TrafficPriority                          7  24  uchar                0          7
   UnsolicitedGrantSize                    19  24  ushort               0      65535
-  UsServiceFlowId                          2  24  uint                 1         -1
+  UsServiceFlowId                          2  24  uint                 1 4294967295
   UsServiceFlowRef                         1  24  ushort               1      65535
 VendorSpecific                            43   0  vendorspec           0          0
+  VendorIdentifier                         8  43  hexstr               3          3
+

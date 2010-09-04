@@ -32,7 +32,7 @@ the physical layer and not the config file.
 use strict;
 use warnings;
 use autodie;
-use Carp qw/cluck/;
+use Carp qw/ cluck confess /;
 
 my %FROM_CODE;
 my %FROM_ID;

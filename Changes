@@ -4,6 +4,7 @@ Revision history for DOCSIS-Perl
       - Fix use Carp qw/.../
       - Add support for Syminfo->dump_symbol_tree()
       - Restructured symbol table and documentation
+      - Don't need Data::Dumper to run tests
 
 0.60     Sat Sep  4 00:26:27 CEST 2010
       - Fix uninitialized warnings in Decode::uint()

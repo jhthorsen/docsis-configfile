@@ -116,12 +116,12 @@ sub test_encode {
     my $is_decoded = shift;
     my $msg = shift || $function_name;
 
-    use Data::Dumper;
+    #use Data::Dumper;
 
     my $encoded = Encode->can($function_name)->($data);
     my $decoded = Decode->can($function_name)->(join "", map { chr } @$encoded);
 
-    is_deeply($encoded, $is_encoded, "$msg -> encoded") or diag Data::Dumper::Dumper($encoded);
+    is_deeply($encoded, $is_encoded, "$msg -> encoded");# or diag Data::Dumper::Dumper($encoded);
     is_deeply($decoded, $is_decoded, "$msg -> decoded=value");
 }
 

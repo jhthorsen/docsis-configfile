@@ -10,7 +10,6 @@ requires q(bytes) => 1.00;
 requires q(Math::BigInt) => 1.80;
 requires q(Socket) => 1.50;
 
-test_requires q(Data::Dumper) => 2.1;
 test_requires q(Test::More) => 0.90;
 
 bugtracker q(http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile);

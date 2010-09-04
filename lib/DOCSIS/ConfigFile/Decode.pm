@@ -4,21 +4,55 @@ package DOCSIS::ConfigFile::Decode;
 
 DOCSIS::ConfigFile::Decode - Decode functions for a DOCSIS config-file
 
-=head1 VERSION
+=head1 SYNOPSIS
 
-See DOCSIS::ConfigFile
+    {
+        oid => $str,
+        type => $str,
+        value = $str,
+    } = snmp_object($binary_str);
+
+    $bigint_object = bigint($binary_str);
+    $int = int($binary_str);
+    $uint = uint($binary_str);
+    $ushort = ushort($binary_str);
+    $uchar = uchar($binary_str);
+
+    (
+        '0x001337' => [
+            {
+                type => 24, # vendor specific type
+                value => 42, # vendor specific value
+                length => 1, # the length of the value meassured in bytes
+            },
+            ...
+        ],
+    ) = vendorspec($binary_str);
+
+    $ip_str = ip($binary_str);
+    $hex_str = ether($binary_str);
+    $uint = ether($binary_str);
+    $str = string($binary_str);
+    $hex_str = string($binary_str);
+    $hex_str = hexstr($binary_str);
+    $hex_str = mic($binary_str);
+
+=head1 DESCRIPTION
+
+This module has functions which is used to decode binary data
+into either plain strings or complex data structures, dependent
+on the function called.
 
 =cut
 
 use strict;
 use warnings;
 use bytes;
+use Carp qw/confess/;
 use Math::BigInt;
 use Socket;
 use DOCSIS::ConfigFile::Syminfo;
-use constant syminfo => "DOCSIS::ConfigFile::Syminfo";
 
-our $ERROR     = q();
 our %SNMP_TYPE = (
     0x02 => [ 'INTEGER',    \&int         ],
     0x04 => [ 'STRING',     \&string,     ],
@@ -35,90 +69,75 @@ our %SNMP_TYPE = (
 
 =head2 snmp_object
 
- $data = snmp_object($bytestring);
-
-C<$data> template:
-
- {
-   oid   => "", # numeric OID
-   type  => "", # what kind of value (corresponding to C<snmp_type>)
-   value => "", # the oid value
- }
+Will take a binary string and decode it into a complex
+datastructure, with "oid", "type" and "value".
 
 =cut
 
 sub snmp_object {
-    my $data = shift;
+    my $bin = $_[0];
     my($byte, $length, $oid, $type, $value);
 
     # message
-    $type   = _chop(\$data, "C1"); # 0x30
-    $length = _snmp_length(\$data);
+    $type = _truncate_and_unpack(\$bin, 'C1'); # 0x30
+    $length = _snmp_length(\$bin);
 
     # oid
-    $type   = _chop(\$data, "C1"); # 0x06
-    $length = _snmp_length(\$data);
-    $oid    = _snmp_oid( _chop(\$data, "C$length") );
+    $type = _truncate_and_unpack(\$bin, 'C1'); # 0x06
+    $length = _snmp_length(\$bin);
+    $oid = _snmp_oid(\$bin, $length);
 
     # value
-    $type   = $SNMP_TYPE{ _chop(\$data, "C1") };
-    $length = _snmp_length(\$data);
-    $value  = $type->[1]->($data);
+    $type = $SNMP_TYPE{ _truncate_and_unpack(\$bin, 'C1') };
+    $length = _snmp_length(\$bin);
+    $value = $type->[1]->($bin);
 
-    return {
-        oid   => $oid,
-        type  => $type->[0],
-        value => $value,
-    };
+    return { oid => $oid, type => $type->[0], value => $value };
 }
 
 sub _snmp_length {
-    my $data   = shift;
-    my $length = _chop($data, "C1"); # length?
+    my $length = _truncate_and_unpack($_[0], 'C1'); # length?
 
     if($length <= 0x80) {
         return $length;
     }
     elsif($length == 0x81) {
-        return _chop($data, "C1");
+        return _truncate_and_unpack($_[0], 'C1');
     }
     elsif($length == 0x82) {
         $length = 0;
-        for my $byte (_chop($data, "C2")) {
+
+        for my $byte (_truncate_and_unpack($_[0], 'C2')) {
             $length = $length << 8 | $byte;
         }
+
         return $length;
     }
 
-    die "too long snmp length";
+    confess "Too long SNMP length: ($length)";
 }
 
 sub _snmp_oid {
-    my @bytes = @_;
-    my @oid   = (0);
+    my @bytes = _truncate_and_unpack($_[0], 'C' .$_[1]);
+    my @oid = (0);
     my $subid = 0;
 
     for my $id (@bytes) {
         if($subid & 0xfe000000) {
-            $@ = q(Sub-identifier too large);
-            return;
+            confess "_snmp_oid(@bytes): Sub-identifier too large: ($subid)" 
         }
 
         $subid = ($subid << 7) | ($id & 0x7f);
 
         unless($id & 0x80) {
-            if(128 <= @oid) {
-                $@ = q(Exceeded max length);
-                return;
-            }
-
+            confess "_snmp_oid(@bytes): Exceeded max length" if(128 <= @oid);
             push @oid, $subid;
             $subid = 0;
         }
     }
 
     # the first two sub-id are in the first id
-    if($oid[1] == 0x2b) {   # Handle the most common case
+    if($oid[1] == 0x2b) { # Handle the most common case
         $oid[0] = 1;
         $oid[1] = 3;
     }
@@ -126,24 +145,27 @@ sub _snmp_oid {
         $oid[0] = 0;
     }
     elsif($oid[1] < 80) {
-        $oid[0]  = 1;
+        $oid[0] = 1;
         $oid[1] -= 40;
     }
     else {
-        $oid[0]  = 2;
+        $oid[0] = 2;
         $oid[1] -= 80;
     }
 
-    return join ".", @oid;
+    return join '.', @oid;
 }
 
-sub _chop {
-    my $str  = shift;
-    my $type = shift;
-    my $n    = ($type =~ /C/ ? 1 : 2) * ($type =~ /(\d+)/)[0];
+sub _truncate_and_unpack {
+    my($bin_ref, $type) = @_;
+    my $n = ($type =~ /C/ ? 1 : 2) * ($type =~ /(\d+)/)[0];
 
-    return unpack $type, $1 if($$str =~ s/^(.{$n})//s);
-    return;
+    if($$bin_ref =~ s/^(.{$n})//s) {
+        return unpack $type, $1;
+    }
+    else {
+        confess "_truncate_and_unpack('...', $type) failed to truncate binary string";
+    }
 }
 
 =head2 bigint
@@ -155,7 +177,7 @@ Returns a C<Math::BigInt> object.
 =cut
 
 sub bigint {
-    my @bytes = unpack 'C*', shift;
+    my @bytes = unpack 'C*', _test_length(int => $_[0]);
     my $negative = $bytes[0] & 0x80;
     my $int64 = Math::BigInt->new(0);
 
@@ -175,51 +197,38 @@ sub bigint {
 
 =head2 int
 
+Will unpack the input string and return an integer, from -2147483648
+to 2147483647.
+
 =cut
 
 sub int {
-    my @bytes = unpack 'C*', shift;
-    my $length = @bytes;
-    my $size = syminfo->byte_size('int');
+    my @bytes = unpack 'C*', _test_length(int => $_[0], 'int');
     my $negative = $bytes[0] & 0x80;
-    my $value = 0;
-
-    if($length > $size) {
-        $ERROR = "length mismatch: $length > $size";
-        return;
-    }
+    my $int = 0;
 
     for my $chunk (@bytes) {
         $chunk ^= 0xff if($negative);
-        $value = ($value << 8) | $chunk;
+        $int = ($int << 8) | $chunk;
     }
 
     if($negative) {
-        $value *= -1;
-        $value -= 1;
+        $int *= -1;
+        $int -= 1;
     }
 
-    return $value;
+    return $int;
 }
 
 =head2 uint
 
- $int = uint($bytestring);
-
-Returns an unsigned integer: 0..2**32-1
+Will unpack the input string and return an integer, from 0 to 4294967295.
 
 =cut
 
 sub uint {
-    my @bytes = unpack 'C*', shift;
-    my $length = @bytes;
-    my $size = syminfo->byte_size('int');
+    my @bytes = unpack 'C*', _test_length(uint => $_[0], 'int');
     my $value = 0;
-
-    if($length > $size) {
-        $ERROR = "length mismatch: $length > $size";
-        return;
-    }
 
     $value = ($value << 8) | $_ for(@bytes);
 
@@ -228,74 +237,63 @@ sub uint {
 
 =head2 ushort
 
- $short = ushort($bytestring);
-
-Returns an unsigned short integer: 0..2**16-1
+Will unpack the input string and return a short integer, from 0 to 65535.
 
 =cut
 
 sub ushort {
-    my $bin    = shift;
-    my $length = length $bin;
-    my $size   = syminfo->byte_size('short int');
-
-    if($length > $size) {
-        $ERROR = "length mismatch: $length > $size";
-        return;
-    }
-
-    return unpack('n', $bin);
+    return unpack 'n', _test_length(ushort => $_[0], 'short int');
 }
 
 =head2 uchar
 
- $chr = uchar($bytesstring);
-
-Returns an unsigned character: [0..255]
+Will unpack the input string and return a short integer, from 0 to 255.
 
 =cut
 
 sub uchar {
-    return join "", unpack('C', shift);
+    return unpack 'C', _test_length(uchar => $_[0], 'char');
 }
 
 =head2 vendorspec
 
- ($vendor_id, $vendor_data) = vendorspec($bytestring);
-
-Return value example:
-
-  "0x001337" => { # vendor ID
-    type   => "24", # vendor specific type
-    value  => "42", # vendor specific value
-    length => "1",  # the length of the value meassured in bytes
-  };
+Will unpack the input string and return a complex datastructure,
+representing the vendor specific data.
 
 =cut
 
 sub vendorspec {
-    my $bin = shift;
+    my $bin = $_[0] || '';
     my($vendor, @ret, $length);
 
-    $bin    =~ s/.(.)// or return; # remove the two first bytes
-    $length =  unpack "C*", $1;
-
-    if($bin =~ s/(.{$length})//) { # find vendor
-        my $f   = "%02x" x $length;
-        $vendor = sprintf "0x$f", unpack "C*", $1;
+    # extract length (not sure what the first byte is...)
+    if($bin =~ s/^.(.)//) {
+        $length = unpack 'C', $1;
+    }
+    else {
+        confess 'Invalid vendorspec input. Could not extract length';
     }
 
-    while($bin =~ s/^(.)(.)//) {
-        my $type   = unpack "C*", $1;
-        my $length = unpack "C*", $2;
+    # extract vendor
+    if($bin =~ s/^(.{$length})//) { # find vendor
+        $vendor = sprintf '0x' .('%02x' x $length), unpack 'C*', $1;
+    }
+    else {
+        confess 'Invalid vendorspec input. Could not extract vendor';
+    }
 
-        if($bin =~ s/(.{$length})//) {
-            push @ret, {
-                type   => $type,
-                length => $length,
-                value  => hexstr($1),
-            };
+    # extract TLV
+    while($bin =~ s/^(.)(.)//) {
+        my $type = unpack 'C*', $1;
+        my $length = unpack 'C*', $2;
+
+        if($bin =~ s/^(.{$length})//) {
+            push @ret, { type => $type, length => $length, value => hexstr($1) };
         }
+    }
+
+    if(my $length = length $bin) {
+        confess "vendorspec('...') is left with ($length) bytes after decoding";
     }
 
     return $vendor, \@ret;
@@ -303,81 +301,85 @@ sub vendorspec {
 
 =head2 ip
 
- $ipv4_address = ip($bytestring);
-
-Returns an IPv4-address.
+Will unpack the input string and return a human readable IPv4 address.
 
 =cut
 
 sub ip {
-    my $bin     = shift;
-    my $address = inet_ntoa($bin);
-
-    unless($address) {
-        $ERROR = "Invalid IP address";
-        return;
-    }
-
-    return $address;
+    return inet_ntoa($_[0]) or confess 'inet_ntoa(...) failed to unpack binary string';
 }
 
 =head2 ether
 
- $mac = ether($bytestring);
-
-Returns a MAC-address.
+Will unpack the input string and return a MAC address in this format:
+"00112233" or "00112233445566".
 
 =cut
 
 sub ether {
-    my $bin    = shift;
+    my $bin = $_[0];
     my $length = length $bin;
 
     unless($length == 6 or $length == 12) {
-        $ERROR = "Invalid MAC address";
-        return;
+        confess "Invalid ether input. Invalid length ($length)";
     }
 
-    return join "", unpack("H2" x $length, $bin);
+    return join '', unpack 'H2' x $length, $bin;
 }
 
-=head2 string($bytestring)
+=head2 string
 
-Returns human-readable string if it can, or the string hex-encoded if it
-cannot.
+Returns human-readable string, where special characters are "uri encoded".
+Example: "%" = "%25" and " " = "%20". It can also return the value from
+L</hexstr> if it starts with a weird character, such as C<\x00>.
 
 =cut
 
 sub string {
-    my $bin = @_ > 1 ? join("", map { chr $_ } @_) : $_[0];
+    # not sure why this is able to join - may be removed later
+    my $bin = @_ > 1 ? join('', map { chr $_ } @_) : $_[0];
 
     if($bin =~ /[^\t\n\r\x20-\xEF]/) {
         return hexstr($bin);
     }
     else {
-        $bin =~ s/([^\t\n\x20-\x24\x26-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
+        $bin =~ s/([^\x20-\x24\x26-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
         return $bin;
     }
 }
 
-=head2 hexstr($bytestring)
+=head2 hexstr
 
-Returns a value, printed as hex.
+Will unpack the input string and a string with leading "0x", followed
+by hexidesimal characters.
 
 =cut
 
 sub hexstr {
-    return "0x" .join("", unpack "H*", shift);
+    return '0x' .join '', unpack 'H*', $_[0];
 }
 
-=head2 mic($bytestring)
+=head2 mic
 
 Returns a value, printed as hex.
 
 =cut
 
-sub mic {
-    return hexstr(@_);
+sub mic { &hexstr }
+
+sub _test_length {
+    my $name = $_[0];
+    my $length = length $_[1];
+
+    if(!$length) {
+        confess "$name(...) bytestring length is zero";
+    }
+    if($_[2]) {
+        my $max = DOCSIS::ConfigFile::Syminfo->byte_size($_[2]);
+        confess "$name(...) bytestring length is invalid: $max < $length" if($max < $length);
+    }
+
+    return $_[1];
 }
 
 =head1 AUTHOR

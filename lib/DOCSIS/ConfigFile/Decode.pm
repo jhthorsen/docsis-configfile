@@ -355,7 +355,7 @@ sub string {
         return hexstr($bin);
     }
     else {
-        $bin =~ s/([^\t\n\x20-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
+        $bin =~ s/([^\t\n\x20-\x24\x26-\x7e])/{ sprintf "%%%02x", ord $1 }/ge;
         return $bin;
     }
 }

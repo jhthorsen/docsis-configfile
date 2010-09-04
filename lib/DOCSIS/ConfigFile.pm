@@ -94,11 +94,38 @@ use constant Encode  => "DOCSIS::ConfigFile::Encode";
 our $VERSION = '0.60';
 our $TRACE   = 0;
 
+=head1 ATTRIBUTES
+
+=head2 shared_secret
+
+Sets or gets the shared secret.
+
+=cut
+
+sub shared_secret {
+    my $self = shift;
+    $self->{'shared_secret'} = $_[0] if(@_);
+    return $self->{'shared_secret'} ||= q();
+}
+
+=head2 advanced_output
+
+Sets weither advanced output should be enabled. Takes 0 or 1 as argument.
+Advanced output is off (0) by default.
+
+=cut
+
+sub advanced_output {
+    my $self = shift;
+    $self->{'advanced_output'} = $_[0] if(@_);
+    return $self->{'advanced_output'} || 0;
+}
+
 =head1 METHODS
 
-=head2 new(%args)
+=head2 new
 
-Object constructor.
+    $self = $class->new(\%args);
 
 Arguments can be:
 
@@ -422,31 +449,6 @@ sub _calculate_cmts_mic {
             Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret),
         );
     }
-}
-
-=head2 shared_secret
-
-Sets or gets the shared secret.
-
-=cut
-
-sub shared_secret {
-    my $self = shift;
-    $self->{'shared_secret'} = shift if(@_);
-    return $self->{'shared_secret'} ||= q();
-}
-
-=head2 advanced_output
-
-Sets weither advanced output should be enabled. Takes 0 or 1 as argument.
-Advanced output is off (0) by default.
-
-=cut
-
-sub advanced_output {
-    my $self = shift;
-    $self->{'advanced_output'} = $_[0] if(@_);
-    return $self->{'advanced_output'} || 0;
 }
 
 =head1 CONSTANTS

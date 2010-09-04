@@ -4,19 +4,51 @@ package DOCSIS::ConfigFile::Encode;
 
 DOCSIS::ConfigFile::Encode - Encode functions for a DOCSIS config-file.
 
-=head1 VERSION
+=head1 SYNOPSIS
 
-See DOCSIS::ConfigFile
+    @uchar = snmp_object({
+                 value => { oid => $str, type => $str, value => $str },
+             });
+    @uchar = bigint({ value => $bigint });
+    @uchar = int({ value => $int });
+    @uchar = uint({ value => $uint });
+    @uchar = ushort({ value => $ushort });
+    @uchar = uchar({ value => $char });
+    @uchar = vendorspec({
+                 value  => '0x001337', # vendors ID
+                 nested => [
+                     {
+                         type => $int, # vendor specific type
+                         value => $int, # vendor specific value
+                     },
+                 ],
+             });
+    @uchar = ip({ value => '1.2.3.4' });
+    @uchar = ether({ value => '0x0123456789abcdef' });
+    @uchar = ether({ value => $uint });
+    @uchar = string({ value => '0x0123456789abcdef' });
+    @uchar = string({ value => 'string containing percent: %25' });
+    @uchar = hexstr({ value => '0x0123456789abcdef' });
+    () = mic({ value => $any });
+
+=head1 DESCRIPTION
+
+This module has functions which is used to encode "human" data
+into list of unsigned characters (0-255) (refered to as "bytes")
+later in the pod. This list can then be encoded into binary data
+using:
+
+    $bytestr = pack 'C*', @uchar;
 
 =cut
 
 use strict;
 use warnings;
+use Carp qw/confess/;
 use bytes;
 use Math::BigInt;
 use Socket;
 
-our $ERROR     = q();
 our %SNMP_TYPE = (
     INTEGER   => [ 0x02, \&int         ],
     STRING    => [ 0x04, \&string      ],
@@ -31,43 +63,44 @@ our %SNMP_TYPE = (
 
 =head1 FUNCTIONS
 
-Every function can return either a list or an array-ref.
+=head2 snmp_object
 
-=head2 snmp_object(\%h)
+This function encodes a human-readable SNMP oid into a list of bytes:
 
-Takes a hash-ref (keys: oid, type, value), and returns a byte-encoded snmp-
-object.
-
- #-type---length---------value-----type---
-   0x30,  $total_length,         # object
-   0x06,  int(@oid),     @oid,   # oid
-   $type, int(@value),   @value, # value
+    @bytes = (
+      #-type---length---------value-----type---
+        0x30,  $total_length,         # object
+        0x06,  int(@oid),     @oid,   # oid
+        $type, int(@value),   @value, # value
+    );
 
 =cut
 
 sub snmp_object {
-    my $obj    = shift->{'value'}           or return;
-    my @oid    = _snmp_oid($obj->{'oid'})   or return;
-    my $type   = $SNMP_TYPE{$obj->{'type'}} or return;
-    my @value  = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
+    my $obj = _test_value(snmp_object => $_[0]);
+    my $type = $SNMP_TYPE{$obj->{'type'}} or confess 'Usage: snmp_object({ value => { type => ... })';
+    my @value = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
+    my @oid = _snmp_oid($obj->{'oid'});
 
-    return unless(@value);
+    unless(@value) {
+        confess 'Failed to decode SNMP value: ' .$obj->{'value'};
+    }
 
-    my @oid_length   = _snmp_length(0 + @oid);
+    my @oid_length = _snmp_length(0 + @oid);
     my @value_length = _snmp_length(0 + @value);
     my @total_length = _snmp_length(3 + @value + @oid + @value_length);
-    my @bytes        = (
+
+    return (
       #-type--------length----------value-----type---
         0x30,       @total_length,          # object
         0x06,       @oid_length,    @oid,   # oid
         $type->[0], @value_length,  @value, # value
     );
-
-    return wantarray ? @bytes : \@bytes;
 }
 
 sub _snmp_length {
-    my $length = shift;
+    my $length = $_[0];
+    my @bytes;
 
     if($length < 0x80) {
         return $length;
@@ -76,7 +109,6 @@ sub _snmp_length {
         return 0x81, $length;
     }
     elsif($length < 0xffff) {
-        my @bytes;
         while($length) {
             unshift @bytes, $length & 0xff;
             $length >>= 8;
@@ -84,18 +116,18 @@ sub _snmp_length {
         return 0x82, @bytes;
     }
 
-    die "too long snmp length";
+    confess "Too long snmp length: ($length)";
 }
 
 sub _snmp_oid {
-    my $string    = shift or return;
+    my $string = $_[0] or confess 'Usage: _snmp_oid($str)';
     my @input_oid = split /\./, $string;
-    my $subid     = 0;
+    my $subid = 0;
     my @encoded_oid;
 
     # the first two sub-id are in the first id
     {
-        my $first  = shift @input_oid;
+        my $first = shift @input_oid;
         my $second = shift @input_oid;
         push @encoded_oid, $first * 40 + $second;
     }
@@ -107,261 +139,261 @@ sub _snmp_oid {
         }
         else {
             my @suboid;
+
             while($id) {
                 unshift @suboid, 0x80 | ($id & 0x7f);
                 $id >>= 7;
             }
+
             $suboid[-1] &= 0x7f;
             push @encoded_oid, @suboid;
         }
     }
 
-    return wantarray ? @encoded_oid : \@encoded_oid;
+    return @encoded_oid;
 }
 
-=head2 bigint(\%h)
+=head2 bigint
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value could be any
-number.
+Returns a list of bytes representing the C<$bigint>. This can be any
+number (negative or positive) which can be representing using 64 bits.
 
 =cut
 
 sub bigint {
-    my $int64    = Math::BigInt->new(shift->{'value'});
+    my $value = _test_value(bigint => $_[0]);
+    my $int64 = Math::BigInt->new($value);
+
+    $int64->is_nan and confess "$value is not a number";
+
     my $negative = $int64 < 0;
-    my @bytes    = $negative ? (0x80) : ();
+    my @bytes = $negative ? (0x80) : ();
 
     while($int64) {
-        my $value  = $int64 & 0xff;
-        $int64   >>= 8;
-        $value    ^= 0xff if($negative);
-        unshift @bytes, $value;
-    }
-
-    @bytes = (0) unless(@bytes); # bytes need a value
-
-    return wantarray ? @bytes : \@bytes;
-}
-
-=head2 int
-
-=cut
-
-sub int {
-    my $obj = shift;
-    my $int = $obj->{'value'} || 0;
-    my $negative = $int < 0;
-    my @bytes;
-
-    while($int) {
-        my $value  = $int & 0xff;
-        $int >>= 8;
+        my $value = $int64 & 0xff;
+        $int64 >>= 8;
         $value ^= 0xff if($negative);
         unshift @bytes, $value;
     }
 
-    unless($obj->{'snmp'}) {
-        $bytes[0] |= 0x80 if($negative);
-        unshift @bytes, 0 for(1..4-@bytes);
-    }
-    unless(@bytes) {
-        @bytes = (0);
-    }
-
-    if($obj->{'snmp'}) {
-        unshift @bytes, 0 if(!$negative and $bytes[0] > 0x79);
-    }
-
-    return wantarray ? @bytes : \@bytes;
+    return @bytes ? @bytes : (0); # 0 is also a number ;-)
 }
 
-=head2 uint(\%h)
+=head2 int
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
-unsigned int.
+Returns a list of bytes representing the C<$int>. This can be any
+number (negative or positive) which can be representing using 32 bits.
 
 =cut
 
-sub uint {
-    my $obj = shift;
-    my $int = $obj->{'value'} || 0;
+sub int {
+    my $obj = $_[0];
+    my $int = _test_value(int => $obj, qr{^[+-]?\d{1,10}$});
+    my $negative = $int < 0;
     my @bytes;
 
     while($int) {
         my $value = $int & 0xff;
         $int >>= 8;
+        $value ^= 0xff if($negative);
         unshift @bytes, $value;
     }
 
-    unless($obj->{'snmp'}) {
+    if(!$obj->{'snmp'}) {
+        $bytes[0] |= 0x80 if($negative);
         unshift @bytes, 0 for(1..4-@bytes);
     }
-    unless(@bytes) {
+    if(@bytes == 0) {
         @bytes = (0);
     }
+    if($obj->{'snmp'}) {
+        unshift @bytes, 0 if(!$negative and $bytes[0] > 0x79);
+    }
 
+    return @bytes;
+}
+
+=head2 uint
+
+Returns a list of bytes representing the C<$uint>. This can be any
+positive number which can be representing using 32 bits.
+
+=cut
+
+sub uint {
+    my $obj = $_[0];
+    my $uint = _test_value(uint => $obj, qr{^\+?\d{1,10}$});
+    my @bytes;
+
+    while($uint) {
+        my $value = $uint & 0xff;
+        $uint >>= 8;
+        unshift @bytes, $value;
+    }
+
+    if(!$obj->{'snmp'}) {
+        unshift @bytes, 0 for(1..4-@bytes);
+    }
+    if(@bytes == 0) {
+        @bytes = (0);
+    }
     if($obj->{'snmp'}) {
         unshift @bytes, 0 if($bytes[0] > 0x79);
     }
 
-    return wantarray ? @bytes : \@bytes;
+    return @bytes;
 }
 
-=head2 ushort(\%h)
+=head2 ushort
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
-unsigned short int.
+Returns a list of bytes representing the C<$ushort>. This can be any
+positive number which can be representing using 16 bits.
 
 =cut
 
 sub ushort {
-    my $obj = shift;
-    my $short = $obj->{'value'};
+    my $obj = $_[0];
+    my $ushort = _test_value(ushort => $obj, qr{^\+?\d{1,5}$});
     my @bytes;
 
     if($obj->{'snmp'}) {
-        unshift @bytes, 0 if($short > 0x79);
+        unshift @bytes, 0 if($ushort > 0x79);
     }
 
-    while($short) {
-        my $value = $short & 0xff;
-        $short >>= 8;
+    while($ushort) {
+        my $value = $ushort & 0xff;
+        $ushort >>= 8;
         unshift @bytes, $value;
     }
 
-    unless($obj->{'snmp'}) {
+    if(!$obj->{'snmp'}) {
         unshift @bytes, 0 for(1..2-@bytes);
     }
+    if(@bytes == 0) {
+        @bytes = (0);
+    }
 
-    @bytes = (0) unless(@bytes);
-
-    return wantarray ? @bytes : \@bytes;
+    return @bytes;
 }
 
-=head2 uchar(\%h)
+=head2 uchar
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value has to be an
-unsigned char.
+Returns a list with one byte representing the C<$uchar>. This can be any
+positive number which can be representing using 8 bits.
 
 =cut
 
 sub uchar {
-    my $value = 0xff & shift->{'value'};
-    return wantarray ? ($value) : [$value];
+    return _test_value(uchar => $_[0], qr{\+?\d{1,3}$});
 }
 
-=head2 vendorspec(\%h)
+=head2 vendorspec
 
-Takes a hash-ref, and byte-encodes it.
-
-Example of the hash-ref:
-
- {
-   value  => "0x001337", # vendors ID
-   nested => {
-     type   => "24", # vendor specific type
-     value  => "42", # vendor specific value
-   },
- }
+Will byte-encode a complex vendorspec datastructure.
 
 =cut
 
 sub vendorspec {
-    my $obj    = shift;
-    my $nested = $obj->{'nested'};
+    my $obj = $_[0];
     my(@vendor, @bytes);
 
-    return unless(ref $nested eq 'ARRAY');
+    unless(ref $obj->{'nested'} eq 'ARRAY') {
+        confess "vendor({ nested => ... }) is not an array ref";
+    }
 
-    @vendor = ether($obj);
-    @bytes  = (8, CORE::int(@vendor), @vendor);
+    @vendor = ether($obj); # will extract value=>$hexstr. might confess
+    @bytes = (8, CORE::int(@vendor), @vendor);
 
     TLV:
-    for my $tlv (@$nested) {
-        my @value = hexstr($tlv);
-        push @bytes, $tlv->{'type'};
+    for my $tlv (@{ $obj->{'nested'} }) {
+        my @value = hexstr($tlv); # will extract value=>$hexstr. might confess
+        push @bytes, uchar({ value => $tlv->{'type'} });
         push @bytes, CORE::int(@value);
         push @bytes, @value;
     }
 
-    return wantarray ? @bytes : \@bytes;
+    return @bytes;
 }
 
-=head2 ip(\%h)
+=head2 ip
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value need to an IPv4
-address.
+Returns a list of four bytes representing the C<$ip>. The C<$ip> must
+be in in the format "1.2.3.4".
 
 =cut
 
 sub ip {
-    defined $_[0]->{'value'} or return;
-    my @value = split /\./, $_[0]->{'value'};
-    return wantarray ? @value : [@value];
+    return split /\./, _test_value(ip => $_[0], qr{^(?:\d{1,3}\.){3}[\d{1,3}]$});
 }
 
-=head2 ether(\%h)
+=head2 ether
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value need to be a
-six or twelve byte ethernet address.
+This function use either L</uint> or L</hexstr> to encode the
+input value. It will figure out the function to use by checking
+the input for either integer value or a string looking like
+a hex-string.
 
 =cut
 
 sub ether {
-    my $obj    = shift or return;
-    my $string = $obj->{'value'};
+    my $string = _test_value(ether => $_[0]);
 
-    return unless(defined $string);
-
-    if($string =~ /^\d+$/) { # numeric
+    if($string =~ qr{^\+?[0-4294967295]$}) { # numeric
         return uint({ value => $string });
     }
     elsif($string =~ /^(?:0x)?([0-9a-f]+)$/i) { # hex
         return hexstr({ value => $1 });
     }
+
+    confess "ether({ value => $string }) is invalid";
 }
 
-=head2 string(\%h)
+=head2 string
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The string could be
-anything in theory, but is often human-readable or a hex-string (leading 0x)
+Returns a list of bytes representing the C<$str>. Will use
+L</hexstr> to decode it if it looks like a hex string (a
+string starting with leading "0x"). In other cases, it will
+decode it itself. The input string might also be encoded
+with a simple uri-encode format: "%20" will be translated
+to a space, and "%25" will be translated into "%", before
+encoded using C<ord()>.
 
 =cut
 
 sub string {
-    my $obj    = shift;
-    my $string = $obj->{'value'};
+    my $string = _test_value(string => $_[0]);
 
-    if($string =~ /^0x[a-z0-9]+$/i) {
-        return hexstr({ value => $string });
+    if($string =~ /^0x[a-f0-9]+$/i) {
+        return hexstr(@_);
     }
     else {
         $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
-        my @ret =  map { ord $_ } split //, $string;
-        return wantarray ? @ret : \@ret;
+        return  map { ord $_ } split //, $string;
     }
 }
 
-=head2 hexstr(\%h)
+=head2 hexstr
 
-Takes a hash-ref, and byte-encodes C<$h-E<gt>{'value'}>. The value can have
-leading '0x'.
+Will encode any hex encoded string into a list of bytes. The string
+can have an optional leading "0x".
 
 =cut
 
 sub hexstr {
-    my $value = shift->{'value'} || '';
+    my $string = _test_value(hexstr => $_[0], qr{(?:0x)?([a-f0-9]+)}i);
     my @bytes;
 
-    $value =~ s/^(?:0x)//;
+    $string =~ s/^(?:0x)//;
 
-    if($value =~ /^([0-9a-f]+)$/i) {
-        while($value) {
-            $value =~ s/(\w{1,2})$// and unshift @bytes, hex $1;
-        }
+    while($string =~ s/(\w{1,2})$//) {
+        unshift @bytes, hex $1;
     }
 
-    return wantarray ? @bytes: \@bytes;
+    if($string) {
+        confess "hexstr({ value => ... }) is left with ($string) after decoding";
+    }
+
+    return @bytes;
 }
 
 =head2 mic
@@ -372,7 +404,20 @@ the config file, so this function returns an empty list.
 =cut
 
 sub mic {
-    return wantarray ? () : [];
+    return;
+}
+
+sub _test_value {
+    my($name, $obj, $test) = @_;
+
+    if(!defined $obj->{'value'}) {
+        confess "$name({ value => ... }) received undefined value";
+    }
+    if($test and not $obj->{'value'} =~ $test) {
+        confess "$name({ value => " .$obj->{'value'} ." }) does not match $test";
+    }
+
+    return $obj->{'value'};
 }
 
 =head1 AUTHOR

@@ -5,6 +5,13 @@ Revision history for DOCSIS-Perl
         Contributor: canni
       - Add int() to handle (possible) signed integers
         Contributor: canni
+      - Fix Decode::string() decodes % as %25
+      - Add no_value() dec/encode function
+      - Change Decode.pm and Encode.pm to confess on errors
+      - Change add_symbol() will confess if the symbol already exists
+      - Change Encode functions return a list (wantarray is history)
+      - Change examples/docsis.pl is renamed and use JSON instead
+        of YAML. Might change to Config::Any in the future.
 
 0.6002   Sat Sep  4 11:34:58 CEST 2010
       - Fix dump_symbol_tree() can print large numbers

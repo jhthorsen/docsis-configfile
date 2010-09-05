@@ -5,6 +5,10 @@ use lib qw(lib);
 use Test::More;
 use DOCSIS::ConfigFile;
 
+# These two environment variables can be set before running this unittest:
+# DOCSIS_INPUT_FILE=/path/to/file.bin
+# KEEP_DOCSIS_FILES=$bool
+
 plan skip_all => '"JSON" is required' unless eval 'use JSON; 1';
 plan skip_all => '"/usr/bin/diff" is not available' unless -x '/usr/bin/diff';
 plan skip_all => '"/usr/bin/hexdump" is not available' unless -x '/usr/bin/hexdump';
@@ -15,7 +19,7 @@ mkdir 't/data' unless(-d 't/data/');
 my $dc = DOCSIS::ConfigFile->new(advanced_output => 0, shared_secret => '');
 my($data_bin, $data_config, $new_bin);
 
-ok($data_bin = generate_binary('data.bin'), 'DATA is read');
+ok($data_bin = generate_binary(), 'DATA is read');
 ok(data_to_file($data_bin, 'data.bin'), 'DATA written to data.bin');
 is(docsis('data.bin'), 0, 'docsis decoded data.bin => data.c');
 is(hexdump('data.bin'), 0, 'data.bin dumped as data.hex');
@@ -60,11 +64,15 @@ sub hexdump {
 }
 
 sub generate_binary {
-    my $file = shift;
     my $binary = '';
 
-    while(<DATA>) {
-        $binary .= pack 'C*', map { hex $_ } split /\s/;
+    if($ENV{'DOCSIS_INPUT_FILE'}) {
+        open my $FH, '<', $ENV{'DOCSIS_INPUT_FILE'};
+        local $/;
+        $binary = <$FH>;
+    }
+    else {
+        $binary .= pack 'C*', map { hex $_ } split /\s/ while(<DATA>);
     }
 
     return $binary;

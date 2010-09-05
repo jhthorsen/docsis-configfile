@@ -323,7 +323,7 @@ be in in the format "1.2.3.4".
 =cut
 
 sub ip {
-    return split /\./, _test_value(ip => $_[0], qr{^(?:\d{1,3}\.){3}[\d{1,3}]$});
+    return split /\./, _test_value(ip => $_[0], qr{^(?:\d{1,3}\.){3}\d{1,3}$});
 }
 
 =head2 ether

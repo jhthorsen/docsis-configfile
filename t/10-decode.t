@@ -6,7 +6,7 @@ use Test::More;
 
 our $AUTOLOAD;
 
-plan tests => 20;
+plan tests => 21;
 
 eval {
     is_deeply(
@@ -57,6 +57,8 @@ eval {
         '0x664437a0f10ff21281a12f9b806aef07',
         'mic(102,68,55,160,241,15,242,18,129,161,47,155,128,106,239,7)',
     );
+
+    is(no_value(), '', 'no value decoded as empty string');
 } or diag $@;
 
 # evil hack to simplify things...

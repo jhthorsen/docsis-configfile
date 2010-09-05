@@ -403,9 +403,16 @@ the config file, so this function returns an empty list.
 
 =cut
 
-sub mic {
-    return;
-}
+sub mic {}
+
+=head2 no_value
+
+This method will return an empty list. It is used by DOCSIS types, which
+has zero length.
+
+=cut
+
+sub no_value {}
 
 sub _test_value {
     my($name, $obj, $test) = @_;

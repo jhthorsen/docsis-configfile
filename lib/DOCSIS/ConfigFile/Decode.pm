@@ -367,6 +367,17 @@ Returns a value, printed as hex.
 
 sub mic { &hexstr }
 
+=head2 no_value
+
+This method will return an empty string. It is used by DOCSIS types, which
+has zero length.
+
+=cut
+
+sub no_value {
+    return '';
+}
+
 sub _test_length {
     my $name = $_[0];
     my $length = length $_[1];

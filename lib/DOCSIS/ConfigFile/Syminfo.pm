@@ -318,7 +318,7 @@ See L<DOCSIS::ConfigFile>
 #        ID                     CODE PCODE   FUNC         L_LIMIT   H_LIMIT     LENGTH
 #        identifier      docsis_code   pID   func         low_limit high_limit  length
 #-------------------------------------------------------------------------------------
-__PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
+__PACKAGE__->add_symbol($_) for(
     [qw/ Pad                       0     0   nested       0         255         1 /],
     [qw/ DownstreamFrequency       1     0   uint         88000000  860000000   1 /],
     [qw/ UpstreamChannelId         2     0   uchar        0         255         1 /],
@@ -525,7 +525,7 @@ __PACKAGE__->add_symbol([ map { $_ eq '_' ? undef : $_ } @$_ ]) for(
     [qw/ TftpModemAddress         20     0   ip           0         0           1 /],
 
     # Generic TLV... we only use the limits  code and length dont matter
-    [qw/ GenericTLV              255     0   _            0         0           1 /],
+    [qw/ GenericTLV              255     0   no_value     0         0           1 /],
 );
 #-------------------------------------------------------------------------------------
 #        ID                     CODE PCODE   FUNC         L_LIMIT   H_LIMIT     LENGTH

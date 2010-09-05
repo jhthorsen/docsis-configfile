@@ -7,7 +7,7 @@ use Test::More;
 our $AUTOLOAD;
 my @uchar;
 
-plan tests => 15;
+plan tests => 16;
 
 # local $" = ','; used for failing tests
 
@@ -61,6 +61,8 @@ eval {
 
     @uchar = mic({ value => 'foo' });
     is_deeply(\@uchar, [], 'mic() encoded') or diag "@uchar";
+
+    is_deeply([no_value({ value => 'foo' })], [], 'no value decoded as empty list');
 } or diag $@;
 
 # evil hack to simplify things...

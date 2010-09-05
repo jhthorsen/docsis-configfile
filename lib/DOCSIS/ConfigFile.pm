@@ -361,15 +361,8 @@ sub _encode_loop {
                 carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
                 next TLV;
             }
-            unless(defined $tlv->{'value'}) {
-                confess sprintf 'Missing value in TLV#%s/%s', $i, $name;
-            }
-            unless(defined( $value = $sub->($tlv) )) {
-                carp sprintf 'Undefined encoded value for TLV#%s/%s', $i, $name;
-                next TLV;
-            }
 
-            $value = pack 'C*', @$value;
+            $value = pack 'C*', $sub->($tlv) or next TLV;
         }
 
         $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, \$value);

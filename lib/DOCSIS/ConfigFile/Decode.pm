@@ -339,7 +339,7 @@ sub string {
     # not sure why this is able to join - may be removed later
     my $bin = @_ > 1 ? join('', map { chr $_ } @_) : $_[0];
 
-    if($bin =~ /[^\t\n\r\x20-\xEF]/) {
+    if($bin =~ /^[^\t\n\r\x20-\xEF]/) {
         return hexstr($bin);
     }
     else {

@@ -193,36 +193,27 @@ sub _decode_loop {
 
     CODE:
     while($tlength > 0) {
-        my($value, $nested, $func);
-
-        my $code     = $self->_read_code($FH) or last CODE;
-        my $syminfo  = Syminfo->from_code($code, $p_code);
-        my $length   = $self->_read_length($FH, $syminfo->length);
+        my $code = $self->_read_code($FH) or last CODE;
+        my $syminfo = Syminfo->from_code($code, $p_code);
+        my $length = $self->_read_length($FH, $syminfo->length);
+        my($value, $nested);
 
         $tlength -= $length + 2;
 
-        if(!$syminfo->func) {
-            carp sprintf 'Undefined decode function for PCODE/CODE (%s/%s)', $p_code, $code;
-            last CODE;
+        if(!defined $syminfo->func) {
+            #carp sprintf 'PCODE/CODE (%s/%s) gets skipped: No function to decode', $p_code, $code;
+            next CODE;
         }
         elsif($syminfo->func eq 'nested') {
             $nested = $self->_decode_loop($length, $syminfo->code);
         }
+        elsif(my $decoder = Decode->can($syminfo->func)) {
+            ($value, $nested) = $decoder->( $self->_read_value($FH, $length) );
+        }
         else {
-            my $bytes = read $FH, my($data), $length;
-
-            if($bytes != $length) {
-                confess sprintf 'Read (%s) bytes instead of (%s) while decoding PCODE/CODE (%s/%s)', $bytes, $length, $p_code, $code;
-            }
-
-            if($func = Decode->can($syminfo->func)) {
-                ($value, $nested) = $func->($data);
-            }
-            else {
-                $data = Decode->can('string')->($data);
-                $value = sprintf 'Unknown TLV: T=%s/%s L=%s, V=%s', $p_code, $code, $length, $data;
-                carp $value;
-            }
+            $self->_read_value($FH, $length);
+            carp sprintf 'Unknown decode method for PCODE/CODE (%s/%s). (%s) bytes are thrown away', $p_code, $code, $length;
+            next CODE;
         }
 
         if(defined $value or defined $nested) {
@@ -230,20 +221,17 @@ sub _decode_loop {
             next CODE;
         }
 
-        carp sprintf 'Could not decode PCODE/CODE (%s/%s) using function (%s)', $p_code, $code, $func;
+        carp sprintf 'Could not decode PCODE/CODE (%s/%s) using function (%s)', $p_code, $code, $syminfo->func;
     }
 
     return $cfg;
 }
 
 sub _read_code {
-    my $self = shift;
-    my $FH = shift;
-    my $code;
+    my($self, $FH) = @_;
+    my $bytes = read $FH, my($data), 1;
 
-    read $FH, $code, 1;
-
-    return unpack 'C', $code;
+    return $bytes ? unpack 'C', $data : '';
 }
 
 sub _read_length {
@@ -257,6 +245,17 @@ sub _read_length {
          : $read == 2 ? unpack('n', $length)
          :              0xffffffff # weird way to enforce error later on...
          ;
+}
+
+sub _read_value {
+    my($self, $FH, $length) = @_;
+    my $bytes = read $FH, my($data), $length;
+
+    if($bytes != $length) {
+        confess sprintf 'Expected to read (%s) bytes. Read (%s) bytes', $length, $bytes;
+    }
+
+    return $data;
 }
 
 sub _value_to_cfg {
@@ -346,23 +345,19 @@ sub _encode_loop {
         my $syminfo = Syminfo->from_id($name);
         my($type, $length, $value);
 
-        unless($syminfo->func) {
-            carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
+        if(!defined $syminfo->func) {
+            #carp sprintf 'TLV#%s/%s is skipped: No function to encode', $i, $name;
             next TLV;
         }
-
-        if($syminfo->func eq 'nested') {
+        elsif($syminfo->func eq 'nested') {
             $value = $self->_encode_loop($tlv->{'nested'}, $level+1, $i);
         }
+        elsif(my $encoder = Encode->can($syminfo->func)) {
+            $value = pack 'C*', $encoder->($tlv) or next TLV;
+        }
         else {
-            my $sub = Encode->can($syminfo->func);
-
-            unless($sub) {
-                carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
-                next TLV;
-            }
-
-            $value = pack 'C*', $sub->($tlv) or next TLV;
+            carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
+            next TLV;
         }
 
         $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, \$value);

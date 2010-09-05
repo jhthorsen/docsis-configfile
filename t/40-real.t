@@ -4,16 +4,22 @@ use strict;
 use lib qw(lib);
 use Test::More;
 use DOCSIS::ConfigFile;
+use constant HEXDUMP => -x '/usr/bin/hexdump';
 
 # These two environment variables can be set before running this unittest:
 # DOCSIS_INPUT_FILE=/path/to/file.bin
 # KEEP_DOCSIS_FILES=$bool
 
-plan skip_all => '"JSON" is required' unless eval 'use JSON; 1';
 plan skip_all => '"/usr/bin/diff" is not available' unless -x '/usr/bin/diff';
-plan skip_all => '"/usr/bin/hexdump" is not available' unless -x '/usr/bin/hexdump';
 plan skip_all => '"/usr/bin/docsis" is not available' unless -x '/usr/bin/docsis';
-plan tests => 12;
+
+if(HEXDUMP) {
+    plan tests => 11;
+}
+else {
+    plan tests => 8;
+    diag '/usr/bin/hexdump is missing. Will not dump binary files as hex';
+}
 
 mkdir 't/data' unless(-d 't/data/');
 my $dc = DOCSIS::ConfigFile->new(advanced_output => 0, shared_secret => '');
@@ -22,16 +28,16 @@ my($data_bin, $data_config, $new_bin);
 ok($data_bin = generate_binary(), 'DATA is read');
 ok(data_to_file($data_bin, 'data.bin'), 'DATA written to data.bin');
 is(docsis('data.bin'), 0, 'docsis decoded data.bin => data.c');
-is(hexdump('data.bin'), 0, 'data.bin dumped as data.hex');
+is(hexdump('data.bin'), 0, 'data.bin dumped as data.hex') if HEXDUMP;
 ok($data_config = $dc->decode(\$data_bin), 'DC decoded DATA');
-ok(data_to_file($data_config, 'data.json'), 'DATA written to data.bin');
+data_to_file($data_config, 'data.json');
 ok($new_bin = $dc->encode($data_config), 'DC encodede DATA back');
 ok(data_to_file($new_bin, 'new.bin'), 'encoded DATA stored to new.bin');
-is(hexdump('new.bin'), 0, 'new.bin dumped as new.hex');
+is(hexdump('new.bin'), 0, 'new.bin dumped as new.hex') if HEXDUMP;
 
 if(is(docsis('new.bin'), 0, 'docsis decoded new.bin => new.c')) {
-    is(qx{diff -u t/data/data.c t/data/new.c}, '', 'no diff');
-    is(qx{diff -u t/data/data.hex t/data/new.hex}, '', 'no diff');
+    is(qx{diff -u t/data/data.c t/data/new.c}, '', 'no diff from docsis decoded output');
+    is(qx{diff -u t/data/data.hex t/data/new.hex}, '', 'no diff from hexdump output') if HEXDUMP;
 }
 else {
     ok(0, 'cannot run diff without decoded binary');
@@ -81,7 +87,20 @@ sub generate_binary {
 sub data_to_file {
     open my $NEW, '>', "t/data/$_[1]";
     binmode $NEW;
-    print $NEW ref $_[0] ? JSON->new->ascii->pretty->encode($_[0]) : $_[0];
+
+    if(ref $_[0]) {
+        if(eval 'use JSON; 1') {
+            print $NEW JSON->new->ascii->pretty->encode($_[0]);
+        }
+        else {
+            diag 'JSON is missing. Will not dump config as JSON';
+            return;
+        }
+    }
+    else {
+        print $NEW $_[0];
+    }
+
     close $NEW;
 }
 

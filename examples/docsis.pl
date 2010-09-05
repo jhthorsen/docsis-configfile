@@ -100,8 +100,8 @@ my $docsis = DOCSIS::ConfigFile->new(
 
 if($ARGS->{'encode'}) {
     open my $FH, '<', $ARGS->{'encode'};
-    my $config = JSON->new->decode(do { local $/; <$FH> });
-    output($docsis, $docsis->ascii->encode($config));
+    my $config = JSON->new->ascii->decode(do { local $/; <$FH> });
+    output($docsis, $docsis->encode($config));
 }
 elsif($ARGS->{'decode'}) {
     my $config = $docsis->decode($ARGS->{'decode'});

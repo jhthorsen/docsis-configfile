@@ -2,11 +2,11 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.6002
+    0.6003
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
-        use YAML;
+        use JSON;
 
         my $obj     = DOCSIS::ConfigFile->new(
                           shared_secret   => '', # default
@@ -19,8 +19,11 @@ SYNOPSIS
                       $obj->advanced_output(1);
         my $dec_adv = $obj->decode(\$encoded);
 
-        print YAML::Dump($decoded); # see simple config in YAML format
-        print YAML::Dump($dec_adv); # see advanced config in YAML format
+        # see simple config in JSON format
+        print JSON->new->pretty->decode($decoded);
+
+        # see advanced config in JSON format
+        print JSON->new->pretty->decode($dec_adv);
 
 DESCRIPTION
     An instance from this class can be used to encode or decode <DOCSIS>

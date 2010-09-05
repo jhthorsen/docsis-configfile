@@ -1,6 +1,6 @@
 Revision history for DOCSIS-Perl
 
-0.6003
+0.6003   Sun Sep  5 20:38:25 CEST 2010
       - Fix uint() cannot return negative integers
         Contributor: canni
       - Add int() to handle (possible) signed integers

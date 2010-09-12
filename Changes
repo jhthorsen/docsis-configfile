@@ -1,5 +1,9 @@
 Revision history for DOCSIS-Perl
 
+0.6004   Sun Sep 12 21:51:02 CEST 2010
+      - Fix #61267: Encode::int() fails on 64b systems:
+        -1234567890 >> 8 == 72057594033105405 != 11954685
+
 0.6003   Sun Sep  5 20:38:25 CEST 2010
       - Fix uint() cannot return negative integers
         Contributor: canni

@@ -192,6 +192,9 @@ sub int {
     my $negative = $int < 0;
     my @bytes;
 
+    # make sure we're working on 32bit
+    $int &= 0xffffffff;
+
     while($int) {
         my $value = $int & 0xff;
         $int >>= 8;

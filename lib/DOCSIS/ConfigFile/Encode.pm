@@ -378,15 +378,18 @@ sub string {
 =head2 stringz
 
 Returns a list of bytes representing the C<$str> with a zero
-terminator at the end. It simply uses C</string> and adds
-'%00' to the end of the string itself.
-Only ServiceClassName needs this, see Syminfo.pm
+terminator at the end. The "\0" byte will be added unless
+seen as the last element in the list.
+
+Only ServiceClassName needs this, see L<DOCSIS::ConfigFile::Syminfo>
+for more details.
 
 =cut
 
 sub stringz {
-    $_[0]->{value} .= '%00' if $_[0]->{value};
-    return string (@_);
+    my @bytes = string(@_);
+    push @bytes, "\0" if(@bytes == 0 or $bytes[-1] ne "\0");
+    return @bytes;
 }
 
 =head2 hexstr

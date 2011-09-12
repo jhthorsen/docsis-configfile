@@ -350,13 +350,15 @@ sub string {
 
 =head2 stringz
 
-Same as string above. However this string is zero-terminated as needed
-for ServiceClassName (see Syminfo.pm and Encode.pm)
+Same as string above. However this string is zero-terminated in encoded
+form, but this function remove the last "\0" seen in the string.
 
 =cut
 
 sub stringz {
-    return string (@_);
+    my $str = string(@_);
+    $str =~ s/\0$//;
+    return $str;
 }
 
 =head2 hexstr

@@ -375,6 +375,20 @@ sub string {
     }
 }
 
+=head2 stringz
+
+Returns a list of bytes representing the C<$str> with a zero
+terminator at the end. It simply uses C</string> and adds
+'%00' to the end of the string itself.
+Only ServiceClassName needs this, see Syminfo.pm
+
+=cut
+
+sub stringz {
+    $_[0]->{value} .= '%00' if $_[0]->{value};
+    return string (@_);
+}
+
 =head2 hexstr
 
 Will encode any hex encoded string into a list of bytes. The string

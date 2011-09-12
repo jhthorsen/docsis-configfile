@@ -348,6 +348,17 @@ sub string {
     }
 }
 
+=head2 stringz
+
+Same as string above. However this string is zero-terminated as needed
+for ServiceClassName (see Syminfo.pm and Encode.pm)
+
+=cut
+
+sub stringz {
+    return string (@_);
+}
+
 =head2 hexstr
 
 Will unpack the input string and a string with leading "0x", followed

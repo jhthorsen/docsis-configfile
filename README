@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.6004
+    0.61
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
@@ -26,13 +26,15 @@ SYNOPSIS
         print JSON->new->pretty->decode($dec_adv);
 
 DESCRIPTION
-    An instance from this class can be used to encode or decode <DOCSIS>
-    (Data over Cable Service Interface Specifications) config files. These
-    files are usually served using a TFTP server, after a <cable modem> or
-    MTA (Multimedia Terminal Adapter) has recevied an IP address from a DHCP
-    server. These files are binary encode using a variety of functions, but
-    all the data in the file are constructed by TLVs (type-length-value)
-    blocks. These can be nested and concatenated.
+    An instance from this class can be used to encode or decode DOCSIS
+    <http://www.cablelabs.com> (Data over Cable Service Interface
+    Specifications) config files. These files are usually served using a
+    TFTP server, after a cable modem
+    <http://en.wikipedia.org/wiki/Cable_modem> or MTA (Multimedia Terminal
+    Adapter) has recevied an IP address from a DHCP server. These files are
+    binary encode using a variety of functions, but all the data in the file
+    are constructed by TLVs (type-length-value) blocks. These can be nested
+    and concatenated.
 
     This module is used as a layer between any human readable data and the
     binary structure. The config file in human readable format can look

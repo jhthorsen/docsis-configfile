@@ -1,5 +1,10 @@
 Revision history for DOCSIS-Perl
 
+0.61     Mon Oct  3 21:58:40 CEST 2011
+      - Fix RT70882: ServiceClassName need to be zero-terminated
+        This is optional in input data structure and removed/not
+        visible in decoded tree either
+
 0.6004   Sun Sep 12 21:51:02 CEST 2010
       - Fix #61267: Encode::int() fails on 64b systems:
         -1234567890 >> 8 == 72057594033105405 != 11954685

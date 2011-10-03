@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-0.6004
+0.61
 
 =head1 SYNOPSIS
 
@@ -95,7 +95,7 @@ use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";
 use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
-our $VERSION = eval '0.6004';
+our $VERSION = eval '0.61';
 our $TRACE   = 0;
 
 =head1 ATTRIBUTES

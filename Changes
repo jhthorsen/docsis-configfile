@@ -1,5 +1,9 @@
 Revision history for DOCSIS-Perl
 
+0.62     Sun Apr 29 10:56:44 2012
+      - Add SnmpCpeAccessControl to Syminfo
+        Contributor: Elliot
+
 0.61     Mon Oct  3 21:58:40 CEST 2011
       - Fix RT70882: ServiceClassName need to be zero-terminated
         This is optional in input data structure and removed/not

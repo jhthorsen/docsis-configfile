@@ -53,6 +53,7 @@ our %SNMP_TYPE = (
     INTEGER   => [ 0x02, \&int         ],
     STRING    => [ 0x04, \&string      ],
     NULLOBJ   => [ 0x05, sub {}        ],
+    OBJECTID  => [ 0x06, \&objectid    ],
     IPADDRESS => [ 0x40, \&ip          ],
     COUNTER   => [ 0x41, \&uint        ],
     UNSIGNED  => [ 0x42, \&uint        ],
@@ -349,6 +350,20 @@ sub ether {
     }
 
     confess "ether({ value => $string }) is invalid";
+}
+
+=head2 objectid
+
+Encodes MIB number as value of C<OBJECTID>
+can be in format: 1.2.3.4, .1.2.3.4
+
+=cut
+
+sub objectid
+{
+    my $oid = _test_value (objectid => $_[0], qr{^\.?\d+(\.\d+)+$});
+    $oid =~ s/^\.//;
+    return _snmp_oid ($oid);
 }
 
 =head2 string

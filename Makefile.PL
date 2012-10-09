@@ -5,6 +5,7 @@ all_from q(lib/DOCSIS/ConfigFile.pm);
 
 requires q(Digest::HMAC_MD5) => 1.00;
 requires q(Digest::MD5) => 2.30;
+requires q(Digest::SHA1) => 2.10;
 requires q(autodie) => 2.00;
 requires q(bytes) => 1.00;
 requires q(Math::BigInt) => 1.80;

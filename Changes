@@ -1,5 +1,9 @@
 Revision history for DOCSIS-Perl
 
+0.63
+      - Fix RT72511
+        Contributor velladecin@hotmail.com
+
 0.62     Sun Apr 29 10:56:44 2012
       - Add SnmpCpeAccessControl to Syminfo
         Contributor: Elliot

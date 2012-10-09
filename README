@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.62
+    0.63
 
 SYNOPSIS
         use DOCSIS::ConfigFile;
@@ -105,6 +105,21 @@ METHODS
     and returns a binary encoded string. See "DESCRIPTION" and the unit
     tests for example input. For other structures, see the table generated
     by "dump_symbol_tree" in DOCSIS::ConfigFile::Syminfo.
+
+    When enconding MTA config files another arugment is accepted:
+
+        $binary_str = $self->encode([ { ... }, ... ], 'md5|sha1');
+
+    As 'pktcMtaDevProvConfigHash' does not need to be included in the config
+    at all times this param is optional. Only two variants are accpted -
+    MD5, or SHA1 The algorithm will then be used to define value for
+    'pktcMtaDevProvConfigHash' and this line will be added just above
+    'MtaConfigDelimiter' closing tag resulting in
+
+        MtaConfigDelimiter 1;
+        ...
+        SnmpMibObject enterprises.4491.2.2.1.1.2.7.0 HexString 0x1a2b3c4d5e6f... ;
+        MtaConfigDelimiter 255;
 
 CONSTANTS
   Decode

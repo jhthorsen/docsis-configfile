@@ -2,7 +2,7 @@ NAME
     DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 VERSION
-    0.6301
+    0.6302
 
 SYNOPSIS
         use DOCSIS::ConfigFile;

@@ -1,6 +1,6 @@
 Revision history for DOCSIS-Perl
 
-0.6302
+0.6302   Thu Jul 25 21:56:00 2013
       - Fix RT83013: Using the right value when checking high/low values
 
 0.6301   Thu Jul 25 21:12:15 2013

@@ -396,9 +396,9 @@ sub _encode_loop {
             next TLV;
         }
 
-        $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, \$value);
+        $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, $tlv);
         $type = $syminfo->code;
-        $length = ($syminfo->length == 2) ? pack('n', length $value) : pack('C', length $value);
+        $length = $syminfo->length == 2 ? pack 'n', length $value : pack 'C', length $value;
 
         #carp 'name=%s type=%i, length=%i', $name, $type, length($value);
 
@@ -415,7 +415,7 @@ sub _encode_loop {
 }
 
 sub _syminfo_from_syminfo_siblings {
-    my($self, $syminfo, $value) = @_;
+    my($self, $syminfo, $tlv) = @_;
     my @error;
 
     SIBLING:
@@ -424,20 +424,20 @@ sub _syminfo_from_syminfo_siblings {
             next SIBLING;
         }
 
-        my $length = $$value =~ /^\d+$/ ? $$value : length $$value;
+        my $value = $tlv->{value} =~ /^\d+$/ ? $tlv->{value} : length $tlv->{value};
 
-        if($length > $sibling->u_limit) {
-            push @error, sprintf '%s/%s: %s > %s', $sibling->pcode, $sibling->code, $length, $sibling->u_limit;
+        if($value > $sibling->u_limit) {
+            push @error, sprintf '%s/%s: %s > %s', $sibling->pcode, $sibling->code, $value, $sibling->u_limit;
         }
-        elsif($length < $sibling->l_limit) {
-            push @error, sprintf '%s/%s: %s < %s', $sibling->pcode, $sibling->code, $length, $sibling->l_limit;
+        elsif($value < $sibling->l_limit) {
+            push @error, sprintf '%s/%s: %s < %s', $sibling->pcode, $sibling->code, $value, $sibling->l_limit;
         }
         else {
             return $sibling;
         }
     }
 
-    confess sprintf 'Invalid value for %s: %s', $syminfo->id, join(', ', @error) if(@error);
+    confess sprintf 'Invalid value for %s: %s', $syminfo->id, join ', ', @error if @error;
     return $syminfo;
 }
 

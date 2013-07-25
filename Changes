@@ -1,5 +1,8 @@
 Revision history for DOCSIS-Perl
 
+0.6302
+      - Fix RT83013: Using the right value when checking high/low values
+
 0.6301   Thu Jul 25 21:12:15 2013
       - Fix RT87301: "return" binds stronger than "or".
         Contributor rurban@x-ray.at

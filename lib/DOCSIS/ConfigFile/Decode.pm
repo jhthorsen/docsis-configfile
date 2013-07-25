@@ -306,7 +306,7 @@ Will unpack the input string and return a human readable IPv4 address.
 =cut
 
 sub ip {
-    return inet_ntoa($_[0]) or confess 'inet_ntoa(...) failed to unpack binary string';
+    return inet_ntoa($_[0]) || confess 'inet_ntoa(...) failed to unpack binary string';
 }
 
 =head2 ether

@@ -87,7 +87,7 @@ use autodie;
 use Carp qw/ carp confess /;
 use Digest::MD5;
 use Digest::HMAC_MD5;
-use Digest::SHA1 qw(sha1_hex);
+use Digest::SHA qw(sha1_hex);
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;

@@ -417,6 +417,7 @@ __PACKAGE__->add_symbol($_) for(
     [qw/ MinResPacketSize         11    24   ushort       0         65535       1 /],
     [qw/ ActQosParamsTimeout      12    24   ushort       0         65535       1 /],
     [qw/ AdmQosParamsTimeout      13    24   ushort       0         65535       1 /],
+    [qw/ UsVendorSpecific         43    24   vendorspec   0         0           1 /],
 
     # Upstream Service Flow Specific params
     [qw/ MaxConcatenatedBurst     14    24   ushort       0         65535       1 /],
@@ -443,6 +444,7 @@ __PACKAGE__->add_symbol($_) for(
     [qw/ MinResPacketSize         11    25   ushort       0         65535       1 /],
     [qw/ ActQosParamsTimeout      12    25   ushort       0         65535       1 /],
     [qw/ AdmQosParamsTimeout      13    25   ushort       0         65535       1 /],
+    [qw/ DsVendorSpecific         43    25   vendorspec   0         0           1 /],
 
     # Downstream Service Flow Specific Params
     [qw/ MaxDsLatency             14    25   uint         0         0           1 /],

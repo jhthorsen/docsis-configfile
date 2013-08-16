@@ -1,5 +1,11 @@
 Revision history for DOCSIS-Perl
 
+0.64     Fri Aug 16 23:33:13 2013
+      - Use Digest::SHA instead of Digest::SHA1
+      - Fix handling of 0x0a value in vendorspec()
+      - Add support for VendorSpecific TLVs in Service Flow configuration.
+      - Contributor Dušan Dragić
+
 0.6302   Thu Jul 25 21:56:00 2013
       - Fix RT83013: Using the right value when checking high/low values
 

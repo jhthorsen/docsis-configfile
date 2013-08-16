@@ -6,7 +6,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 =head1 VERSION
 
-0.6302
+0.64
 
 =head1 SYNOPSIS
 
@@ -96,7 +96,7 @@ use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";
 use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
-our $VERSION = '0.6302';
+our $VERSION = '0.64';
 our $TRACE   = 0;
 
 =head1 ATTRIBUTES
@@ -545,6 +545,8 @@ DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
 This module got its inspiration from the program docsis, http://docsis.sf.net.
 
 =cut
+
+1;
 
 1;
 

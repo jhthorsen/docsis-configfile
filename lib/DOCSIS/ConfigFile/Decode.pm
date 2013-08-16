@@ -267,7 +267,7 @@ sub vendorspec {
     my($vendor, @ret, $length);
 
     # extract length (not sure what the first byte is...)
-    if($bin =~ s/^.(.)//) {
+    if($bin =~ s/^.(.)//s) {
         $length = unpack 'C', $1;
     }
     else {
@@ -275,7 +275,7 @@ sub vendorspec {
     }
 
     # extract vendor
-    if($bin =~ s/^(.{$length})//) { # find vendor
+    if($bin =~ s/^(.{$length})//s) { # find vendor
         $vendor = sprintf '0x' .('%02x' x $length), unpack 'C*', $1;
     }
     else {
@@ -283,11 +283,11 @@ sub vendorspec {
     }
 
     # extract TLV
-    while($bin =~ s/^(.)(.)//) {
+    while($bin =~ s/^(.)(.)//s) {
         my $type = unpack 'C*', $1;
         my $length = unpack 'C*', $2;
 
-        if($bin =~ s/^(.{$length})//) {
+        if($bin =~ s/^(.{$length})//s) {
             push @ret, { type => $type, length => $length, value => hexstr($1) };
         }
     }

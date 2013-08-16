@@ -6,7 +6,7 @@ use Test::More;
 
 our $AUTOLOAD;
 
-plan tests => 21;
+plan tests => 22;
 
 eval {
     is_deeply(
@@ -36,6 +36,12 @@ eval {
     is_deeply(
         [vendorspec(8,3,0,19,55,24,1,66)],
         [ '0x001337' => [ { type => 24, length => 1, value => '0x42' } ] ],
+        'vendorspec() decoded',
+    );
+
+    is_deeply(
+        [vendorspec(8,3,0,0,12,4,8,0,0,255,255,0,0,0,10)],
+        [ '0x00000c' => [ { type => 4, length => 8, value => '0x0000ffff0000000a' } ] ],
         'vendorspec() decoded',
     );
 

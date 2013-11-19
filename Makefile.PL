@@ -15,7 +15,7 @@ test_requires q(Test::More) => 0.90;
 
 bugtracker q(http://rt.cpan.org/NoAuth/Bugs.html?Dist=DOCSIS-ConfigFile);
 homepage q(http://search.cpan.org/dist/DOCSIS-ConfigFile);
-repository q(git://github.com//home/repositories/docsis-configfile.git);
+repository q(git://github.com/jhthorsen/docsis-configfile.git);
 
 # install_script glob('bin/*');
 auto_install;

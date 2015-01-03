@@ -409,15 +409,7 @@ sub _test_length {
 
 =head1 AUTHOR
 
-=head1 BUGS
-
-=head1 SUPPORT
-
-=head1 ACKNOWLEDGEMENTS
-
-=head1 COPYRIGHT & LICENSE
-
-See L<DOCSIS::ConfigFile>
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
 

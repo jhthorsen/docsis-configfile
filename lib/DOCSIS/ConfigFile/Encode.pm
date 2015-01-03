@@ -79,12 +79,12 @@ This function encodes a human-readable SNMP oid into a list of bytes:
 
 sub snmp_object {
   my $obj = _test_value(snmp_object => $_[0]);
-  my $type = $SNMP_TYPE{$obj->{'type'}} or confess 'Usage: snmp_object({ value => { type => ... })';
-  my @value = $type->[1]->({value => $obj->{'value'}, snmp => 1});
-  my @oid = _snmp_oid($obj->{'oid'});
+  my $type = $SNMP_TYPE{$obj->{type}} or confess 'Usage: snmp_object({ value => { type => ... })';
+  my @value = $type->[1]->({value => $obj->{value}, snmp => 1});
+  my @oid = _snmp_oid($obj->{oid});
 
   unless (@value) {
-    confess 'Failed to decode SNMP value: ' . $obj->{'value'};
+    confess 'Failed to decode SNMP value: ' . $obj->{value};
   }
 
   my @oid_length   = _snmp_length(0 + @oid);
@@ -203,14 +203,14 @@ sub int {
     unshift @bytes, $value;
   }
 
-  if (!$obj->{'snmp'}) {
+  if (!$obj->{snmp}) {
     $bytes[0] |= 0x80 if ($negative);
     unshift @bytes, 0 for (1 .. 4 - @bytes);
   }
   if (@bytes == 0) {
     @bytes = (0);
   }
-  if ($obj->{'snmp'}) {
+  if ($obj->{snmp}) {
     unshift @bytes, 0 if (!$negative and $bytes[0] > 0x79);
   }
 
@@ -235,13 +235,13 @@ sub uint {
     unshift @bytes, $value;
   }
 
-  if (!$obj->{'snmp'}) {
+  if (!$obj->{snmp}) {
     unshift @bytes, 0 for (1 .. 4 - @bytes);
   }
   if (@bytes == 0) {
     @bytes = (0);
   }
-  if ($obj->{'snmp'}) {
+  if ($obj->{snmp}) {
     unshift @bytes, 0 if ($bytes[0] > 0x79);
   }
 
@@ -260,7 +260,7 @@ sub ushort {
   my $ushort = _test_value(ushort => $obj, qr{^\+?\d{1,5}$});
   my @bytes;
 
-  if ($obj->{'snmp'}) {
+  if ($obj->{snmp}) {
     unshift @bytes, 0 if ($ushort > 0x79);
   }
 
@@ -270,7 +270,7 @@ sub ushort {
     unshift @bytes, $value;
   }
 
-  if (!$obj->{'snmp'}) {
+  if (!$obj->{snmp}) {
     unshift @bytes, 0 for (1 .. 2 - @bytes);
   }
   if (@bytes == 0) {
@@ -301,7 +301,7 @@ sub vendorspec {
   my $obj = $_[0];
   my (@vendor, @bytes);
 
-  unless (ref $obj->{'nested'} eq 'ARRAY') {
+  unless (ref $obj->{nested} eq 'ARRAY') {
     confess "vendor({ nested => ... }) is not an array ref";
   }
 
@@ -309,9 +309,9 @@ sub vendorspec {
   @bytes = (8, CORE::int(@vendor), @vendor);
 
 TLV:
-  for my $tlv (@{$obj->{'nested'}}) {
+  for my $tlv (@{$obj->{nested}}) {
     my @value = hexstr($tlv);                  # will extract value=>$hexstr. might confess
-    push @bytes, uchar({value => $tlv->{'type'}});
+    push @bytes, uchar({value => $tlv->{type}});
     push @bytes, CORE::int(@value);
     push @bytes, @value;
   }
@@ -451,27 +451,19 @@ sub no_value { }
 sub _test_value {
   my ($name, $obj, $test) = @_;
 
-  if (!defined $obj->{'value'}) {
+  if (!defined $obj->{value}) {
     confess "$name({ value => ... }) received undefined value";
   }
-  if ($test and not $obj->{'value'} =~ $test) {
-    confess "$name({ value => " . $obj->{'value'} . " }) does not match $test";
+  if ($test and not $obj->{value} =~ $test) {
+    confess "$name({ value => " . $obj->{value} . " }) does not match $test";
   }
 
-  return $obj->{'value'};
+  return $obj->{value};
 }
 
 =head1 AUTHOR
 
-=head1 BUGS
-
-=head1 SUPPORT
-
-=head1 ACKNOWLEDGEMENTS
-
-=head1 COPYRIGHT & LICENSE
-
-See L<DOCSIS::ConfigFile>
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
 

@@ -71,23 +71,15 @@ more information, but this is what is required/default: An array-ref
 of hash-refs, containing a C<name> and a C<value> (or C<nested> for
 nested data structures). The rest will this module figure out.
 
-=head1 FAULT HANDLING
-
-As for version C<0.60>, this module has changed from holding errors
-in an attribute to actively reporting errors, using C<confess()>,
-C<carp()> and the module L<autodie> for reporting system errors from
-C<open()> and friends. Constructing the object, and changing attribute
-values are still safe to do, but L</encode> and L</decode> might die.
-
 =cut
 
 use strict;
 use warnings;
 use autodie;
-use Carp qw/ carp confess /;
+use Carp qw( carp confess );
 use Digest::MD5;
 use Digest::HMAC_MD5;
-use Digest::SHA qw(sha1_hex);
+use Digest::SHA 'sha1_hex';
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
@@ -97,7 +89,6 @@ use constant Decode  => "DOCSIS::ConfigFile::Decode";
 use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
 our $VERSION = '0.64';
-our $TRACE   = 0;
 
 =head1 ATTRIBUTES
 
@@ -109,8 +100,8 @@ Sets or gets the shared secret.
 
 sub shared_secret {
   my $self = shift;
-  $self->{'shared_secret'} = $_[0] if (@_);
-  return $self->{'shared_secret'} ||= q();
+  $self->{shared_secret} = $_[0] if (@_);
+  return $self->{shared_secret} ||= q();
 }
 
 =head2 advanced_output
@@ -122,8 +113,8 @@ Advanced output is off (0) by default.
 
 sub advanced_output {
   my $self = shift;
-  $self->{'advanced_output'} = $_[0] if (@_);
-  return $self->{'advanced_output'} || 0;
+  $self->{advanced_output} = $_[0] if (@_);
+  return $self->{advanced_output} || 0;
 }
 
 =head1 METHODS
@@ -180,7 +171,7 @@ sub decode {
   }
 
   binmode $FH;
-  $self->{'decode_fh'} = $FH;
+  $self->{decode_fh} = $FH;
 
   return $self->_decode_loop;
 }
@@ -189,7 +180,7 @@ sub _decode_loop {
   my $self    = shift;
   my $tlength = shift || 0xffffffff;
   my $p_code  = shift || 0;
-  my $FH      = $self->{'decode_fh'};
+  my $FH      = $self->{decode_fh};
   my $cfg     = [];
 
 CODE:
@@ -327,11 +318,11 @@ sub encode {
   }
   $algo = lc $algo if $algo;
 
-  $self->{'cmts_mic'} = {};
-  $self->{'binstring'} = $self->_encode_loop($config) || q();
+  $self->{cmts_mic} = {};
+  $self->{binstring} = $self->_encode_loop($config) || q();
 
-  if (grep { $_->{'name'} eq 'MtaConfigDelimiter' } @$config) {
-    $self->{'_MtaConfigDelimiter'} = 1;    # for internal usage
+  if (grep { $_->{name} eq 'MtaConfigDelimiter' } @$config) {
+    $self->{_MtaConfigDelimiter} = 1;    # for internal usage
 
     if ($self->{binstring} and $algo) {
       my $hash = $algo eq 'md5' ? md5_hex $self->{binstring} : sha1_hex $self->{binstring};
@@ -348,16 +339,16 @@ sub encode {
     }
   }
   else {
-    $self->{'_DefaultConfigDelimiter'} = 1;    # for internal usage
+    $self->{_DefaultConfigDelimiter} = 1;    # for internal usage
 
     my $cm_mic   = $self->_calculate_cm_mic;
     my $cmts_mic = $self->_calculate_cmts_mic;
     my $eod_pad  = $self->_calculate_eod_and_pad;
 
-    $self->{'binstring'} .= "$cm_mic$cmts_mic$eod_pad";
+    $self->{binstring} .= "$cm_mic$cmts_mic$eod_pad";
   }
 
-  return $self->{'binstring'};
+  return $self->{binstring};
 }
 
 sub _encode_loop {
@@ -374,9 +365,9 @@ sub _encode_loop {
 TLV:
   for my $tlv (@$config) {
     confess sprintf 'Invalid TLV#%s: %s', $i, $tlv || '__undefined_tlv__' unless (ref $tlv eq 'HASH');
-    confess sprintf 'Missing name in TLV#%s: %s', $i, join(',', keys %$tlv) unless ($tlv->{'name'});
+    confess sprintf 'Missing name in TLV#%s: %s', $i, join(',', keys %$tlv) unless ($tlv->{name});
 
-    my $name    = $tlv->{'name'};
+    my $name    = $tlv->{name};
     my $syminfo = Syminfo->from_id($name);
     my ($type, $length, $value);
 
@@ -386,7 +377,7 @@ TLV:
       next TLV;
     }
     elsif ($syminfo->func eq 'nested') {
-      $value = $self->_encode_loop($tlv->{'nested'}, $level + 1, $i);
+      $value = $self->_encode_loop($tlv->{nested}, $level + 1, $i);
     }
     elsif (my $encoder = Encode->can($syminfo->func)) {
       $value = pack 'C*', $encoder->($tlv) or next TLV;
@@ -443,7 +434,7 @@ SIBLING:
 
 sub _calculate_eod_and_pad {
   my $self   = shift;
-  my $length = length $self->{'binstring'};
+  my $length = length $self->{binstring};
   my $pads   = 4 - (1 + $length) % 4;
 
   return pack("C", 255) . ("\0" x $pads);
@@ -451,7 +442,7 @@ sub _calculate_eod_and_pad {
 
 sub _calculate_cm_mic {
   my $self = shift;
-  my $cm_mic = pack("C*", 6, 16) . Digest::MD5::md5($self->{'binstring'});
+  my $cm_mic = pack("C*", 6, 16) . Digest::MD5::md5($self->{binstring});
 
   $self->_calculate_cmts_mic("CmMic", $cm_mic);
 
@@ -460,7 +451,7 @@ sub _calculate_cm_mic {
 
 sub _calculate_cmts_mic {
   my $self     = shift;
-  my $cmts_mic = $self->{'cmts_mic'};
+  my $cmts_mic = $self->{cmts_mic};
   my $data;
 
   if (@_ == 2) {
@@ -491,59 +482,17 @@ Returns L<DOCSIS::ConfigFile::Encode>.
 
 Returns L<DOCSIS::ConfigFile::Syminfo>.
 
-=cut
+=head1 COPYRIGHT AND LICENSE
 
-=head1 AUTHOR
-
-Jan Henning Thorsen, C<< <pm at flodhest.net> >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to
-C<bug-docsis-perl at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-ConfigFile>.
-I will be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc DOCSIS::ConfigFile
-
-You can also look for information at
-L<http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-=head1 ACKNOWLEDGEMENTS
-
-=head1 COPYRIGHT & LICENSE
+Copyright (C) 2014, Jan Henning Thorsen
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
-Copyright (c) 2007 Jan Henning Thorsen
+=head1 AUTHOR
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
-
-This module got its inspiration from the program docsis, http://docsis.sf.net.
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
 
 1;
-
-1;
-

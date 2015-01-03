@@ -1,8 +1,5 @@
-#!perl
-
 use strict;
 use warnings;
-use lib q(lib);
 use Test::More;
 use DOCSIS::ConfigFile;
 

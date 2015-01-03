@@ -50,16 +50,16 @@ use Math::BigInt;
 use Socket;
 
 our %SNMP_TYPE = (
-    INTEGER   => [ 0x02, \&int         ],
-    STRING    => [ 0x04, \&string      ],
-    NULLOBJ   => [ 0x05, sub {}        ],
-    OBJECTID  => [ 0x06, \&objectid    ],
-    IPADDRESS => [ 0x40, \&ip          ],
-    COUNTER   => [ 0x41, \&uint        ],
-    UNSIGNED  => [ 0x42, \&uint        ],
-    TIMETICKS => [ 0x43, \&uint        ],
-    OPAQUE    => [ 0x44, \&uint        ],
-    COUNTER64 => [ 0x46, \&bigint      ],
+  INTEGER   => [0x02, \&int],
+  STRING    => [0x04, \&string],
+  NULLOBJ   => [0x05, sub { }],
+  OBJECTID  => [0x06, \&objectid],
+  IPADDRESS => [0x40, \&ip],
+  COUNTER   => [0x41, \&uint],
+  UNSIGNED  => [0x42, \&uint],
+  TIMETICKS => [0x43, \&uint],
+  OPAQUE    => [0x44, \&uint],
+  COUNTER64 => [0x46, \&bigint],
 );
 
 =head1 FUNCTIONS
@@ -78,80 +78,80 @@ This function encodes a human-readable SNMP oid into a list of bytes:
 =cut
 
 sub snmp_object {
-    my $obj = _test_value(snmp_object => $_[0]);
-    my $type = $SNMP_TYPE{$obj->{'type'}} or confess 'Usage: snmp_object({ value => { type => ... })';
-    my @value = $type->[1]->({ value => $obj->{'value'}, snmp => 1 });
-    my @oid = _snmp_oid($obj->{'oid'});
+  my $obj = _test_value(snmp_object => $_[0]);
+  my $type = $SNMP_TYPE{$obj->{'type'}} or confess 'Usage: snmp_object({ value => { type => ... })';
+  my @value = $type->[1]->({value => $obj->{'value'}, snmp => 1});
+  my @oid = _snmp_oid($obj->{'oid'});
 
-    unless(@value) {
-        confess 'Failed to decode SNMP value: ' .$obj->{'value'};
-    }
+  unless (@value) {
+    confess 'Failed to decode SNMP value: ' . $obj->{'value'};
+  }
 
-    my @oid_length = _snmp_length(0 + @oid);
-    my @value_length = _snmp_length(0 + @value);
-    my @total_length = _snmp_length(3 + @value + @oid + @value_length);
+  my @oid_length   = _snmp_length(0 + @oid);
+  my @value_length = _snmp_length(0 + @value);
+  my @total_length = _snmp_length(3 + @value + @oid + @value_length);
 
-    return (
-      #-type--------length----------value-----type---
-        0x30,       @total_length,          # object
-        0x06,       @oid_length,    @oid,   # oid
-        $type->[0], @value_length,  @value, # value
-    );
+  return (
+    #-type--------length----------value-----type---
+    0x30, @total_length,        # object
+    0x06, @oid_length, @oid,    # oid
+    $type->[0], @value_length, @value,    # value
+  );
 }
 
 sub _snmp_length {
-    my $length = $_[0];
-    my @bytes;
+  my $length = $_[0];
+  my @bytes;
 
-    if($length < 0x80) {
-        return $length;
+  if ($length < 0x80) {
+    return $length;
+  }
+  elsif ($length < 0xff) {
+    return 0x81, $length;
+  }
+  elsif ($length < 0xffff) {
+    while ($length) {
+      unshift @bytes, $length & 0xff;
+      $length >>= 8;
     }
-    elsif($length < 0xff) {
-        return 0x81, $length;
-    }
-    elsif($length < 0xffff) {
-        while($length) {
-            unshift @bytes, $length & 0xff;
-            $length >>= 8;
-        }
-        return 0x82, @bytes;
-    }
+    return 0x82, @bytes;
+  }
 
-    confess "Too long snmp length: ($length)";
+  confess "Too long snmp length: ($length)";
 }
 
 sub _snmp_oid {
-    my $string = $_[0] or confess 'Usage: _snmp_oid($str)';
-    my @input_oid = split /\./, $string;
-    my $subid = 0;
-    my @encoded_oid;
+  my $string = $_[0] or confess 'Usage: _snmp_oid($str)';
+  my @input_oid = split /\./, $string;
+  my $subid = 0;
+  my @encoded_oid;
 
-    # the first two sub-id are in the first id
-    {
-        my $first = shift @input_oid;
-        my $second = shift @input_oid;
-        push @encoded_oid, $first * 40 + $second;
+  # the first two sub-id are in the first id
+  {
+    my $first  = shift @input_oid;
+    my $second = shift @input_oid;
+    push @encoded_oid, $first * 40 + $second;
+  }
+
+SUB_OID:
+  for my $id (@input_oid) {
+    if ($id <= 0x7f) {
+      push @encoded_oid, $id;
     }
+    else {
+      my @suboid;
 
-    SUB_OID:
-    for my $id (@input_oid) {
-        if($id <= 0x7f) {
-            push @encoded_oid, $id;
-        }
-        else {
-            my @suboid;
+      while ($id) {
+        unshift @suboid, 0x80 | ($id & 0x7f);
+        $id >>= 7;
+      }
 
-            while($id) {
-                unshift @suboid, 0x80 | ($id & 0x7f);
-                $id >>= 7;
-            }
-
-            $suboid[-1] &= 0x7f;
-            push @encoded_oid, @suboid;
-        }
+      $suboid[-1] &= 0x7f;
+      push @encoded_oid, @suboid;
     }
+  }
 
-    return @encoded_oid;
+  return @encoded_oid;
 }
 
 =head2 bigint
@@ -162,22 +162,22 @@ number (negative or positive) which can be representing using 64 bits.
 =cut
 
 sub bigint {
-    my $value = _test_value(bigint => $_[0]);
-    my $int64 = Math::BigInt->new($value);
+  my $value = _test_value(bigint => $_[0]);
+  my $int64 = Math::BigInt->new($value);
 
-    $int64->is_nan and confess "$value is not a number";
+  $int64->is_nan and confess "$value is not a number";
 
-    my $negative = $int64 < 0;
-    my @bytes = $negative ? (0x80) : ();
+  my $negative = $int64 < 0;
+  my @bytes = $negative ? (0x80) : ();
 
-    while($int64) {
-        my $value = $int64 & 0xff;
-        $int64 >>= 8;
-        $value ^= 0xff if($negative);
-        unshift @bytes, $value;
-    }
+  while ($int64) {
+    my $value = $int64 & 0xff;
+    $int64 >>= 8;
+    $value ^= 0xff if ($negative);
+    unshift @bytes, $value;
+  }
 
-    return @bytes ? @bytes : (0); # 0 is also a number ;-)
+  return @bytes ? @bytes : (0);    # 0 is also a number ;-)
 }
 
 =head2 int
@@ -188,33 +188,33 @@ number (negative or positive) which can be representing using 32 bits.
 =cut
 
 sub int {
-    my $obj = $_[0];
-    my $int = _test_value(int => $obj, qr{^[+-]?\d{1,10}$});
-    my $negative = $int < 0;
-    my @bytes;
+  my $obj      = $_[0];
+  my $int      = _test_value(int => $obj, qr{^[+-]?\d{1,10}$});
+  my $negative = $int < 0;
+  my @bytes;
 
-    # make sure we're working on 32bit
-    $int &= 0xffffffff;
+  # make sure we're working on 32bit
+  $int &= 0xffffffff;
 
-    while($int) {
-        my $value = $int & 0xff;
-        $int >>= 8;
-        $value ^= 0xff if($negative);
-        unshift @bytes, $value;
-    }
+  while ($int) {
+    my $value = $int & 0xff;
+    $int >>= 8;
+    $value ^= 0xff if ($negative);
+    unshift @bytes, $value;
+  }
 
-    if(!$obj->{'snmp'}) {
-        $bytes[0] |= 0x80 if($negative);
-        unshift @bytes, 0 for(1..4-@bytes);
-    }
-    if(@bytes == 0) {
-        @bytes = (0);
-    }
-    if($obj->{'snmp'}) {
-        unshift @bytes, 0 if(!$negative and $bytes[0] > 0x79);
-    }
+  if (!$obj->{'snmp'}) {
+    $bytes[0] |= 0x80 if ($negative);
+    unshift @bytes, 0 for (1 .. 4 - @bytes);
+  }
+  if (@bytes == 0) {
+    @bytes = (0);
+  }
+  if ($obj->{'snmp'}) {
+    unshift @bytes, 0 if (!$negative and $bytes[0] > 0x79);
+  }
 
-    return @bytes;
+  return @bytes;
 }
 
 =head2 uint
@@ -225,27 +225,27 @@ positive number which can be representing using 32 bits.
 =cut
 
 sub uint {
-    my $obj = $_[0];
-    my $uint = _test_value(uint => $obj, qr{^\+?\d{1,10}$});
-    my @bytes;
+  my $obj = $_[0];
+  my $uint = _test_value(uint => $obj, qr{^\+?\d{1,10}$});
+  my @bytes;
 
-    while($uint) {
-        my $value = $uint & 0xff;
-        $uint >>= 8;
-        unshift @bytes, $value;
-    }
+  while ($uint) {
+    my $value = $uint & 0xff;
+    $uint >>= 8;
+    unshift @bytes, $value;
+  }
 
-    if(!$obj->{'snmp'}) {
-        unshift @bytes, 0 for(1..4-@bytes);
-    }
-    if(@bytes == 0) {
-        @bytes = (0);
-    }
-    if($obj->{'snmp'}) {
-        unshift @bytes, 0 if($bytes[0] > 0x79);
-    }
+  if (!$obj->{'snmp'}) {
+    unshift @bytes, 0 for (1 .. 4 - @bytes);
+  }
+  if (@bytes == 0) {
+    @bytes = (0);
+  }
+  if ($obj->{'snmp'}) {
+    unshift @bytes, 0 if ($bytes[0] > 0x79);
+  }
 
-    return @bytes;
+  return @bytes;
 }
 
 =head2 ushort
@@ -256,28 +256,28 @@ positive number which can be representing using 16 bits.
 =cut
 
 sub ushort {
-    my $obj = $_[0];
-    my $ushort = _test_value(ushort => $obj, qr{^\+?\d{1,5}$});
-    my @bytes;
+  my $obj = $_[0];
+  my $ushort = _test_value(ushort => $obj, qr{^\+?\d{1,5}$});
+  my @bytes;
 
-    if($obj->{'snmp'}) {
-        unshift @bytes, 0 if($ushort > 0x79);
-    }
+  if ($obj->{'snmp'}) {
+    unshift @bytes, 0 if ($ushort > 0x79);
+  }
 
-    while($ushort) {
-        my $value = $ushort & 0xff;
-        $ushort >>= 8;
-        unshift @bytes, $value;
-    }
+  while ($ushort) {
+    my $value = $ushort & 0xff;
+    $ushort >>= 8;
+    unshift @bytes, $value;
+  }
 
-    if(!$obj->{'snmp'}) {
-        unshift @bytes, 0 for(1..2-@bytes);
-    }
-    if(@bytes == 0) {
-        @bytes = (0);
-    }
+  if (!$obj->{'snmp'}) {
+    unshift @bytes, 0 for (1 .. 2 - @bytes);
+  }
+  if (@bytes == 0) {
+    @bytes = (0);
+  }
 
-    return @bytes;
+  return @bytes;
 }
 
 =head2 uchar
@@ -288,7 +288,7 @@ positive number which can be representing using 8 bits.
 =cut
 
 sub uchar {
-    return _test_value(uchar => $_[0], qr{\+?\d{1,3}$});
+  return _test_value(uchar => $_[0], qr{\+?\d{1,3}$});
 }
 
 =head2 vendorspec
@@ -298,25 +298,25 @@ Will byte-encode a complex vendorspec datastructure.
 =cut
 
 sub vendorspec {
-    my $obj = $_[0];
-    my(@vendor, @bytes);
+  my $obj = $_[0];
+  my (@vendor, @bytes);
 
-    unless(ref $obj->{'nested'} eq 'ARRAY') {
-        confess "vendor({ nested => ... }) is not an array ref";
-    }
+  unless (ref $obj->{'nested'} eq 'ARRAY') {
+    confess "vendor({ nested => ... }) is not an array ref";
+  }
 
-    @vendor = ether($obj); # will extract value=>$hexstr. might confess
-    @bytes = (8, CORE::int(@vendor), @vendor);
+  @vendor = ether($obj);                       # will extract value=>$hexstr. might confess
+  @bytes = (8, CORE::int(@vendor), @vendor);
 
-    TLV:
-    for my $tlv (@{ $obj->{'nested'} }) {
-        my @value = hexstr($tlv); # will extract value=>$hexstr. might confess
-        push @bytes, uchar({ value => $tlv->{'type'} });
-        push @bytes, CORE::int(@value);
-        push @bytes, @value;
-    }
+TLV:
+  for my $tlv (@{$obj->{'nested'}}) {
+    my @value = hexstr($tlv);                  # will extract value=>$hexstr. might confess
+    push @bytes, uchar({value => $tlv->{'type'}});
+    push @bytes, CORE::int(@value);
+    push @bytes, @value;
+  }
 
-    return @bytes;
+  return @bytes;
 }
 
 =head2 ip
@@ -327,7 +327,7 @@ be in in the format "1.2.3.4".
 =cut
 
 sub ip {
-    return split /\./, _test_value(ip => $_[0], qr{^(?:\d{1,3}\.){3}\d{1,3}$});
+  return split /\./, _test_value(ip => $_[0], qr{^(?:\d{1,3}\.){3}\d{1,3}$});
 }
 
 =head2 ether
@@ -340,16 +340,16 @@ a hex-string.
 =cut
 
 sub ether {
-    my $string = _test_value(ether => $_[0]);
+  my $string = _test_value(ether => $_[0]);
 
-    if($string =~ qr{^\+?[0-4294967295]$}) { # numeric
-        return uint({ value => $string });
-    }
-    elsif($string =~ /^(?:0x)?([0-9a-f]+)$/i) { # hex
-        return hexstr({ value => $1 });
-    }
+  if ($string =~ qr{^\+?[0-4294967295]$}) {    # numeric
+    return uint({value => $string});
+  }
+  elsif ($string =~ /^(?:0x)?([0-9a-f]+)$/i) {    # hex
+    return hexstr({value => $1});
+  }
 
-    confess "ether({ value => $string }) is invalid";
+  confess "ether({ value => $string }) is invalid";
 }
 
 =head2 objectid
@@ -359,11 +359,10 @@ can be in format: 1.2.3.4, .1.2.3.4
 
 =cut
 
-sub objectid
-{
-    my $oid = _test_value (objectid => $_[0], qr{^\.?\d+(\.\d+)+$});
-    $oid =~ s/^\.//;
-    return _snmp_oid ($oid);
+sub objectid {
+  my $oid = _test_value(objectid => $_[0], qr{^\.?\d+(\.\d+)+$});
+  $oid =~ s/^\.//;
+  return _snmp_oid($oid);
 }
 
 =head2 string
@@ -379,15 +378,15 @@ encoded using C<ord()>.
 =cut
 
 sub string {
-    my $string = _test_value(string => $_[0]);
+  my $string = _test_value(string => $_[0]);
 
-    if($string =~ /^0x[a-f0-9]+$/i) {
-        return hexstr(@_);
-    }
-    else {
-        $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
-        return  map { ord $_ } split //, $string;
-    }
+  if ($string =~ /^0x[a-f0-9]+$/i) {
+    return hexstr(@_);
+  }
+  else {
+    $string =~ s/%(\w\w)/{ chr hex $1 }/ge;
+    return map { ord $_ } split //, $string;
+  }
 }
 
 =head2 stringz
@@ -402,9 +401,9 @@ for more details.
 =cut
 
 sub stringz {
-    my @bytes = string(@_);
-    push @bytes, 0 if(@bytes == 0 or $bytes[-1] ne "\0");
-    return @bytes;
+  my @bytes = string(@_);
+  push @bytes, 0 if (@bytes == 0 or $bytes[-1] ne "\0");
+  return @bytes;
 }
 
 =head2 hexstr
@@ -415,20 +414,20 @@ can have an optional leading "0x".
 =cut
 
 sub hexstr {
-    my $string = _test_value(hexstr => $_[0], qr{(?:0x)?([a-f0-9]+)}i);
-    my @bytes;
+  my $string = _test_value(hexstr => $_[0], qr{(?:0x)?([a-f0-9]+)}i);
+  my @bytes;
 
-    $string =~ s/^(?:0x)//;
+  $string =~ s/^(?:0x)//;
 
-    while($string =~ s/(\w{1,2})$//) {
-        unshift @bytes, hex $1;
-    }
+  while ($string =~ s/(\w{1,2})$//) {
+    unshift @bytes, hex $1;
+  }
 
-    if($string) {
-        confess "hexstr({ value => ... }) is left with ($string) after decoding";
-    }
+  if ($string) {
+    confess "hexstr({ value => ... }) is left with ($string) after decoding";
+  }
 
-    return @bytes;
+  return @bytes;
 }
 
 =head2 mic
@@ -438,7 +437,7 @@ the config file, so this function returns an empty list.
 
 =cut
 
-sub mic {}
+sub mic { }
 
 =head2 no_value
 
@@ -447,19 +446,19 @@ has zero length.
 
 =cut
 
-sub no_value {}
+sub no_value { }
 
 sub _test_value {
-    my($name, $obj, $test) = @_;
+  my ($name, $obj, $test) = @_;
 
-    if(!defined $obj->{'value'}) {
-        confess "$name({ value => ... }) received undefined value";
-    }
-    if($test and not $obj->{'value'} =~ $test) {
-        confess "$name({ value => " .$obj->{'value'} ." }) does not match $test";
-    }
+  if (!defined $obj->{'value'}) {
+    confess "$name({ value => ... }) received undefined value";
+  }
+  if ($test and not $obj->{'value'} =~ $test) {
+    confess "$name({ value => " . $obj->{'value'} . " }) does not match $test";
+  }
 
-    return $obj->{'value'};
+  return $obj->{'value'};
 }
 
 =head1 AUTHOR

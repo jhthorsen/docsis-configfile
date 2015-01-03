@@ -1,10 +1,9 @@
 use warnings;
 use strict;
-use lib qw(lib);
 use DOCSIS::ConfigFile::Decode;
 use Test::More;
 
-our $AUTOLOAD;
+ our $AUTOLOAD;
 
 plan tests => 22;
 

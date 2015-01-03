@@ -1,7 +1,6 @@
 use autodie;
 use warnings;
 use strict;
-use lib qw(lib);
 use Test::More;
 use DOCSIS::ConfigFile;
 use constant HEXDUMP => -x '/usr/bin/hexdump';

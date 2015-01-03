@@ -1,6 +1,5 @@
 use warnings;
 use strict;
-use lib qw(lib);
 use DOCSIS::ConfigFile::Encode;
 use Test::More;
 

@@ -9,20 +9,20 @@ use constant HEXDUMP => -x '/usr/bin/hexdump';
 # DOCSIS_INPUT_FILE=/path/to/file.bin
 # KEEP_DOCSIS_FILES=$bool
 
-plan skip_all => '"/usr/bin/diff" is not available' unless -x '/usr/bin/diff';
+plan skip_all => '"/usr/bin/diff" is not available'   unless -x '/usr/bin/diff';
 plan skip_all => '"/usr/bin/docsis" is not available' unless -x '/usr/bin/docsis';
 
-if(HEXDUMP) {
-    plan tests => 11;
+if (HEXDUMP) {
+  plan tests => 11;
 }
 else {
-    plan tests => 8;
-    diag '/usr/bin/hexdump is missing. Will not dump binary files as hex';
+  plan tests => 8;
+  diag '/usr/bin/hexdump is missing. Will not dump binary files as hex';
 }
 
-mkdir 't/data' unless(-d 't/data/');
+mkdir 't/data' unless (-d 't/data/');
 my $dc = DOCSIS::ConfigFile->new(advanced_output => 0, shared_secret => '');
-my($data_bin, $data_config, $new_bin);
+my ($data_bin, $data_config, $new_bin);
 
 ok($data_bin = generate_binary(), 'DATA is read');
 ok(data_to_file($data_bin, 'data.bin'), 'DATA written to data.bin');
@@ -34,73 +34,76 @@ ok($new_bin = $dc->encode($data_config), 'DC encodede DATA back');
 ok(data_to_file($new_bin, 'new.bin'), 'encoded DATA stored to new.bin');
 is(hexdump('new.bin'), 0, 'new.bin dumped as new.hex') if HEXDUMP;
 
-if(is(docsis('new.bin'), 0, 'docsis decoded new.bin => new.c')) {
-    is(qx{diff -u t/data/data.c t/data/new.c}, '', 'no diff from docsis decoded output');
-    is(qx{diff -u t/data/data.hex t/data/new.hex}, '', 'no diff from hexdump output') if HEXDUMP;
+if (is(docsis('new.bin'), 0, 'docsis decoded new.bin => new.c')) {
+  is(qx{diff -u t/data/data.c t/data/new.c}, '', 'no diff from docsis decoded output');
+  is(qx{diff -u t/data/data.hex t/data/new.hex}, '', 'no diff from hexdump output') if HEXDUMP;
 }
 else {
-    ok(0, 'cannot run diff without decoded binary');
-    ok(0, 'cannot run diff without decoded binary');
+  ok(0, 'cannot run diff without decoded binary');
+  ok(0, 'cannot run diff without decoded binary');
 }
 
-unless($ENV{'KEEP_DOCSIS_FILES'}) {
-    unlink map { my $n = $_; map { "t/data/$n.$_" } qw/ bin hex c json / } qw/data new/;
-    rmdir "t/data";
+unless ($ENV{'KEEP_DOCSIS_FILES'}) {
+  unlink map {
+    my $n = $_;
+    map {"t/data/$n.$_"} qw/ bin hex c json /
+  } qw/data new/;
+  rmdir "t/data";
 }
 
 #=============================================================================
 
 sub docsis {
-    my($in_file, $out_file) = @_[0, 0];
-    $out_file =~ s/bin$/c/;
-    my $out = qx{/usr/bin/docsis -d t/data/$_[0]};
-    my $ret = $?;
-    data_to_file($out, $out_file);
-    return $ret >> 8;
+  my ($in_file, $out_file) = @_[0, 0];
+  $out_file =~ s/bin$/c/;
+  my $out = qx{/usr/bin/docsis -d t/data/$_[0]};
+  my $ret = $?;
+  data_to_file($out, $out_file);
+  return $ret >> 8;
 }
 
 sub hexdump {
-    my($in_file, $out_file) = @_[0, 0];
-    $out_file =~ s/bin$/hex/;
-    my $out = qx{/usr/bin/hexdump t/data/$in_file};
-    my $ret = $?;
-    data_to_file($out, $out_file);
-    return $ret >> 8;
+  my ($in_file, $out_file) = @_[0, 0];
+  $out_file =~ s/bin$/hex/;
+  my $out = qx{/usr/bin/hexdump t/data/$in_file};
+  my $ret = $?;
+  data_to_file($out, $out_file);
+  return $ret >> 8;
 }
 
 sub generate_binary {
-    my $binary = '';
+  my $binary = '';
 
-    if($ENV{'DOCSIS_INPUT_FILE'}) {
-        open my $FH, '<', $ENV{'DOCSIS_INPUT_FILE'};
-        local $/;
-        $binary = <$FH>;
-    }
-    else {
-        $binary .= pack 'C*', map { hex $_ } split /\s/ while(<DATA>);
-    }
+  if ($ENV{'DOCSIS_INPUT_FILE'}) {
+    open my $FH, '<', $ENV{'DOCSIS_INPUT_FILE'};
+    local $/;
+    $binary = <$FH>;
+  }
+  else {
+    $binary .= pack 'C*', map { hex $_ } split /\s/ while (<DATA>);
+  }
 
-    return $binary;
+  return $binary;
 }
 
 sub data_to_file {
-    open my $NEW, '>', "t/data/$_[1]";
-    binmode $NEW;
+  open my $NEW, '>', "t/data/$_[1]";
+  binmode $NEW;
 
-    if(ref $_[0]) {
-        if(eval 'use JSON; 1') {
-            print $NEW JSON->new->ascii->pretty->encode($_[0]);
-        }
-        else {
-            diag 'JSON is missing. Will not dump config as JSON';
-            return;
-        }
+  if (ref $_[0]) {
+    if (eval 'use JSON; 1') {
+      print $NEW JSON->new->ascii->pretty->encode($_[0]);
     }
     else {
-        print $NEW $_[0];
+      diag 'JSON is missing. Will not dump config as JSON';
+      return;
     }
+  }
+  else {
+    print $NEW $_[0];
+  }
 
-    close $NEW;
+  close $NEW;
 }
 
 __DATA__

@@ -4,21 +4,14 @@ use lib qw(lib);
 use Test::More;
 use DOCSIS::ConfigFile;
 
-{
-    my $docsis = DOCSIS::ConfigFile->new;
+my $docsis = DOCSIS::ConfigFile->new;
 
-    eval {
-      $docsis->encode([
-        {
-          name => 'DownstreamFrequency',
-          value => 88000000,
-        }
-      ]);
-      ok 1, 'encoded DownstreamFrequency';
-    } or do {
-      ok 0, 'could not encode DownstreamFrequency';
-      diag $@;
-    };
-}
+eval {
+  $docsis->encode([{name => 'DownstreamFrequency', value => 88000000,}]);
+  ok 1, 'encoded DownstreamFrequency';
+} or do {
+  ok 0, 'could not encode DownstreamFrequency';
+  diag $@;
+};
 
 done_testing;

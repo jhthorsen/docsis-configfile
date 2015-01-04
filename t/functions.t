@@ -4,16 +4,6 @@ use Test::More;
 use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
 
 my ($bytes, $output);
-
-=cut
-<VendorSpecific 0x0011ee>
-# type value (length is calculated)
-  30 0xff
-  31 0x00
-  32 0x28
-</VendorSpecific>
-=cut
-
 my $input = {
   GlobalPrivacyEnable => 1,
   MaxCPE              => 2,
@@ -40,10 +30,11 @@ my $input = {
     {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    type => 'INTEGER', value => 1},
     {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'},
   ],
+  VendorSpecific => {id => '0x0011ee', options => [30 => '0xff', 31 => '0x00', 32 => '0x28']},
 };
 
 $bytes = encode_docsis($input);
-is length $bytes, 160, 'encode_docsis';
+is length $bytes, 176, 'encode_docsis';
 
 $output = decode_docsis($bytes);
 delete $input->{foo};

@@ -288,7 +288,7 @@ positive number which can be representing using 8 bits.
 =cut
 
 sub uchar {
-  return _test_value(uchar => $_[0], qr{\+?\d{1,3}$});
+  return _test_value(uchar => $_[0], qr/\+?\d{1,3}$/);
 }
 
 =head2 vendorspec
@@ -308,7 +308,6 @@ sub vendorspec {
   @vendor = ether($obj);                       # will extract value=>$hexstr. might confess
   @bytes = (8, CORE::int(@vendor), @vendor);
 
-TLV:
   for my $tlv (@{$obj->{nested}}) {
     my @value = hexstr($tlv);                  # will extract value=>$hexstr. might confess
     push @bytes, uchar({value => $tlv->{type}});
@@ -448,17 +447,33 @@ has zero length.
 
 sub no_value { }
 
+=head2 vendor
+
+Will byte-encode a complex vendorspec datastructure.
+
+=cut
+
+sub vendor {
+  my $options = $_[0]->{value}{options};
+  my @vendor  = ether({value => $_[0]->{value}{id}});
+  my @bytes   = (8, CORE::int(@vendor), @vendor);
+
+  for (my $i = 0; $i < @$options; $i += 2) {
+    my @value = hexstr({value => $options->[$i + 1]});
+    push @bytes, uchar({value => $options->[$i]});
+    push @bytes, CORE::int(@value);
+    push @bytes, @value;
+  }
+
+  return @bytes;
+}
+
 sub _test_value {
   my ($name, $obj, $test) = @_;
 
-  if (!defined $obj->{value}) {
-    confess "$name({ value => ... }) received undefined value";
-  }
-  if ($test and not $obj->{value} =~ $test) {
-    confess "$name({ value => " . $obj->{value} . " }) does not match $test";
-  }
-
-  return $obj->{value};
+  confess "$name({ value => ... }) received undefined value" unless defined $obj->{value};
+  confess "$name({ value => " . $obj->{value} . " }) does not match $test" if $test and not $obj->{value} =~ $test;
+  $obj->{value};
 }
 
 =head1 AUTHOR

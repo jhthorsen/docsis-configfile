@@ -392,6 +392,34 @@ sub no_value {
   return '';
 }
 
+=head2 vendor
+
+Will byte-encode a complex vendorspec datastructure.
+
+=cut
+
+sub vendor {
+  my $bin = shift || '';
+  my $length = $bin =~ s/^.(.)//s ? unpack 'C', $1 : 0;
+  my ($id, @options);
+
+  if ($bin =~ s/^(.{$length})//s) {
+    $id = sprintf "0x@{['%02x' x $length]}", unpack 'C*', $1;
+  }
+
+  while ($bin =~ s/^(.)(.)//s) {
+    my $type   = unpack 'C*', $1;
+    my $length = unpack 'C*', $2;
+
+    $bin =~ s/^(.{$length})//s or next;
+    push @options, $type, hexstr($1);
+  }
+
+  confess 'Bytes left in vendorspec' if length $bin;
+  confess 'Invalid vendorspec' unless defined $id;
+  return {id => $id, options => \@options};
+}
+
 sub _test_length {
   my $name   = $_[0];
   my $length = length $_[1];

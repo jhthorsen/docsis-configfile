@@ -52,9 +52,8 @@ variety of functions, but all the data in the file are constructed by TLVs
                  {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'},
                ],
                VendorSpecific => {
-                 "0x02" => {
-                   "foo" => "123",
-                 }
+                 id => '0x0011ee',
+                 options => [30 => '0xff', 31 => '0x00', 32 => '0x28'],
                },
              },
              {
@@ -111,11 +110,12 @@ sub decode_docsis {
 
   while ($pos < $end) {
     my $code = unpack 'C', substr $_[0], $pos++, 1;
-    my ($length, $t, $name, $value);
+    my ($length, $t, $name, $syminfo, $value);
 
     for (keys %$current) {
       next unless $code == $current->{$_}{code};
-      $name = $_;
+      $name    = $_;
+      $syminfo = $current->{$_};
       last;
     }
 
@@ -126,21 +126,21 @@ sub decode_docsis {
 
     # Document: PKT-SP-PROV1.5-I03-070412
     # Chapter:  9.1 MTA Configuration File
-    $t = $current->{$name}{lsize} == 1 ? 'C' : 'n';    # 1=C, 2=n
-    $length = unpack $t, substr $_[0], $pos, $current->{$name}{lsize};
-    $pos += $current->{$name}{lsize};
+    $t = $syminfo->{lsize} == 1 ? 'C' : 'n';    # 1=C, 2=n
+    $length = unpack $t, substr $_[0], $pos, $syminfo->{lsize};
+    $pos += $syminfo->{lsize};
 
-    if ($current->{$name}{nested}) {
+    if ($syminfo->{nested}) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with encode_docsis\n" if DEBUG;
-      local @$args{qw( blueprint end pos)} = ($current->{$name}{nested}, $length + $pos, $pos);
+      local @$args{qw( blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
       $value = decode_docsis($_[0], $args);
     }
-    elsif (my $f = DOCSIS::ConfigFile::Decode->can($current->{$name}{func})) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $current->{$name}{func}\n" if DEBUG;
+    elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $syminfo->{func}\n" if DEBUG;
       $value = $f->(substr $_[0], $pos, $length);
     }
     else {
-      die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Decode::$name() is not defined";
+      die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Decode");
     }
 
     $pos += $length;
@@ -190,7 +190,7 @@ sub encode_docsis {
         $value = pack 'C*', $f->({value => $item});
       }
       else {
-        die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Encode::$name() is not defined";
+        die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
       }
 
       $type = pack 'C', $syminfo->{code};

@@ -1,3 +1,4 @@
+BEGIN { $ENV{DOCSIS_CAN_TRANSLATE_OID} = 0; }
 use warnings;
 use strict;
 use lib qw(lib);

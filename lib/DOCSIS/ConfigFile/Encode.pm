@@ -44,8 +44,9 @@ using:
 
 use strict;
 use warnings;
-use Carp qw/confess/;
 use bytes;
+use Carp 'confess';
+use DOCSIS::ConfigFile::Syminfo;
 use Math::BigInt;
 use Socket;
 
@@ -79,7 +80,7 @@ This function encodes a human-readable SNMP oid into a list of bytes:
 
 sub snmp_object {
   my $obj = _test_value(snmp_object => $_[0]);
-  my $type = $SNMP_TYPE{$obj->{type}} or confess 'Usage: snmp_object({ value => { type => ... })';
+  my $type = $SNMP_TYPE{uc($obj->{type})} or confess "Unknown SNMP type: @{[$obj->{type}||'']}";
   my @value = $type->[1]->({value => $obj->{value}, snmp => 1});
   my @oid = _snmp_oid($obj->{oid});
 
@@ -121,10 +122,18 @@ sub _snmp_length {
 }
 
 sub _snmp_oid {
-  my $string = $_[0] or confess 'Usage: _snmp_oid($str)';
-  my @input_oid = split /\./, $string;
+  my $oid = $_[0];
+  my (@encoded_oid, @input_oid);
   my $subid = 0;
-  my @encoded_oid;
+
+  if ($_[0] =~ /[A-Za-z]/) {
+    die "[DOCSIS] Need to install SNMP.pm http://www.net-snmp.org/ to encode non-numberic OID $oid"
+      unless DOCSIS::ConfigFile::Syminfo::CAN_TRANSLATE_OID;
+    $oid = SNMP::translateObj($oid) or confess "Could not translate OID '$_[0]'";
+  }
+
+  @input_oid = split /\./, $oid;
+  shift @input_oid unless length $input_oid[0];
 
   # the first two sub-id are in the first id
   {

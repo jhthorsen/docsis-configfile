@@ -48,10 +48,10 @@ on the function called.
 use strict;
 use warnings;
 use bytes;
-use Carp qw/confess/;
+use Carp 'confess';
+use DOCSIS::ConfigFile::Syminfo;
 use Math::BigInt;
 use Socket;
-use DOCSIS::ConfigFile::Syminfo;
 
 our %SNMP_TYPE = (
   0x02 => ['INTEGER',   \&int],
@@ -153,6 +153,7 @@ sub _snmp_oid {
     $oid[1] -= 80;
   }
 
+  return SNMP::translateObj(join '.', @oid) || join '.', @oid if DOCSIS::ConfigFile::Syminfo::CAN_TRANSLATE_OID;
   return join '.', @oid;
 }
 

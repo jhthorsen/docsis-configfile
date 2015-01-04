@@ -21,7 +21,17 @@ the physical layer and not the config file.
 
 use strict;
 use warnings;
-use autodie;
+use constant CAN_TRANSLATE_OID => $ENV{DOCSIS_CAN_TRANSLATE_OID} // eval 'require SNMP;1' || 0;
+use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
+
+if (CAN_TRANSLATE_OID) {
+  require File::Basename;
+  require File::Spec;
+  my $oid_dir = File::Spec->rel2abs(File::Spec->catdir(File::Basename::dirname(__FILE__), 'mibs'));
+  warn "[DOCSIS] Adding OID directory $oid_dir\n" if DEBUG;
+  SNMP::addMibDirs($oid_dir);
+  SNMP::loadModules('ALL');
+}
 
 my %FROM_CODE;
 my %FROM_ID;

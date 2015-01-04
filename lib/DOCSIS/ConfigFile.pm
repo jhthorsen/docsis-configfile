@@ -47,8 +47,8 @@ variety of functions, but all the data in the file are constructed by TLVs
                  SAMapMaxRetries   => 4
                },
                SnmpMibObject => [
-                 {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    type => 'INTEGER', value => 1},
-                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'}
+                 {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    INTEGER => 1},
+                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING  => 'bootfile.bin'}
                ],
                VendorSpecific => {
                  id => '0x0011ee',
@@ -56,6 +56,21 @@ variety of functions, but all the data in the file are constructed by TLVs
                }
              }
            );
+
+=head1 OPTIONAL MODULE
+
+You can install the L<SNMP.pm|SNMP> module to translate between SNMP
+OID formats. With the module installed, you can define the C<SnmpMibObject>
+like the example below, instead of using numeric OIDs:
+
+  encode_docsis(
+    {
+      SnmpMibObject => [
+        {oid => 'docsDevNmAccessIp.1',             IPADDRESS => '10.0.0.1'},
+        {oid => 'docsDevNmAccessIpMask.1',         IPADDRESS => '255.255.255.255'},
+      ]
+    },
+  );
 
 =cut
 
@@ -127,6 +142,7 @@ sub decode_docsis {
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $syminfo->{func}\n" if DEBUG;
       $value = $f->(substr $_[0], $pos, $length);
+      $value = {oid => @$value{qw( oid type value )}} if $name eq 'SnmpMibObject';
     }
     else {
       die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Decode");
@@ -160,14 +176,14 @@ in the same C<$byte_string>:
   # Only one SnmpMibObject
   encode_docsis({
     SnmpMibObject => { # hash-ref
-      oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING', value => 'bootfile.bin'
+      oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin'
     }
   })
 
   # Allow one or more SnmpMibObjects
   encode_docsis({
     SnmpMibObject => [ # array-ref of hashes
-      { oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING', value => 'bootfile.bin' }
+      { oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin' }
     ]
   })
 
@@ -210,8 +226,15 @@ sub encode_docsis {
       }
       elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
-        local $syminfo->{name} = $name;
-        $value = pack 'C*', $f->(_validate({value => $item}, $syminfo));
+        if ($name eq 'SnmpMibObject') {
+          my @k = qw( type value );
+          local $item->{oid} = $item->{oid};
+          $value = pack 'C*', $f->({value => {oid => delete $item->{oid}, map { shift(@k), $_ } %$item}});
+        }
+        else {
+          local $syminfo->{name} = $name;
+          $value = pack 'C*', $f->({value => _validate($item, $syminfo)});
+        }
       }
       else {
         die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
@@ -244,22 +267,20 @@ sub _cm_eof {
   return $mic->{CmMic} . $cmts_mic . $eod_pad;
 }
 
+# _validate($value, $syminfo);
 sub _validate {
-  my ($data, $syminfo) = @_;
-
-  if ($syminfo->{limit}[1]) {
-    if ($data->{value} =~ /^-?\d+$/) {
-      die "[DOCSIS] $syminfo->{name} holds a too high value. ($data->{value})" if $syminfo->{limit}[1] < $data->{value};
-      die "[DOCSIS] $syminfo->{name} holds a too low value. ($data->{value})"  if $data->{value} < $syminfo->{limit}[0];
+  if ($_[1]->{limit}[1]) {
+    if ($_[0] =~ /^-?\d+$/) {
+      die "[DOCSIS] $_[1]->{name} holds a too high value. ($_[0])" if $_[1]->{limit}[1] < $_[0];
+      die "[DOCSIS] $_[1]->{name} holds a too low value. ($_[0])"  if $_[0] < $_[1]->{limit}[0];
     }
     else {
-      my $length = length $data->{value};
-      die "[DOCSIS] $syminfo->{name} is too long. ($data->{value})"  if $syminfo->{limit}[1] < $length;
-      die "[DOCSIS] $syminfo->{name} is too short. ($data->{value})" if $length < $syminfo->{limit}[0];
+      my $length = length $_[0];
+      die "[DOCSIS] $_[1]->{name} is too long. ($_[0])"  if $_[1]->{limit}[1] < $length;
+      die "[DOCSIS] $_[1]->{name} is too short. ($_[0])" if $length < $_[1]->{limit}[0];
     }
   }
-
-  return $data;
+  return $_[0];
 }
 
 =head1 ATTRIBUTES
@@ -288,7 +309,6 @@ Deprecated. Use L</encode_docsis> instead.
 
 =cut
 
-use autodie;
 use Carp 'confess';
 use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";

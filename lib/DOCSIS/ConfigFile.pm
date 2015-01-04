@@ -210,7 +210,8 @@ sub encode_docsis {
       }
       elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
-        $value = pack 'C*', $f->({value => $item});
+        local $syminfo->{name} = $name;
+        $value = pack 'C*', $f->(_validate({value => $item}, $syminfo));
       }
       else {
         die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
@@ -241,6 +242,24 @@ sub _cm_eof {
   $eod_pad = pack('C', 255) . ("\0" x $pads);
 
   return $mic->{CmMic} . $cmts_mic . $eod_pad;
+}
+
+sub _validate {
+  my ($data, $syminfo) = @_;
+
+  if ($syminfo->{limit}[1]) {
+    if ($data->{value} =~ /^-?\d+$/) {
+      die "[DOCSIS] $syminfo->{name} holds a too high value. ($data->{value})" if $syminfo->{limit}[1] < $data->{value};
+      die "[DOCSIS] $syminfo->{name} holds a too low value. ($data->{value})"  if $data->{value} < $syminfo->{limit}[0];
+    }
+    else {
+      my $length = length $data->{value};
+      die "[DOCSIS] $syminfo->{name} is too long. ($data->{value})"  if $syminfo->{limit}[1] < $length;
+      die "[DOCSIS] $syminfo->{name} is too short. ($data->{value})" if $length < $syminfo->{limit}[0];
+    }
+  }
+
+  return $data;
 }
 
 =head1 ATTRIBUTES

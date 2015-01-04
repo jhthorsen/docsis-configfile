@@ -1,17 +1,16 @@
-use warnings;
-use strict;
-use lib qw(lib);
 use Test::More;
-use DOCSIS::ConfigFile;
+use DOCSIS::ConfigFile qw( encode_docsis );
 
-my $docsis = DOCSIS::ConfigFile->new;
+eval { encode_docsis {DownstreamFrequency => 88000000} };
+is + ($@ || ''), '', 'valid';
 
-eval {
-  $docsis->encode([{name => 'DownstreamFrequency', value => 88000000,}]);
-  ok 1, 'encoded DownstreamFrequency';
-} or do {
-  ok 0, 'could not encode DownstreamFrequency';
-  diag $@;
-};
+eval { encode_docsis {DownstreamFrequency => 860000000} };
+is + ($@ || ''), '', 'valid';
+
+eval { encode_docsis {DownstreamFrequency => 88000000 - 1} };
+like $@, qr{DownstreamFrequency holds a too low value}, 'too low';
+
+eval { encode_docsis {DownstreamFrequency => 860000000 + 1} };
+like $@, qr{DownstreamFrequency holds a too high value}, 'too high';
 
 done_testing;

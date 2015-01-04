@@ -108,6 +108,31 @@ command below, to see the syminfo tree:
 
 =cut
 
+sub TO_JSON {
+  my ($class, $tree, $pcode, $seen) = @_;
+
+  $pcode ||= 0;
+  $tree  ||= {};
+  $seen  ||= {};
+
+  for my $symbol (sort { $a->{id} cmp $b->{id} } values %FROM_CODE) {
+    next if $symbol->{code} == 0;
+    next if $symbol->{pcode} != $pcode;
+    next if $seen->{$symbol}++;
+
+    my $current = $tree->{$symbol->{id}} = {%$symbol};
+
+    if ($symbol->{func} =~ qr{nested|vendorspec}) {
+      $current->{$symbol->{func}} = $class->TO_JSON({}, $symbol->{code}, $seen);
+    }
+
+    $current->{limit} = [@$symbol{qw( l_limit u_limit )}];
+    delete $current->{$_} for qw( pcode id l_limit u_limit );
+  }
+
+  return $tree;
+}
+
 sub dump_symbol_tree {
   my $class   = shift;
   my $pcode   = shift || 0;

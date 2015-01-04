@@ -2,41 +2,41 @@ package DOCSIS::ConfigFile::Syminfo;
 
 =head1 NAME
 
-DOCSIS::ConfigFile::Syminfo - Symbolinfo for a DOCSIS config-file
-
-=head1 VERSION
-
-See DOCSIS::ConfigFile
-
-=head1 SYNOPSIS
-
-    use DOCSIS::ConfigFile::Syminfo;
-
-    my @objs = DOCSIS::ConfigFile::Syminfo->from_id($ID);
-    my $obj = DOCSIS::ConfigFile::Syminfo->from_code($CODE, $PCODE);
+DOCSIS::ConfigFile::Syminfo - Symbol information for a DOCSIS config file
 
 =head1 DESCRIPTION
 
 This module holds many pre-defined DOCSIS 1.x and 2.0 TLVs. The
 definitions are used to translate between binary and something that
-is human readable. It also holds information to validate the data,
-to make sure not "garbage" is written to the config file. The names
-and information found in this module is "stolen" from the
-L<docsis project|http://docsis.sourceforge.net/> source code.
+is human readable.
 
 NOTE: DOCSIS 3.0 is also supported, since the main differences is in
 the physical layer and not the config file.
+
+=head1 SYNOPSIS
+
+  use DOCSIS::ConfigFile::Syminfo;
 
 =cut
 
 use strict;
 use warnings;
 use autodie;
-use Carp qw( cluck confess );
 
 my %FROM_CODE;
 my %FROM_ID;
 my @OBJECT_ATTRIBUTES = qw( id code pcode func l_limit u_limit length );
+
+# This datastructure should be considered internal
+our @CMTS_MIC_CODES = qw(
+  DownstreamFrequency UpstreamChannelId NetworkAccess
+  ClassOfService      BaselinePrivacy   VendorSpecific
+  CmMic               MaxCPE            TftpTimestamp
+  TftpModemAddress    UsPacketClass     DsPacketClass
+  UsServiceFlow       DsServiceFlow     MaxClassifiers
+  GlobalPrivacyEnable PHS               SubMgmtControl
+  SubMgmtCpeTable     SubMgmtFilters    TestMode
+);
 
 # This datastructure should be considered internal
 our $TREE = {
@@ -352,20 +352,61 @@ our $TREE = {
 
 =head2 add_symbol
 
-    $class->add_symbol({
-        id => $str,      # MaxRateDown
-        code => $int,    # 2
-        pcode => $int,   # 4
-        func => $str,    # uint
-        l_limit => $int, # 0
-        u_limit => $int, # 52000000
-        length => $int,  # 1
-    });
+Deprecated.
 
-This method can be used to globally add new DOCSIS symbols, unless not yet
-supported. See the source code for more examples. Please file a
-L<bug|https://github.com/jhthorsen/docsis-configfile/issues>
-with the new symbol, so others can use it as well.
+=head2 byte_size
+
+Deprecated.
+
+=head2 cmts_mic_codes
+
+Deprecated.
+
+=head2 dump_symbol_tree
+
+Deprecated.
+
+=head2 from_code
+
+Deprecated.
+
+=head2 from_id
+
+Deprecated.
+
+=head1 OBJECT METHODS
+
+=head2 id
+
+Deprecated.
+
+=head2 code
+
+Deprecated.
+
+=head2 pcode
+
+Deprecated.
+
+=head2 func
+
+Deprecated.
+
+=head2 l_limit
+
+Deprecated.
+
+=head2 u_limit
+
+Deprecated.
+
+=head2 length
+
+Deprecated.
+
+=head2 siblings
+
+Deprecated.
 
 =cut
 
@@ -379,68 +420,12 @@ sub add_symbol {
     $symbol = {map { $_ => shift @$symbol } @OBJECT_ATTRIBUTES};
   }
 
-  if (my @missing = grep { !exists $symbol->{$_} } @OBJECT_ATTRIBUTES) {
-    confess(
-      sprintf 'add_symbol({ id=>%s, pcode=>%s, code=>%s, ... }) missing attributes: %s',
-      (map { $symbol->{$_} || '' } qw/ id pcode code /),
-      (join ',', @missing),
-    );
-  }
-
   $key = join '-', $symbol->{pcode}, $symbol->{code};
-
-  if ($FROM_CODE{$key}) {
-    confess(
-      sprintf 'Key collision (%s): (%s) tries to overwrite (%s)',
-      $key,
-      (join ',', map { $symbol->{$_} } @OBJECT_ATTRIBUTES),
-      (join ',', map { $FROM_CODE{$key}->{$_} } @OBJECT_ATTRIBUTES),
-    );
-  }
 
   $FROM_CODE{$key} = $symbol;
   push @{$FROM_ID{$symbol->{id}}}, $symbol;
 
   return 1;
-}
-
-=head2 dump_symbol_tree
-
-    $str = $self->dump_symbol_tree;
-
-This method will return a dump of the symbol tree, similar to
-L<Data::Dumper>.
-
-Curious of the config tree which is supported by default? Run the
-command below, to see the syminfo tree:
-
-    perl -e'print +(require DOCSIS::ConfigFile::Syminfo)->dump_symbol_tree'
-
-=cut
-
-sub TO_JSON {
-  my ($class, $tree, $pcode, $seen) = @_;
-
-  $pcode ||= 0;
-  $tree  ||= {};
-  $seen  ||= {};
-
-  for my $symbol (sort { $a->{id} cmp $b->{id} } values %FROM_CODE) {
-    next if $symbol->{code} == 0;
-    next if $symbol->{pcode} != $pcode;
-    next if $seen->{$symbol}++;
-
-    my $current = $tree->{$symbol->{id}} = {%$symbol};
-
-    if ($symbol->{func} =~ qr{nested|vendorspec}) {
-      $current->{$symbol->{func}} = $class->TO_JSON({}, $symbol->{code}, $seen);
-    }
-
-    $current->{limit} = [@$symbol{qw( l_limit u_limit )}];
-    delete $current->{$_} for qw( pcode id l_limit u_limit );
-  }
-
-  return $tree;
 }
 
 sub dump_symbol_tree {
@@ -475,16 +460,6 @@ sub dump_symbol_tree {
   return join '', map { (' ' x $pcode) . "$_\n" } @str;
 }
 
-=head2 from_id
-
-    $self = $class->from_id($ID);
-    $self = $class->from_id('BaselinePrivacy');
-
-Returns one L<DOCSIS::ConfigFile::Syminfo> objects, which might point
-to siblings.
-
-=cut
-
 sub from_id {
   my $class = shift;
   my $id    = shift;
@@ -499,14 +474,6 @@ sub from_id {
 
   return $objs[0];
 }
-
-=head2 from_code
-
-    $self = $class->from_code($CODE, $PCODE);
-
-Returns one L<DOCSIS::ConfigFile::Syminfo> object.
-
-=cut
 
 sub from_code {
   my $class = shift;
@@ -524,28 +491,6 @@ sub _undef_symbol {
   return bless {id => '', code => -1, pcode => -1, func => '', length => 0,}, $class;
 }
 
-=head2 undef_row
-
-This method will be deprecated.
-
-=cut
-
-{
-  no warnings;
-  *undef_row = sub {
-    cluck 'Will be deprecated. Use _undef_symbol() instead';
-    &_undef_symbol;
-  };
-}
-
-=head2 cmts_mic_codes
-
-    @str = $class->cmts_mic_codes;
-
-Returns a list of all the codes that defines the CMTS MIC.
-
-=cut
-
 sub cmts_mic_codes {
   qw/
     DownstreamFrequency  UpstreamChannelId
@@ -562,15 +507,6 @@ sub cmts_mic_codes {
     /;
 }
 
-=head2 byte_size
-
-    $int = $class->byte_size($type);
-    $int = $class->byte_size('short int');
-
-Returns the number of bytes a type takes.
-
-=cut
-
 sub byte_size {
   return 2  if (lc $_[1] eq 'short int');
   return 4  if (lc $_[1] eq 'int');
@@ -582,48 +518,6 @@ sub byte_size {
   return 16 if (lc $_[1] eq 'md5digest');
 }
 
-=head1 OBJECT METHODS
-
-=head2 id
-
-Returns the identifier.
-Returns "" on error.
-
-=head2 code
-
-Returns the DOCSIS code.
-Returns -1 on error.
-
-=head2 pcode
-
-Returns the DOCSIS parent code.
-Returns -1 on error.
-
-=head2 func
-
-Returns the name of the function to be used when decoding/encoding.
-Returns "" on error.
-
-=head2 l_limit
-
-Returns the lower limit numeric value.
-Returns -1 on error.
-
-=head2 u_limit
-
-Returns the upper limit numeric value.
-Returns -1 on error.
-
-=head2 length
-
-Tells how many bytes long the length is.
-
-=head2 siblings
-
-Used with L<from_id()>: Gives multiple objects, with the same ID.
-
-=cut
-
 sub id       { $_[0]->{id} }
 sub code     { $_[0]->{code} }
 sub pcode    { $_[0]->{pcode} }
@@ -632,6 +526,31 @@ sub l_limit  { $_[0]->{l_limit} }
 sub u_limit  { $_[0]->{u_limit} }
 sub length   { $_[0]->{length} }
 sub siblings { $_[0]->{siblings} }
+
+sub TO_JSON {
+  my ($class, $tree, $pcode, $seen) = @_;
+
+  $pcode ||= 0;
+  $tree  ||= {};
+  $seen  ||= {};
+
+  for my $symbol (sort { $a->{id} cmp $b->{id} } values %FROM_CODE) {
+    next if $symbol->{code} == 0;
+    next if $symbol->{pcode} != $pcode;
+    next if $seen->{$symbol}++;
+
+    my $current = $tree->{$symbol->{id}} = {%$symbol};
+
+    if ($symbol->{func} =~ qr{nested|vendorspec}) {
+      $current->{$symbol->{func}} = $class->TO_JSON({}, $symbol->{code}, $seen);
+    }
+
+    $current->{limit} = [@$symbol{qw( l_limit u_limit )}];
+    delete $current->{$_} for qw( pcode id l_limit u_limit );
+  }
+
+  return $tree;
+}
 
 #==================================================================================
 #     ID                     CODE PCODE   FUNC         L_LIMIT   H_LIMIT     LENGTH

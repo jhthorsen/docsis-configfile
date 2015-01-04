@@ -2,7 +2,7 @@ package DOCSIS::ConfigFile;
 
 =head1 NAME
 
-DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
+DOCSIS::ConfigFile - Decodes and encodes DOCSIS config files
 
 =head1 VERSION
 
@@ -30,7 +30,6 @@ variety of functions, but all the data in the file are constructed by TLVs
 
   $data = decode_docsis $bytes;
 
-  $bytes = encode_docsis \%data, \%args;
   $bytes = encode_docsis(
              {
                GlobalPrivacyEnable => 1,
@@ -45,20 +44,16 @@ variety of functions, but all the data in the file are constructed by TLVs
                  TEKGraceTime      => 600,
                  AuthRejectTimeout => 60,
                  SAMapWaitTimeout  => 1,
-                 SAMapMaxRetries   => 4,
+                 SAMapMaxRetries   => 4
                },
                SnmpMibObject => [
                  {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    type => 'INTEGER', value => 1},
-                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'},
+                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'}
                ],
                VendorSpecific => {
                  id => '0x0011ee',
-                 options => [30 => '0xff', 31 => '0x00', 32 => '0x28'],
-               },
-             },
-             {
-               shared_secret => "s3cret",
-               algorithm     => "sha1", # or "md5"
+                 options => [30 => '0xff', 31 => '0x00', 32 => '0x28']
+               }
              }
            );
 
@@ -66,11 +61,9 @@ variety of functions, but all the data in the file are constructed by TLVs
 
 use strict;
 use warnings;
-use autodie;
-use Carp qw( carp confess );
-use Digest::MD5;
-use Digest::HMAC_MD5;
-use Digest::SHA 'sha1_hex';
+use Digest::MD5      ();
+use Digest::HMAC_MD5 ();
+use Digest::SHA      ();
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
@@ -78,24 +71,20 @@ use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 
 use base 'Exporter';
 
+our $VERSION   = '0.64';
 our @EXPORT_OK = qw( decode_docsis encode_docsis );
 our $DEPTH     = 0;
 
-use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
-use constant Decode  => "DOCSIS::ConfigFile::Decode";
-use constant Encode  => "DOCSIS::ConfigFile::Encode";
-
-our $VERSION = '0.64';
-
 =head1 FUNCTIONS
-
-These functions can be imported. See L</SYNOPSIS>.
 
 =head2 decode_docsis
 
-  $data = decode_docsis($bytes);
+  $data = decode_docsis($byte_string);
 
-Used to decode a DOCSIS config file into a data structure.
+Used to decode a DOCSIS config file into a data structure. The output
+C<$data> can be used as input to L</encode_docsis>. Note: C<$data>
+will only contain array-refs if the DOCSIS parameter occur more than
+once.
 
 =cut
 
@@ -161,9 +150,41 @@ sub decode_docsis {
 
 =head2 encode_docsis
 
-  $bytes = decode_docsis(\%data, \%args);
+  $byte_string = encode_docsis(\%data, \%args);
 
-Used to encode a data structure into a DOCSIS config file.
+Used to encode a data structure into a DOCSIS config file. Each of the keys
+in C<$data> can either hold a hash- or array-ref. An array-ref is used if
+the same DOCSIS parameter occur multiple times. These two formats will result
+in the same C<$byte_string>:
+
+  # Only one SnmpMibObject
+  encode_docsis({
+    SnmpMibObject => { # hash-ref
+      oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING', value => 'bootfile.bin'
+    }
+  })
+
+  # Allow one or more SnmpMibObjects
+  encode_docsis({
+    SnmpMibObject => [ # array-ref of hashes
+      { oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING', value => 'bootfile.bin' }
+    ]
+  })
+
+Possible C<%args>:
+
+=over 4
+
+=item * mta_algorithm
+
+This argument is required when encoding MTA config files.
+
+=item * shared_secret
+
+This argument is optional, but will be used as the shared secret used to
+increase security between the cable modem and CMTS.
+
+=back
 
 =cut
 
@@ -204,11 +225,35 @@ sub encode_docsis {
 
 =head1 ATTRIBUTES
 
+=head2 advanced_output
+
+Deprecated.
+
 =head2 shared_secret
 
-Sets or gets the shared secret.
+Deprecated. Use L</encode_docsis> instead.
+
+=head1 METHODS
+
+=head2 new
+
+Deprecated. Use L</decode_docsis> or L</encode_docsis> instead.
+
+=head2 decode
+
+Deprecated. Use L</decode_docsis> instead.
+
+=head2 encode
+
+Deprecated. Use L</encode_docsis> instead.
 
 =cut
+
+use autodie;
+use Carp 'confess';
+use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
+use constant Decode  => "DOCSIS::ConfigFile::Decode";
+use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
 sub shared_secret {
   my $self = shift;
@@ -216,32 +261,11 @@ sub shared_secret {
   return $self->{shared_secret} ||= q();
 }
 
-=head2 advanced_output
-
-Sets weither advanced output should be enabled. Takes 0 or 1 as argument.
-Advanced output is off (0) by default.
-
-=cut
-
 sub advanced_output {
   my $self = shift;
   $self->{advanced_output} = $_[0] if (@_);
   return $self->{advanced_output} || 0;
 }
-
-=head1 METHODS
-
-=head2 new
-
-    $self = $class->new(\%args);
-
-Arguments can be:
-
- shared_secret   => Shared secret in encoded cm config file
- advanced_output => Advanced decoded config format
- mibs            => will set $ENV{MIBS} to load custom mibs
-
-=cut
 
 sub new {
   my $class = shift;
@@ -249,18 +273,6 @@ sub new {
   my $self  = bless $args, $class;
   return $self;
 }
-
-=head2 decode
-
-    $array_ref = $self->decode($path_to_file);
-    $array_ref = $self->decode(\$binary_string);
-    $array_ref = $self->decode($FH);
-
-This method decodes a binary config file stored in either a file on disk,
-a binary string, or a filehandle. It returns an array-ref of hashes,
-containing the config as a perl data structure.
-
-=cut
 
 sub decode {
   no warnings 'newline';    # don't shout on invalid filename
@@ -305,8 +317,6 @@ CODE:
     $tlength -= $length + 2;
 
     if (!defined $syminfo->func) {
-
-      #carp sprintf 'PCODE/CODE (%s/%s) gets skipped: No function to decode', $p_code, $code;
       next CODE;
     }
     elsif ($syminfo->func eq 'nested') {
@@ -317,7 +327,7 @@ CODE:
     }
     else {
       $self->_read_value($FH, $length);
-      carp sprintf 'Unknown decode method for PCODE/CODE (%s/%s). (%s) bytes are thrown away', $p_code, $code, $length;
+      die sprintf 'Unknown decode method for PCODE/CODE (%s/%s). (%s) bytes are thrown away', $p_code, $code, $length;
       next CODE;
     }
 
@@ -326,7 +336,7 @@ CODE:
       next CODE;
     }
 
-    carp sprintf 'Could not decode PCODE/CODE (%s/%s) using function (%s)', $p_code, $code, $syminfo->func;
+    die sprintf 'Could not decode PCODE/CODE (%s/%s) using function (%s)', $p_code, $code, $syminfo->func;
   }
 
   return $cfg;
@@ -391,31 +401,6 @@ sub _value_to_cfg {
   }
 }
 
-=head2 encode
-
-    $binary_str = $self->encode([ { ... }, ... ]);
-
-Encodes an array of hashes, containing the DOCSIS config-file settings and
-returns a binary encoded string. See L</DESCRIPTION> and the unit tests for
-example input. For other structures, see the table generated by
-L<DOCSIS::ConfigFile::Syminfo/dump_symbol_tree>.
-
-When enconding MTA config files another arugment is accepted:
-
-    $binary_str = $self->encode([ { ... }, ... ], 'md5|sha1');
-
-As 'pktcMtaDevProvConfigHash' does not need to be included in the config at all
-times this param is optional. Only two variants are accpted - MD5, or SHA1
-The algorithm will then be used to define value for 'pktcMtaDevProvConfigHash'
-and this line will be added just above 'MtaConfigDelimiter' closing tag resulting in
-
-    MtaConfigDelimiter 1;
-    ...
-    SnmpMibObject enterprises.4491.2.2.1.1.2.7.0 HexString 0x1a2b3c4d5e6f... ;
-    MtaConfigDelimiter 255;
-
-=cut
-
 sub encode {
   my $self   = shift;
   my $config = shift || '__undefined_input__';
@@ -437,7 +422,7 @@ sub encode {
     $self->{_MtaConfigDelimiter} = 1;    # for internal usage
 
     if ($self->{binstring} and $algo) {
-      my $hash = $algo eq 'md5' ? md5_hex $self->{binstring} : sha1_hex $self->{binstring};
+      my $hash = $algo eq 'md5' ? md5_hex $self->{binstring} : Digest::SHA::sha1_hex($self->{binstring});
 
       if ($hash) {
         splice @$config, $#{$config}, 0,
@@ -484,8 +469,6 @@ TLV:
     my ($type, $length, $value);
 
     if (!defined $syminfo->func) {
-
-      #carp sprintf 'TLV#%s/%s is skipped: No function to encode', $i, $name;
       next TLV;
     }
     elsif ($syminfo->func eq 'nested') {
@@ -495,15 +478,13 @@ TLV:
       $value = pack 'C*', $encoder->($tlv) or next TLV;
     }
     else {
-      carp sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
+      die sprintf 'Unknown encode method for TLV#%s/%s', $i, $name;
       next TLV;
     }
 
     $syminfo = $self->_syminfo_from_syminfo_siblings($syminfo, $tlv);
     $type    = $syminfo->code;
     $length  = $syminfo->length == 2 ? pack 'n', length $value : pack 'C', length $value;
-
-    #carp 'name=%s type=%i, length=%i', $name, $type, length($value);
 
     $type = pack "C", $type;
     $binstring .= "$type$length$value";
@@ -576,23 +557,9 @@ sub _calculate_cmts_mic {
       $data .= $cmts_mic->{$code} || '';
     }
 
-    return (join "", pack("C*", 7, 16), Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret),);
+    return (join "", pack("C*", 7, 16), Digest::HMAC_MD5::hmac_md5($data, $self->shared_secret));
   }
 }
-
-=head1 CONSTANTS
-
-=head2 Decode
-
-Returns L<DOCSIS::ConfigFile::Decode>.
-
-=head2 Encode
-
-Returns L<DOCSIS::ConfigFile::Encode>.
-
-=head2 Syminfo
-
-Returns L<DOCSIS::ConfigFile::Syminfo>.
 
 =head1 COPYRIGHT AND LICENSE
 

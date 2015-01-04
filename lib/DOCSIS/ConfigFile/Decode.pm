@@ -420,6 +420,17 @@ sub vendor {
   return {id => $id, options => \@options};
 }
 
+sub _byte_size {
+  return 2  if lc $_[0] eq 'short int';
+  return 4  if lc $_[0] eq 'int';
+  return 4  if lc $_[0] eq 'long int';
+  return 1  if lc $_[0] eq 'char';
+  return 4  if lc $_[0] eq 'float';
+  return 8  if lc $_[0] eq 'double';
+  return 12 if lc $_[0] eq 'long double';
+  return 16 if lc $_[0] eq 'md5digest';
+}
+
 sub _test_length {
   my $name   = $_[0];
   my $length = length $_[1];
@@ -428,7 +439,7 @@ sub _test_length {
     confess "$name(...) bytestring length is zero";
   }
   if ($_[2]) {
-    my $max = DOCSIS::ConfigFile::Syminfo->byte_size($_[2]);
+    my $max = _byte_size($_[2]);
     confess "$name(...) bytestring length is invalid: $max < $length" if ($max < $length);
   }
 

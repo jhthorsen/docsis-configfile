@@ -76,6 +76,7 @@ use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 use base 'Exporter';
 
 our @EXPORT_OK = qw( decode_docsis encode_docsis );
+our $DEPTH     = 0;
 
 use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";
@@ -102,6 +103,8 @@ sub decode_docsis {
   my $pos     = $args->{pos}       || 0;
   my $data    = {};
 
+  local $DEPTH = $DEPTH + 1 if DEBUG;
+
   while ($pos < $end) {
     my $code = unpack 'C', substr $_[0], $pos++, 1;
     my ($length, $t, $name, $value);
@@ -124,12 +127,12 @@ sub decode_docsis {
     $pos += $current->{$name}{lsize};
 
     if ($current->{$name}{nested}) {
-      warn "[DOCSIS] Decode $name [$pos, $length] with encode_docsis()\n" if DEBUG;
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with encode_docsis\n" if DEBUG;
       local @$args{qw( blueprint end pos)} = ($current->{$name}{nested}, $length + $pos, $pos);
       $data->{$name} = decode_docsis($_[0], $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($current->{$name}{func})) {
-      warn "[DOCSIS] Decode $name [$pos, $length] with $current->{$name}{func}()\n" if DEBUG;
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $current->{$name}{func}\n" if DEBUG;
       $data->{$name} = $f->(substr $_[0], $pos, $length);
     }
     else {
@@ -155,18 +158,20 @@ sub encode_docsis {
   my $current = $args->{blueprint} || $DOCSIS::ConfigFile::Syminfo::TREE;
   my $bytes = '';
 
+  local $DEPTH = $DEPTH + 1 if DEBUG;
+
   for my $name (sort { $current->{$a}{code} <=> $current->{$b}{code} } keys %$current) {
     next unless defined $data->{$name};
     my $syminfo = $current->{$name};
     my ($type, $length, $value);
 
     if ($syminfo->{nested}) {
-      warn "[DOCSIS] Encode $name with encode_docsis()\n" if DEBUG;
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with encode_docsis\n" if DEBUG;
       local @$args{qw( blueprint )} = ($current->{$name}{nested});
       $value = encode_docsis($data->{$name}, $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
-      warn "[DOCSIS] Encode $name with $syminfo->{func}()\n" if DEBUG;
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
       $value = pack 'C*', $f->(ref $data->{$name} ? $data->{$name} : {value => $data->{$name}});
     }
     else {

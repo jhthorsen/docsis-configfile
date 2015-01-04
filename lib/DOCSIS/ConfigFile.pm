@@ -8,68 +8,56 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
 
 0.64
 
-=head1 SYNOPSIS
-
-    use DOCSIS::ConfigFile;
-    use JSON;
-
-    my $obj     = DOCSIS::ConfigFile->new(
-                      shared_secret   => '', # default
-                      advanced_output => 0,  # default
-                  );
-
-                  $obj->shared_secret("foobar");
-    my $encoded = $obj->encode([ {...}, {...}, ... ]);
-    my $decoded = $obj->decode($filename);
-                  $obj->advanced_output(1);
-    my $dec_adv = $obj->decode(\$encoded);
-
-    # see simple config in JSON format
-    print JSON->new->pretty->decode($decoded);
-
-    # see advanced config in JSON format
-    print JSON->new->pretty->decode($dec_adv);
-
 =head1 DESCRIPTION
 
-An instance from this class can be used to encode or decode
-L<DOCSIS|http://www.cablelabs.com> (Data over Cable Service Interface
-Specifications) config files. These files are usually served using a
-L<TFTP server|POE::Component::TFTPd>, after a
-L<cable modem|http://en.wikipedia.org/wiki/Cable_modem> or MTA
-(Multimedia Terminal Adapter) has recevied an IP address from a
-L<DHCP|Net::ISC::DHCPd> server. These files are
-L<binary encode|DOCSIS::ConfigFile::Encode> using a variety of
-functions, but all the data in the file are constructed by TLVs
-(type-length-value) blocks. These can be nested and concatenated.
+L<DOCSIS::ConfigFile> is a class which provides functionality to decode and
+encode L<DOCSIS|http://www.cablelabs.com> (Data over Cable Service Interface
+Specifications) config files.
 
 This module is used as a layer between any human readable data and
-the binary structure. The config file in human readable format can
-look something like this:
+the binary structure.
 
-    [
-        { name => NetworkAccess => value => 1 },
-        { name => GlobalPrivacyEnable => value => 1 },
-        { name => MaxCPE => value => 10 },
-        { name => BaselinePrivacy =>
-            nested => [
-                { name => AuthTimeout => value => 10 },
-                { name => ReAuthTimeout => value => 10 },
-                { name => AuthGraceTime => value => 600 },
-                { name => OperTimeout => value => 1 },
-                { name => ReKeyTimeout => value => 1 },
-                { name => TEKGraceTime => value => 600 },
-                { name => AuthRejectTimeout => value => 60 },
-                { name => SAMapWaitTimeout => value => 1 },
-                { name => SAMapMaxRetries => value => 4 }
-            ]
-        },
-    ]
+The files are usually served using a L<TFTP server|Mojo::TFTPd>, after a
+L<cable modem|http://en.wikipedia.org/wiki/Cable_modem> or MTA (Multimedia
+Terminal Adapter) has recevied an IP address from a L<DHCP|Net::ISC::DHCPd>
+server. These files are L<binary encode|DOCSIS::ConfigFile::Encode> using a
+variety of functions, but all the data in the file are constructed by TLVs
+(type-length-value) blocks. These can be nested and concatenated.
 
-There is also an optional L</advanced_output> flag which can include
-more information, but this is what is required/default: An array-ref
-of hash-refs, containing a C<name> and a C<value> (or C<nested> for
-nested data structures). The rest will this module figure out.
+=head1 SYNOPSIS
+
+  use DOCSIS::ConfigFile qw( encode_docsis decode_docsis );
+
+  $data = decode_docsis $bytes;
+
+  $bytes = encode_docsis \%data, \%args;
+  $bytes = encode_docsis(
+             {
+               GlobalPrivacyEnable => 1,
+               MaxCPE              => 2,
+               NetworkAccess       => 1,
+               BaselinePrivacy => {
+                 AuthTimeout       => 10,
+                 ReAuthTimeout     => 10,
+                 AuthGraceTime     => 600,
+                 OperTimeout       => 1,
+                 ReKeyTimeout      => 1,
+                 TEKGraceTime      => 600,
+                 AuthRejectTimeout => 60,
+                 SAMapWaitTimeout  => 1,
+                 SAMapMaxRetries   => 4,
+               },
+               VendorSpecific => {
+                 "0x02" => {
+                   "foo" => "123",
+                 }
+               },
+             },
+             {
+               shared_secret => "s3cret",
+               algorithm     => "sha1", # or "md5"
+             }
+           );
 
 =cut
 
@@ -83,12 +71,115 @@ use Digest::SHA 'sha1_hex';
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
+use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
+
+use base 'Exporter';
+
+our @EXPORT_OK = qw( decode_docsis encode_docsis );
 
 use constant Syminfo => "DOCSIS::ConfigFile::Syminfo";
 use constant Decode  => "DOCSIS::ConfigFile::Decode";
 use constant Encode  => "DOCSIS::ConfigFile::Encode";
 
 our $VERSION = '0.64';
+
+=head1 FUNCTIONS
+
+These functions can be imported. See L</SYNOPSIS>.
+
+=head2 decode_docsis
+
+  $data = decode_docsis($bytes);
+
+Used to decode a DOCSIS config file into a data structure.
+
+=cut
+
+sub decode_docsis {
+  my $args = ref $_[-1] eq 'HASH' ? $_[-1] : {};
+  my $current = $args->{blueprint} || $DOCSIS::ConfigFile::Syminfo::TREE;
+  my $end     = $args->{end}       || length $_[0];
+  my $pos     = $args->{pos}       || 0;
+  my $data    = {};
+
+  while ($pos < $end) {
+    my $code = unpack 'C', substr $_[0], $pos++, 1;
+    my ($length, $t, $name, $value);
+
+    for (keys %$current) {
+      next unless $code == $current->{$_}{code};
+      $name = $_;
+      last;
+    }
+
+    if (!$name) {
+      warn "[DOCSIS] Internal error: No syminfo defined for code=$code.";
+      next;
+    }
+
+    # Document: PKT-SP-PROV1.5-I03-070412
+    # Chapter:  9.1 MTA Configuration File
+    $t = $current->{$name}{lsize} == 1 ? 'C' : 'n';    # 1=C, 2=n
+    $length = unpack $t, substr $_[0], $pos, $current->{$name}{lsize};
+    $pos += $current->{$name}{lsize};
+
+    if ($current->{$name}{nested}) {
+      warn "[DOCSIS] Decode $name [$pos, $length] with encode_docsis()\n" if DEBUG;
+      local @$args{qw( blueprint end pos)} = ($current->{$name}{nested}, $length + $pos, $pos);
+      $data->{$name} = decode_docsis($_[0], $args);
+    }
+    elsif (my $f = DOCSIS::ConfigFile::Decode->can($current->{$name}{func})) {
+      warn "[DOCSIS] Decode $name [$pos, $length] with $current->{$name}{func}()\n" if DEBUG;
+      $data->{$name} = $f->(substr $_[0], $pos, $length);
+    }
+    else {
+      die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Decode::$name() is not defined";
+    }
+
+    $pos += $length;
+  }
+
+  return $data;
+}
+
+=head2 encode_docsis
+
+  $bytes = decode_docsis(\%data, \%args);
+
+Used to encode a data structure into a DOCSIS config file.
+
+=cut
+
+sub encode_docsis {
+  my ($data, $args) = @_;
+  my $current = $args->{blueprint} || $DOCSIS::ConfigFile::Syminfo::TREE;
+  my $bytes = '';
+
+  for my $name (sort { $current->{$a}{code} <=> $current->{$b}{code} } keys %$current) {
+    next unless defined $data->{$name};
+    my $syminfo = $current->{$name};
+    my ($type, $length, $value);
+
+    if ($syminfo->{nested}) {
+      warn "[DOCSIS] Encode $name with encode_docsis()\n" if DEBUG;
+      local @$args{qw( blueprint )} = ($current->{$name}{nested});
+      $value = encode_docsis($data->{$name}, $args);
+    }
+    elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
+      warn "[DOCSIS] Encode $name with $syminfo->{func}()\n" if DEBUG;
+      $value = pack 'C*', $f->(ref $data->{$name} ? $data->{$name} : {value => $data->{$name}});
+    }
+    else {
+      die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Encode::$name() is not defined";
+    }
+
+    $type = pack 'C', $syminfo->{code};
+    $length = $syminfo->{lsize} == 2 ? pack('n', length $value) : pack('C', length $value);
+    $bytes .= "$type$length$value";
+  }
+
+  return $bytes;
+}
 
 =head1 ATTRIBUTES
 

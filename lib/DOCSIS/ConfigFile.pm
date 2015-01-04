@@ -47,6 +47,10 @@ variety of functions, but all the data in the file are constructed by TLVs
                  SAMapWaitTimeout  => 1,
                  SAMapMaxRetries   => 4,
                },
+               SnmpMibObject => [
+                 {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    type => 'INTEGER', value => 1},
+                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'},
+               ],
                VendorSpecific => {
                  "0x02" => {
                    "foo" => "123",
@@ -129,17 +133,27 @@ sub decode_docsis {
     if ($current->{$name}{nested}) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with encode_docsis\n" if DEBUG;
       local @$args{qw( blueprint end pos)} = ($current->{$name}{nested}, $length + $pos, $pos);
-      $data->{$name} = decode_docsis($_[0], $args);
+      $value = decode_docsis($_[0], $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($current->{$name}{func})) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $current->{$name}{func}\n" if DEBUG;
-      $data->{$name} = $f->(substr $_[0], $pos, $length);
+      $value = $f->(substr $_[0], $pos, $length);
     }
     else {
       die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Decode::$name() is not defined";
     }
 
     $pos += $length;
+
+    if (!exists $data->{$name}) {
+      $data->{$name} = $value;
+    }
+    elsif (ref $data->{$name} eq 'ARRAY') {
+      push @{$data->{$name}}, $value;
+    }
+    else {
+      $data->{$name} = [$data->{$name}, $value];
+    }
   }
 
   return $data;
@@ -165,22 +179,24 @@ sub encode_docsis {
     my $syminfo = $current->{$name};
     my ($type, $length, $value);
 
-    if ($syminfo->{nested}) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with encode_docsis\n" if DEBUG;
-      local @$args{qw( blueprint )} = ($current->{$name}{nested});
-      $value = encode_docsis($data->{$name}, $args);
-    }
-    elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
-      $value = pack 'C*', $f->(ref $data->{$name} ? $data->{$name} : {value => $data->{$name}});
-    }
-    else {
-      die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Encode::$name() is not defined";
-    }
+    for my $item (ref $data->{$name} eq 'ARRAY' ? @{$data->{$name}} : $data->{$name}) {
+      if ($syminfo->{nested}) {
+        warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with encode_docsis\n" if DEBUG;
+        local @$args{qw( blueprint )} = ($current->{$name}{nested});
+        $value = encode_docsis($item, $args);
+      }
+      elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
+        warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
+        $value = pack 'C*', $f->({value => $item});
+      }
+      else {
+        die "[DOCSIS] Internal error: DOCSIS::ConfigFile::Encode::$name() is not defined";
+      }
 
-    $type = pack 'C', $syminfo->{code};
-    $length = $syminfo->{lsize} == 2 ? pack('n', length $value) : pack('C', length $value);
-    $bytes .= "$type$length$value";
+      $type = pack 'C', $syminfo->{code};
+      $length = $syminfo->{lsize} == 2 ? pack('n', length $value) : pack('C', length $value);
+      $bytes .= "$type$length$value";
+    }
   }
 
   return $bytes;

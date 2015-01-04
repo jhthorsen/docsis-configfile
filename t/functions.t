@@ -12,9 +12,6 @@ my ($bytes, $output);
   31 0x00
   32 0x28
 </VendorSpecific>
-<SnmpMibObject 1.3.6.1.4.1.1429.77.1.6.1.1.6.2>
-  STRING bootfile.bin
-</SnmpMibObject>
 =cut
 
 my $input = {
@@ -38,11 +35,15 @@ my $input = {
     ServiceFlowRef     => 2,
     RulePriority       => 64,
     IpPacketClassifier => {IpProto => 17, SrcPortStart => 1000, SrcPortEnd => 2000}
-  }
+  },
+  SnmpMibObject => [
+    {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    type => 'INTEGER', value => 1},
+    {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', type => 'STRING',  value => 'bootfile.bin'},
+  ],
 };
 
 $bytes = encode_docsis($input);
-is length $bytes, 104, 'encode_docsis';
+is length $bytes, 160, 'encode_docsis';
 
 $output = decode_docsis($bytes);
 delete $input->{foo};

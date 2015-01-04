@@ -61,9 +61,9 @@ variety of functions, but all the data in the file are constructed by TLVs
 
 use strict;
 use warnings;
-use Digest::MD5      ();
-use Digest::HMAC_MD5 ();
-use Digest::SHA      ();
+use Digest::MD5;
+use Digest::HMAC_MD5;
+use Digest::SHA;
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
@@ -98,7 +98,7 @@ sub decode_docsis {
   local $DEPTH = $DEPTH + 1 if DEBUG;
 
   while ($pos < $end) {
-    my $code = unpack 'C', substr $_[0], $pos++, 1;
+    my $code = unpack 'C', substr $_[0], $pos++, 1 or next;    # next on $code=0
     my ($length, $t, $name, $syminfo, $value);
 
     for (keys %$current) {
@@ -191,9 +191,11 @@ increase security between the cable modem and CMTS.
 sub encode_docsis {
   my ($data, $args) = @_;
   my $current = $args->{blueprint} || $DOCSIS::ConfigFile::Syminfo::TREE;
-  my $bytes = '';
+  my $mic     = {};
+  my $bytes   = '';
 
-  local $DEPTH = $DEPTH + 1 if DEBUG;
+  local $args->{depth} = ($args->{depth} || 0) + 1;
+  local $DEPTH = $args->{depth} if DEBUG;
 
   for my $name (sort { $current->{$a}{code} <=> $current->{$b}{code} } keys %$current) {
     next unless defined $data->{$name};
@@ -216,11 +218,29 @@ sub encode_docsis {
 
       $type = pack 'C', $syminfo->{code};
       $length = $syminfo->{lsize} == 2 ? pack('n', length $value) : pack('C', length $value);
-      $bytes .= "$type$length$value";
+      $mic->{$name} = "$type$length$value";
+      $bytes .= $mic->{$name};
     }
   }
 
-  return $bytes;
+  return $bytes if $args->{depth} != 1;
+  return $bytes . _cm_eof($bytes, $mic, $args);
+}
+
+sub _cm_eof {
+  my $mic      = $_[1];
+  my $args     = $_[2];
+  my $cmts_mic = '';
+  my $pads     = 4 - (1 + length $_[0]) % 4;
+  my $eod_pad;
+
+  $mic->{CmMic} = pack('C*', 6, 16) . Digest::MD5::md5($_[0]);
+
+  $cmts_mic .= $mic->{$_} || '' for @DOCSIS::ConfigFile::Syminfo::CMTS_MIC;
+  $cmts_mic = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $args->{shared_secret} || '');
+  $eod_pad = pack('C', 255) . ("\0" x $pads);
+
+  return $mic->{CmMic} . $cmts_mic . $eod_pad;
 }
 
 =head1 ATTRIBUTES

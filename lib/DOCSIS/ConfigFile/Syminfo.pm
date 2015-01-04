@@ -28,7 +28,7 @@ my %FROM_ID;
 my @OBJECT_ATTRIBUTES = qw( id code pcode func l_limit u_limit length );
 
 # This datastructure should be considered internal
-our @CMTS_MIC_CODES = qw(
+our @CMTS_MIC = qw(
   DownstreamFrequency UpstreamChannelId NetworkAccess
   ClassOfService      BaselinePrivacy   VendorSpecific
   CmMic               MaxCPE            TftpTimestamp

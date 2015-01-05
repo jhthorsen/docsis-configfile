@@ -1,5 +1,8 @@
 Revision history for DOCSIS-ConfigFile
 
+0.69
+       * MtaConfigDelimiter is optional when creating MTA config files
+
 0.68     Mon Jan  5 10:15:21 2015
        * Add configuration tree structure to DOCSIS::ConfigFile::Syminfo pod
        * Require Perl 5.10.1

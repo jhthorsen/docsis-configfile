@@ -221,7 +221,8 @@ sub encode_docsis {
   local $args->{depth} = ($args->{depth} || 0) + 1;
   local $DEPTH = $args->{depth} if DEBUG;
 
-  if ($args->{depth} == 1 and delete $data->{MtaConfigDelimiter}) {
+  if ($args->{depth} == 1 and defined $args->{mta_algorithm}) {
+    delete $data->{MtaConfigDelimiter};
     $bytes .= encode_docsis({MtaConfigDelimiter => 1}, {depth => 1});
   }
 

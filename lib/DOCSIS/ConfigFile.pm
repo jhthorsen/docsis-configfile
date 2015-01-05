@@ -76,7 +76,7 @@ like the example below, instead of using numeric OIDs:
 
 use strict;
 use warnings;
-use Digest::MD5;
+use Digest::MD5 ();
 use Digest::HMAC_MD5;
 use Digest::SHA;
 use DOCSIS::ConfigFile::Syminfo;
@@ -135,7 +135,7 @@ sub decode_docsis {
     $pos += $syminfo->{lsize};
 
     if ($syminfo->{nested}) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with encode_docsis\n" if DEBUG;
+      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with decode_docsis\n" if DEBUG;
       local @$args{qw( blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
       $value = decode_docsis($_[0], $args);
     }
@@ -193,7 +193,8 @@ Possible C<%args>:
 
 =item * mta_algorithm
 
-This argument is required when encoding MTA config files.
+This argument is required when encoding MTA config files. Can be set to
+either empty string, "sha1" or "md5".
 
 =item * shared_secret
 
@@ -212,6 +213,10 @@ sub encode_docsis {
 
   local $args->{depth} = ($args->{depth} || 0) + 1;
   local $DEPTH = $args->{depth} if DEBUG;
+
+  if ($args->{depth} == 1 and delete $data->{MtaConfigDelimiter}) {
+    $bytes .= encode_docsis({MtaConfigDelimiter => 1}, {depth => 1});
+  }
 
   for my $name (sort { $current->{$a}{code} <=> $current->{$b}{code} } keys %$current) {
     next unless defined $data->{$name};
@@ -248,7 +253,10 @@ sub encode_docsis {
   }
 
   return $bytes if $args->{depth} != 1;
-  return $bytes . _cm_eof($bytes, $mic, $args);
+  return _mta_eof($bytes, $args) if defined $args->{mta_algorithm};
+  use Data::Dump;
+  dd $args;
+  return _cm_eof($bytes, $mic, $args);
 }
 
 sub _cm_eof {
@@ -264,7 +272,20 @@ sub _cm_eof {
   $cmts_mic = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $args->{shared_secret} || '');
   $eod_pad = pack('C', 255) . ("\0" x $pads);
 
-  return $mic->{CmMic} . $cmts_mic . $eod_pad;
+  return $_[0] . $mic->{CmMic} . $cmts_mic . $eod_pad;
+}
+
+sub _mta_eof {
+  my $mta_algorithm = $_[1]->{mta_algorithm} || '';
+  my $hash = '';
+
+  if ($mta_algorithm) {
+    $hash = $mta_algorithm eq 'md5' ? Digest::MD5::md5_hex($_[0]) : Digest::SHA::sha1_hex($_[0]);
+    $hash
+      = encode_docsis({SnmpMibObject => {oid => '1.3.6.1.4.1.4491.2.2.1.1.2.7.0', STRING => "0x$hash"}}, {depth => 1});
+  }
+
+  return $hash . $_[0] . encode_docsis({MtaConfigDelimiter => 255}, {depth => 1});
 }
 
 # _validate($value, $syminfo);
@@ -481,7 +502,7 @@ sub encode {
     $self->{_MtaConfigDelimiter} = 1;    # for internal usage
 
     if ($self->{binstring} and $algo) {
-      my $hash = $algo eq 'md5' ? md5_hex $self->{binstring} : Digest::SHA::sha1_hex($self->{binstring});
+      my $hash = $algo eq 'md5' ? Digest::MD5::md5_hex($self->{binstring}) : Digest::SHA::sha1_hex($self->{binstring});
 
       if ($hash) {
         splice @$config, $#{$config}, 0,

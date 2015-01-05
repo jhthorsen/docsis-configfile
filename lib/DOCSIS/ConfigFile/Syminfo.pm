@@ -81,8 +81,8 @@ Here is the complete structure of possible config parameters:
     DsServiceFlowId     => uint,    # 1..4294967295
     DsServiceFlowRef    => ushort,  # 1..65535
     DsVendorSpecific    => {
-      id      => "0x0011ee",
-      options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+      id      => ether, # "0x0011ee",
+      options => [uchar, hexstr, ... ], # 30, "0xff", ...
     },
     MaxDsLatency        => uint,
     MaxRateSustained    => uint,    # 0..4294967295
@@ -189,13 +189,13 @@ Here is the complete structure of possible config parameters:
     UsServiceFlowId      => uint,    # 1..4294967295
     UsServiceFlowRef     => ushort,  # 1..65535
     UsVendorSpecific     => {
-      id      => "0x0011ee",
-      options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+      id      => ether, # "0x0011ee",
+      options => [uchar, hexstr, ... ], # 30, "0xff", ...
     },
   },
   VendorSpecific => {
-    id      => "0x0011ee",
-    options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+    id      => ether, # "0x0011ee",
+    options => [uchar, hexstr, ... ], # 30, "0xff", ...
   },
 
 =cut

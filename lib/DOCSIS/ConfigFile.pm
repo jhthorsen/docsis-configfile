@@ -73,8 +73,8 @@ like the example below, instead of using numeric OIDs:
   encode_docsis(
     {
       SnmpMibObject => [
-        {oid => "docsDevNmAccessIp.1",             IPADDRESS => "10.0.0.1"},
-        {oid => "docsDevNmAccessIpMask.1",         IPADDRESS => "255.255.255.255"},
+        {oid => "docsDevNmAccessIp.1",     IPADDRESS => "10.0.0.1"},
+        {oid => "docsDevNmAccessIpMask.1", IPADDRESS => "255.255.255.255"},
       ]
     },
   );

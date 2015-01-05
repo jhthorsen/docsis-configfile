@@ -18,177 +18,185 @@ the physical layer and not the config file.
 Here is the complete structure of possible config parameters:
 
   BaselinePrivacy => {
-    AuthGraceTime     => {code => 3, func => "uint", limit => [1, 6047999]},
-    AuthRejectTimeout => {code => 7, func => "uint", limit => [1, 600]},
-    AuthTimeout       => {code => 1, func => "uint", limit => [1, 30]},
-    OperTimeout       => {code => 4, func => "uint", limit => [1, 10]},
-    ReAuthTimeout     => {code => 2, func => "uint", limit => [1, 30]},
-    ReKeyTimeout      => {code => 5, func => "uint", limit => [1, 10]},
-    SAMapMaxRetries   => {code => 9, func => "uint", limit => [0, 10]},
-    SAMapWaitTimeout  => {code => 8, func => "uint", limit => [1, 10]},
-    TEKGraceTime      => {code => 6, func => "uint", limit => [1, 302399]},
+    AuthGraceTime     => uint, # 1..6047999
+    AuthRejectTimeout => uint, # 1..600
+    AuthTimeout       => uint, # 1..30
+    OperTimeout       => uint, # 1..10
+    ReAuthTimeout     => uint, # 1..30
+    ReKeyTimeout      => uint, # 1..10
+    SAMapMaxRetries   => uint, # 0..10
+    SAMapWaitTimeout  => uint, # 1..10
+    TEKGraceTime      => uint, # 1..302399
   },
   ClassOfService => {
-    ClassID       => {code => 1, func => "uchar",  limit => [1, 16]},
-    GuaranteedUp  => {code => 5, func => "uint",   limit => [0, 10000000]},
-    MaxBurstUp    => {code => 6, func => "ushort", limit => [0, 65535]},
-    MaxRateDown   => {code => 2, func => "uint",   limit => [0, 52000000]},
-    MaxRateUp     => {code => 3, func => "uint",   limit => [0, 10000000]},
-    PriorityUp    => {code => 4, func => "uchar",  limit => [0, 7]},
-    PrivacyEnable => {code => 7, func => "uchar",  limit => [0, 1]},
+    ClassID       => str,    # 1..16
+    GuaranteedUp  => uint,   # 0..10000000
+    MaxBurstUp    => ushort, # 0..65535
+    MaxRateDown   => uint,   # 0..52000000
+    MaxRateUp     => uint,   # 0..10000000
+    PriorityUp    => uchar,  # 0..7
+    PrivacyEnable => uchar,  # 0..1
   },
-  CpeMacAddress       => {code => 14, func => "ether", limit => [0,        0]},
-  DocsisTwoEnable     => {code => 39, func => "uchar", limit => [0,        1]},
-  DownstreamFrequency => {code => 1,  func => "uint",  limit => [88000000, 860000000]},
+  CpeMacAddress       => ether, # "aabbccdddeeff"
+  DocsisTwoEnable     => uchar, # 0..1
+  DownstreamFrequency => uint,  # 88000000..860000000
   DsChannelList       => {
-    DefaultScanTimeout => {code => 3, func => "ushort", limit => [0, 65535]},
+    DefaultScanTimeout => ushort # 0..65535
     DsFreqRange        => {
-      DsFreqRangeEnd      => {code => 3, func => "uint",   limit => [0, 4294967295]},
-      DsFreqRangeStart    => {code => 2, func => "uint",   limit => [0, 4294967295]},
-      DsFreqRangeStepSize => {code => 4, func => "uint",   limit => [0, 4294967295]},
-      DsFreqRangeTimeout  => {code => 1, func => "ushort", limit => [0, 65535]},
+      DsFreqRangeEnd      => uint,   # 0..4294967295
+      DsFreqRangeStart    => uint,   # 0..4294967295
+      DsFreqRangeStepSize => uint,   # 0..4294967295
+      DsFreqRangeTimeout  => ushort, # 0..65535
     },
     SingleDsChannel => {
-      SingleDsFrequency => {code => 2, func => "uint",   limit => [0, 4294967295]},
-      SingleDsTimeout   => {code => 1, func => "ushort", limit => [0, 65535]},
+      SingleDsFrequency => uint,   # 0..4294967295
+      SingleDsTimeout   => ushort, # 0..65535
     },
   },
   DsPacketClass => {
-    ActivationState   => {code => 6, func => "uchar",  limit => [0, 1]},
-    ClassifierId      => {code => 2, func => "ushort", limit => [1, 65535]},
-    ClassifierRef     => {code => 1, func => "uchar",  limit => [1, 255]},
-    DscAction         => {code => 7, func => "uchar",  limit => [0, 2]},
+    ActivationState   => uchar,  # 0..1
+    ClassifierId      => ushort, # 1..65535
+    ClassifierRef     => uchar,  # 1..255
+    DscAction         => uchar,  # 0..2
     IEEE802Classifier => {
-      UserPriority => {code => 1, func => "ushort", limit => [0, 0]},
-      VlanID       => {code => 2, func => "ushort", limit => [0, 0]},
+      UserPriority => ushort,
+      VlanID       => ushort,
     },
     IpPacketClassifier => {
-      DstPortEnd   => {code => 10, func => "ushort", limit => [0, 65535]},
-      DstPortStart => {code => 9,  func => "ushort", limit => [0, 65535]},
-      IpDstAddr    => {code => 5,  func => "ip",     limit => [0, 0]},
-      IpDstMask    => {code => 6,  func => "ip",     limit => [0, 0]},
-      IpProto      => {code => 2,  func => "ushort", limit => [0, 257]},
-      IpSrcAddr    => {code => 3,  func => "ip",     limit => [0, 0]},
-      IpSrcMask    => {code => 4,  func => "ip",     limit => [0, 0]},
-      IpTos        => {code => 1,  func => "hexstr", limit => [3, 3]},
-      SrcPortEnd   => {code => 8,  func => "ushort", limit => [0, 65535]},
-      SrcPortStart => {code => 7,  func => "ushort", limit => [0, 65535]},
+      DstPortEnd   => ushort, # 0..65535
+      DstPortStart => ushort, # 0..65535
+      IpDstAddr    => ip, # 1.2.3.4
+      IpDstMask    => ip, # 1.2.3.4
+      IpProto      => ushort, # 0..257
+      IpSrcAddr    => ip, # 1.2.3.4
+      IpSrcMask    => ip, # 1.2.3.4
+      IpTos        => hexstr, # 3..3
+      SrcPortEnd   => ushort, # 0..65535
+      SrcPortStart => ushort, # 0..65535
     },
   },
   DsServiceFlow => {
-    ActQosParamsTimeout => {code => 12, func => "ushort",  limit => [0, 65535]},
-    AdmQosParamsTimeout => {code => 13, func => "ushort",  limit => [0, 65535]},
-    DsServiceFlowId     => {code => 2,  func => "uint",    limit => [1, 4294967295]},
-    DsServiceFlowRef    => {code => 1,  func => "ushort",  limit => [1, 65535]},
-    DsVendorSpecific    => {code => 43, func => "vendor",  limit => [0, 0],},
-    MaxDsLatency        => {code => 14, func => "uint",    limit => [0, 0]},
-    MaxRateSustained    => {code => 8,  func => "uint",    limit => [0, 4294967295]},
-    MaxTrafficBurst     => {code => 9,  func => "uint",    limit => [0, 4294967295]},
-    MinReservedRate     => {code => 10, func => "uint",    limit => [0, 4294967295]},
-    MinResPacketSize    => {code => 11, func => "ushort",  limit => [0, 65535]},
-    QosParamSetType     => {code => 6,  func => "uchar",   limit => [0, 255]},
-    ServiceClassName    => {code => 4,  func => "stringz", limit => [2, 16]},
-    TrafficPriority     => {code => 7,  func => "uchar",   limit => [0, 7]},
+    ActQosParamsTimeout => ushort,  # 0..65535
+    AdmQosParamsTimeout => ushort,  # 0..65535
+    DsServiceFlowId     => uint,    # 1..4294967295
+    DsServiceFlowRef    => ushort,  # 1..65535
+    DsVendorSpecific    => {
+      id      => "0x0011ee",
+      options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+    },
+    MaxDsLatency        => uint,
+    MaxRateSustained    => uint,    # 0..4294967295
+    MaxTrafficBurst     => uint,    # 0..4294967295
+    MinReservedRate     => uint,    # 0..4294967295
+    MinResPacketSize    => ushort,  # 0..65535
+    QosParamSetType     => uchar,   # 0..255
+    ServiceClassName    => stringz, # 2..16
+    TrafficPriority     => uchar,   # 0..7
   },
-  GlobalPrivacyEnable => {code => 29,  func => "uchar",    limit => [0, 0]},
-  MaxClassifiers      => {code => 28,  func => "ushort",   limit => [0, 0]},
-  MaxCPE              => {code => 18,  func => "uchar",    limit => [1, 254]},
-  MfgCVCData          => {code => 32,  func => "hexstr",   limit => [0, 0]},
+  GlobalPrivacyEnable => uchar,    # 0..1
+  MaxClassifiers      => ushort,
+  MaxCPE              => uchar,    # 1..254
+  MfgCVCData          => hexstr,   # 0x308203813082
   ModemCapabilities   => {
-    BaselinePrivacySupport => {code => 6,  func => "uchar", limit => [0, 1]},
-    ConcatenationSupport   => {code => 1,  func => "uchar", limit => [0, 1]},
-    DCCSupport             => {code => 12, func => "uchar", limit => [0, 1]},
-    DownstreamSAIDSupport  => {code => 7,  func => "uchar", limit => [0, 255]},
-    FragmentationSupport   => {code => 3,  func => "uchar", limit => [0, 1]},
-    IGMPSupport            => {code => 5,  func => "uchar", limit => [0, 1]},
-    ModemDocsisVersion     => {code => 2,  func => "uchar", limit => [0, 2]},
-    PHSSupport             => {code => 4,  func => "uchar", limit => [0, 1]},
-    UpstreamSIDSupport     => {code => 8,  func => "uchar", limit => [0, 255]},
+    BaselinePrivacySupport => uchar, # 0..1
+    ConcatenationSupport   => uchar, # 0..1
+    DCCSupport             => uchar, # 0..1
+    DownstreamSAIDSupport  => uchar, # 0..255
+    FragmentationSupport   => uchar, # 0..1
+    IGMPSupport            => uchar, # 0..1
+    ModemDocsisVersion     => uchar, # 0..2
+    PHSSupport             => uchar, # 0..1
+    UpstreamSIDSupport     => uchar, # 0..255
   },
-  NetworkAccess      => {code => 3,   func => "uchar", limit => [0, 1]},
+  NetworkAccess      => uchar, # 0..1
   PHS                => {
-    PHSClassifierId   => {code => 2,  func => "ushort", limit => [1, 65535]},
-    PHSClassifierRef  => {code => 1,  func => "uchar",  limit => [1, 255]},
-    PHSField          => {code => 7,  func => "hexstr", limit => [1, 255]},
-    PHSIndex          => {code => 8,  func => "uchar",  limit => [1, 255]},
-    PHSMask           => {code => 9,  func => "hexstr", limit => [1, 255]},
-    PHSServiceFlowId  => {code => 4,  func => "uint",   limit => [1, 4294967295]},
-    PHSServiceFlowRef => {code => 3,  func => "ushort", limit => [1, 65535]},
-    PHSSize           => {code => 10, func => "uchar",  limit => [1, 255]},
-    PHSVerify         => {code => 11, func => "uchar",  limit => [0, 1]},
+    PHSClassifierId   => ushort, # 1..65535
+    PHSClassifierRef  => uchar,  # 1..255
+    PHSField          => hexstr, # 1..255
+    PHSIndex          => uchar,  # 1..255
+    PHSMask           => hexstr, # 1..255
+    PHSServiceFlowId  => uint,   # 1..4294967295
+    PHSServiceFlowRef => ushort, # 1..65535
+    PHSSize           => uchar,  # 1..255
+    PHSVerify         => uchar,  # 0..1
   },
-  SnmpCpeAccessControl => {code => 55, func => "uchar",       limit => [0, 1]},
-  SnmpMibObject        => {code => 11, func => "snmp_object", limit => [1, 255]},
+  SnmpCpeAccessControl => uchar,       # 0..1
+  SnmpMibObject        => snmp_object, # 1..255
   SnmpV3Kickstart      => {
-    SnmpV3MgrPublicNumber => {code => 2, func => "hexstr", limit => [1, 514]},
-    SnmpV3SecurityName    => {code => 1, func => "string", limit => [1, 16]},
+    SnmpV3MgrPublicNumber => hexstr, # 1..514
+    SnmpV3SecurityName    => string, # 1..16
   },
   SnmpV3TrapReceiver => {
-    SnmpV3TrapRxFilterOID    => {code => 6, func => "ushort", limit => [1, 5]},
-    SnmpV3TrapRxIP           => {code => 1, func => "ip",     limit => [0, 0]},
-    SnmpV3TrapRxPort         => {code => 2, func => "ushort", limit => [0, 0]},
-    SnmpV3TrapRxRetries      => {code => 5, func => "ushort", limit => [0, 65535]},
-    SnmpV3TrapRxSecurityName => {code => 7, func => "string", limit => [1, 16]},
-    SnmpV3TrapRxTimeout      => {code => 4, func => "ushort", limit => [0, 65535]},
-    SnmpV3TrapRxType         => {code => 3, func => "ushort", limit => [1, 5]},
+    SnmpV3TrapRxFilterOID    => ushort, # 1..5
+    SnmpV3TrapRxIP           => ip, # 1.2.3.4
+    SnmpV3TrapRxPort         => ushort,
+    SnmpV3TrapRxRetries      => ushort, # 0..65535
+    SnmpV3TrapRxSecurityName => string, # 1..16
+    SnmpV3TrapRxTimeout      => ushort, # 0..65535
+    SnmpV3TrapRxType         => ushort, # 1..5
   },
-  SnmpWriteControl  => {code => 10, func => "nested",      limit => [0, 0], nested => {}},
-  SubMgmtControl    => {code => 35, func => "hexstr",      limit => [3, 3]},
-  SubMgmtCpeTable   => {code => 36, func => "hexstr",      limit => [0, 0]},
-  SubMgmtFilters    => {code => 37, func => "ushort_list", limit => [4, 4]},
-  SwUpgradeFilename => {code => 9,  func => "string",      limit => [0, 0]},
-  SwUpgradeServer   => {code => 21, func => "ip",          limit => [0, 0]},
-  TestMode          => {code => 40, func => "hexstr",      limit => [0, 1]},
-  TftpModemAddress  => {code => 20, func => "ip",          limit => [0, 0]},
-  TftpTimestamp     => {code => 19, func => "uint",        limit => [0, 4294967295]},
-  UpstreamChannelId => {code => 2,  func => "uchar",       limit => [0, 255]},
+  SubMgmtControl    => hexstr,      # 3..3
+  SubMgmtCpeTable   => hexstr,
+  SubMgmtFilters    => ushort_list, # 4..4
+  SwUpgradeFilename => string,      # "bootfile.bin"
+  SwUpgradeServer   => ip, # 1.2.3.4
+  TestMode          => hexstr,      # 0..1
+  TftpModemAddress  => ip, # 1.2.3.4
+  TftpTimestamp     => uint,        # 0..4294967295
+  UpstreamChannelId => uchar,       # 0..255
   UsPacketClass     => {
-    ActivationState   => {code => 6, func => "uchar",  limit => [0, 1]},
-    ClassifierId      => {code => 2, func => "ushort", limit => [1, 65535]},
-    ClassifierRef     => {code => 1, func => "uchar",  limit => [1, 255]},
-    DscAction         => {code => 7, func => "uchar",  limit => [0, 2]},
+    ActivationState   => uchar,  # 0..1
+    ClassifierId      => ushort, # 1..65535
+    ClassifierRef     => uchar,  # 1..255
+    DscAction         => uchar,  # 0..2
     IEEE802Classifier => {
-      UserPriority => {code => 1, func => "ushort", limit => [0, 0]},
-      VlanID       => {code => 2, func => "ushort", limit => [0, 0]},
+      UserPriority => ushort,
+      VlanID       => ushort,
     },
     IpPacketClassifier => {
-      DstPortEnd   => {code => 10, func => "ushort", limit => [0, 65535]},
-      DstPortStart => {code => 9,  func => "ushort", limit => [0, 65535]},
-      IpDstAddr    => {code => 5,  func => "ip",     limit => [0, 0]},
-      IpDstMask    => {code => 6,  func => "ip",     limit => [0, 0]},
-      IpProto      => {code => 2,  func => "ushort", limit => [0, 257]},
-      IpSrcAddr    => {code => 3,  func => "ip",     limit => [0, 0]},
-      IpSrcMask    => {code => 4,  func => "ip",     limit => [0, 0]},
-      IpTos        => {code => 1,  func => "hexstr", limit => [3, 3]},
-      SrcPortEnd   => {code => 8,  func => "ushort", limit => [0, 65535]},
-      SrcPortStart => {code => 7,  func => "ushort", limit => [0, 65535]},
+      DstPortEnd   => ushort, # 0..65535
+      DstPortStart => ushort, # 0..65535
+      IpDstAddr    => ip, # 1.2.3.4
+      IpDstMask    => ip, # 1.2.3.4
+      IpProto      => ushort, # 0..257
+      IpSrcAddr    => ip, # 1.2.3.4
+      IpSrcMask    => ip, # 1.2.3.4
+      IpTos        => hexstr, # 3..3
+      SrcPortEnd   => ushort, # 0..65535
+      SrcPortStart => ushort, # 0..65535
     },
   },
   UsServiceFlow => {
-    ActQosParamsTimeout  => {code => 12, func => "ushort",  limit => [0, 65535]},
-    AdmQosParamsTimeout  => {code => 13, func => "ushort",  limit => [0, 65535]},
-    GrantsPerInterval    => {code => 22, func => "uchar",   limit => [0, 127]},
-    IpTosOverwrite       => {code => 23, func => "hexstr",  limit => [0, 255]},
-    MaxConcatenatedBurst => {code => 14, func => "ushort",  limit => [0, 65535]},
-    MaxRateSustained     => {code => 8,  func => "uint",    limit => [0, 0]},
-    MaxTrafficBurst      => {code => 9,  func => "uint",    limit => [0, 0]},
-    MinReservedRate      => {code => 10, func => "uint",    limit => [0, 0]},
-    MinResPacketSize     => {code => 11, func => "ushort",  limit => [0, 65535]},
-    NominalGrantInterval => {code => 20, func => "uint",    limit => [0, 0]},
-    NominalPollInterval  => {code => 17, func => "uint",    limit => [0, 0]},
-    QosParamSetType      => {code => 6,  func => "uchar",   limit => [0, 255]},
-    RequestOrTxPolicy    => {code => 16, func => "hexstr",  limit => [0, 255]},
-    SchedulingType       => {code => 15, func => "uchar",   limit => [0, 6]},
-    ServiceClassName     => {code => 4,  func => "stringz", limit => [2, 16]},
-    ToleratedGrantJitter => {code => 21, func => "uint",    limit => [0, 0]},
-    ToleratedPollJitter  => {code => 18, func => "uint",    limit => [0, 0]},
-    TrafficPriority      => {code => 7,  func => "uchar",   limit => [0, 7]},
-    UnsolicitedGrantSize => {code => 19, func => "ushort",  limit => [0, 65535]},
-    UsServiceFlowId      => {code => 2,  func => "uint",    limit => [1, 4294967295]},
-    UsServiceFlowRef     => {code => 1,  func => "ushort",  limit => [1, 65535]},
-    UsVendorSpecific     => {code => 43, func => "vendor",  limit => [0, 0],},
+    ActQosParamsTimeout  => ushort,  # 0..65535
+    AdmQosParamsTimeout  => ushort,  # 0..65535
+    GrantsPerInterval    => uchar,   # 0..127
+    IpTosOverwrite       => hexstr,  # 0..255
+    MaxConcatenatedBurst => ushort,  # 0..65535
+    MaxRateSustained     => uint,
+    MaxTrafficBurst      => uint,
+    MinReservedRate      => uint,
+    MinResPacketSize     => ushort,  # 0..65535
+    NominalGrantInterval => uint,
+    NominalPollInterval  => uint,
+    QosParamSetType      => uchar,   # 0..255
+    RequestOrTxPolicy    => hexstr,  # 0..255
+    SchedulingType       => uchar,   # 0..6
+    ServiceClassName     => stringz, # 2..16
+    ToleratedGrantJitter => uint,
+    ToleratedPollJitter  => uint,
+    TrafficPriority      => uchar,   # 0..7
+    UnsolicitedGrantSize => ushort,  # 0..65535
+    UsServiceFlowId      => uint,    # 1..4294967295
+    UsServiceFlowRef     => ushort,  # 1..65535
+    UsVendorSpecific     => {
+      id      => "0x0011ee",
+      options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+    },
   },
-  VendorSpecific => {code => 43, func => "vendor", limit => [0, 0]},
+  VendorSpecific => {
+    id      => "0x0011ee",
+    options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
+  },
 
 =cut
 
@@ -355,7 +363,7 @@ our $TREE = {
       AdmQosParamsTimeout => {code => 13, func => "ushort",  lsize => 1, limit => [0, 65535]},
       DsServiceFlowId     => {code => 2,  func => "uint",    lsize => 1, limit => [1, 4294967295]},
       DsServiceFlowRef    => {code => 1,  func => "ushort",  lsize => 1, limit => [1, 65535]},
-      DsVendorSpecific    => {code => 43, func => "vendor",  lsize => 1, limit => [0, 0],},
+      DsVendorSpecific    => {code => 43, func => "vendor",  lsize => 1, limit => [0, 0]},
       MaxDsLatency        => {code => 14, func => "uint",    lsize => 1, limit => [0, 0]},
       MaxRateSustained    => {code => 8,  func => "uint",    lsize => 1, limit => [0, 4294967295]},
       MaxTrafficBurst     => {code => 9,  func => "uint",    lsize => 1, limit => [0, 4294967295]},
@@ -434,7 +442,6 @@ our $TREE = {
       SnmpV3TrapRxType         => {code => 3, func => "ushort", lsize => 1, limit => [1, 5]},
     },
   },
-  SnmpWriteControl  => {code => 10, func => "nested",      lsize => 1, limit => [0, 0], nested => {}},
   SubMgmtControl    => {code => 35, func => "hexstr",      lsize => 1, limit => [3, 3]},
   SubMgmtCpeTable   => {code => 36, func => "hexstr",      lsize => 1, limit => [0, 0]},
   SubMgmtFilters    => {code => 37, func => "ushort_list", lsize => 1, limit => [4, 4]},
@@ -525,7 +532,7 @@ our $TREE = {
       UnsolicitedGrantSize => {code => 19, func => "ushort",  lsize => 1, limit => [0, 65535]},
       UsServiceFlowId      => {code => 2,  func => "uint",    lsize => 1, limit => [1, 4294967295]},
       UsServiceFlowRef     => {code => 1,  func => "ushort",  lsize => 1, limit => [1, 65535]},
-      UsVendorSpecific     => {code => 43, func => "vendor",  lsize => 1, limit => [0, 0],},
+      UsVendorSpecific     => {code => 43, func => "vendor",  lsize => 1, limit => [0, 0]},
     },
   },
   VendorSpecific => {code => 43, func => "vendor", lsize => 1, limit => [0, 0],},

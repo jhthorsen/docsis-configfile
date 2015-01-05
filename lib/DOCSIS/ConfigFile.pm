@@ -52,12 +52,12 @@ is missing or invalid.
                  SAMapMaxRetries   => 4
                },
                SnmpMibObject => [
-                 {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    INTEGER => 1},
-                 {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING  => 'bootfile.bin'}
+                 {oid => "1.3.6.1.4.1.1.77.1.6.1.1.6.2",    INTEGER => 1},
+                 {oid => "1.3.6.1.4.1.1429.77.1.6.1.1.6.2", STRING  => "bootfile.bin"}
                ],
                VendorSpecific => {
-                 id => '0x0011ee',
-                 options => [30 => '0xff', 31 => '0x00', 32 => '0x28']
+                 id => "0x0011ee",
+                 options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
                }
              }
            );
@@ -73,8 +73,8 @@ like the example below, instead of using numeric OIDs:
   encode_docsis(
     {
       SnmpMibObject => [
-        {oid => 'docsDevNmAccessIp.1',             IPADDRESS => '10.0.0.1'},
-        {oid => 'docsDevNmAccessIpMask.1',         IPADDRESS => '255.255.255.255'},
+        {oid => "docsDevNmAccessIp.1",             IPADDRESS => "10.0.0.1"},
+        {oid => "docsDevNmAccessIpMask.1",         IPADDRESS => "255.255.255.255"},
       ]
     },
   );
@@ -183,14 +183,14 @@ in the same C<$byte_string>:
   # Only one SnmpMibObject
   encode_docsis({
     SnmpMibObject => { # hash-ref
-      oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin'
+      oid => "1.3.6.1.4.1.1429.77.1.6.1.1.6.2", STRING => "bootfile.bin"
     }
   })
 
   # Allow one or more SnmpMibObjects
   encode_docsis({
     SnmpMibObject => [ # array-ref of hashes
-      { oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin' }
+      { oid => "1.3.6.1.4.1.1429.77.1.6.1.1.6.2", STRING => "bootfile.bin" }
     ]
   })
 

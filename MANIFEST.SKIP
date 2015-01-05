@@ -1,4 +1,4 @@
-#!start included /home/jhthorsen/.perlbrew/perls/perl-5.18.2/lib/5.18.2/ExtUtils/MANIFEST.SKIP
+#!start included /home/jhthorsen/.perlbrew/perls/perl-5.20.1/lib/5.20.1/ExtUtils/MANIFEST.SKIP
 # Avoid version control files.
 \bRCS \b \bCVS \b \bSCCS \b, v $ \B \. svn \b \B \. git \b \B \. gitignore \b \b_darcs \b \B \. cvsignore $
 
@@ -33,6 +33,6 @@
 # Avoid MYMETA files
   ^ MYMETA \.
 
-#!end included /home/jhthorsen/.perlbrew/perls/perl-5.18.2/lib/5.18.2/ExtUtils/MANIFEST.SKIP
+#!end included /home/jhthorsen/.perlbrew/perls/perl-5.20.1/lib/5.20.1/ExtUtils/MANIFEST.SKIP
 
   \. swp $ ^local / ^ MANIFEST \. SKIP ^ README \. pod

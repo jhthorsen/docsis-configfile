@@ -1,177 +1,135 @@
 NAME
-    DOCSIS::ConfigFile - Decodes and encodes DOCSIS config-files
+    DOCSIS::ConfigFile - Decodes and encodes DOCSIS config files
 
 VERSION
-    0.64
-
-SYNOPSIS
-        use DOCSIS::ConfigFile;
-        use JSON;
-
-        my $obj     = DOCSIS::ConfigFile->new(
-                          shared_secret   => '', # default
-                          advanced_output => 0,  # default
-                      );
-
-                      $obj->shared_secret("foobar");
-        my $encoded = $obj->encode([ {...}, {...}, ... ]);
-        my $decoded = $obj->decode($filename);
-                      $obj->advanced_output(1);
-        my $dec_adv = $obj->decode(\$encoded);
-
-        # see simple config in JSON format
-        print JSON->new->pretty->decode($decoded);
-
-        # see advanced config in JSON format
-        print JSON->new->pretty->decode($dec_adv);
+    0.65
 
 DESCRIPTION
-    An instance from this class can be used to encode or decode DOCSIS
-    <http://www.cablelabs.com> (Data over Cable Service Interface
-    Specifications) config files. These files are usually served using a
-    TFTP server, after a cable modem
+    DOCSIS::ConfigFile is a class which provides functionality to decode and
+    encode DOCSIS <http://www.cablelabs.com> (Data over Cable Service
+    Interface Specifications) config files.
+
+    This module is used as a layer between any human readable data and the
+    binary structure.
+
+    The files are usually served using a TFTP server, after a cable modem
     <http://en.wikipedia.org/wiki/Cable_modem> or MTA (Multimedia Terminal
     Adapter) has recevied an IP address from a DHCP server. These files are
     binary encode using a variety of functions, but all the data in the file
     are constructed by TLVs (type-length-value) blocks. These can be nested
     and concatenated.
 
-    This module is used as a layer between any human readable data and the
-    binary structure. The config file in human readable format can look
-    something like this:
+SYNOPSIS
+      use DOCSIS::ConfigFile qw( encode_docsis decode_docsis );
 
-        [
-            { name => NetworkAccess => value => 1 },
-            { name => GlobalPrivacyEnable => value => 1 },
-            { name => MaxCPE => value => 10 },
-            { name => BaselinePrivacy =>
-                nested => [
-                    { name => AuthTimeout => value => 10 },
-                    { name => ReAuthTimeout => value => 10 },
-                    { name => AuthGraceTime => value => 600 },
-                    { name => OperTimeout => value => 1 },
-                    { name => ReKeyTimeout => value => 1 },
-                    { name => TEKGraceTime => value => 600 },
-                    { name => AuthRejectTimeout => value => 60 },
-                    { name => SAMapWaitTimeout => value => 1 },
-                    { name => SAMapMaxRetries => value => 4 }
-                ]
-            },
+      $data = decode_docsis $bytes;
+
+      $bytes = encode_docsis(
+                 {
+                   GlobalPrivacyEnable => 1,
+                   MaxCPE              => 2,
+                   NetworkAccess       => 1,
+                   BaselinePrivacy => {
+                     AuthTimeout       => 10,
+                     ReAuthTimeout     => 10,
+                     AuthGraceTime     => 600,
+                     OperTimeout       => 1,
+                     ReKeyTimeout      => 1,
+                     TEKGraceTime      => 600,
+                     AuthRejectTimeout => 60,
+                     SAMapWaitTimeout  => 1,
+                     SAMapMaxRetries   => 4
+                   },
+                   SnmpMibObject => [
+                     {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    INTEGER => 1},
+                     {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING  => 'bootfile.bin'}
+                   ],
+                   VendorSpecific => {
+                     id => '0x0011ee',
+                     options => [30 => '0xff', 31 => '0x00', 32 => '0x28']
+                   }
+                 }
+               );
+
+OPTIONAL MODULE
+    You can install the SNMP.pm module to translate between SNMP OID
+    formats. With the module installed, you can define the "SnmpMibObject"
+    like the example below, instead of using numeric OIDs:
+
+      encode_docsis(
+        {
+          SnmpMibObject => [
+            {oid => 'docsDevNmAccessIp.1',             IPADDRESS => '10.0.0.1'},
+            {oid => 'docsDevNmAccessIpMask.1',         IPADDRESS => '255.255.255.255'},
+          ]
+        },
+      );
+
+FUNCTIONS
+  decode_docsis
+      $data = decode_docsis($byte_string);
+
+    Used to decode a DOCSIS config file into a data structure. The output
+    $data can be used as input to "encode_docsis". Note: $data will only
+    contain array-refs if the DOCSIS parameter occur more than once.
+
+  encode_docsis
+      $byte_string = encode_docsis(\%data, \%args);
+
+    Used to encode a data structure into a DOCSIS config file. Each of the
+    keys in $data can either hold a hash- or array-ref. An array-ref is used
+    if the same DOCSIS parameter occur multiple times. These two formats
+    will result in the same $byte_string:
+
+      # Only one SnmpMibObject
+      encode_docsis({
+        SnmpMibObject => { # hash-ref
+          oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin'
+        }
+      })
+
+      # Allow one or more SnmpMibObjects
+      encode_docsis({
+        SnmpMibObject => [ # array-ref of hashes
+          { oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING => 'bootfile.bin' }
         ]
+      })
 
-    There is also an optional "advanced_output" flag which can include more
-    information, but this is what is required/default: An array-ref of
-    hash-refs, containing a "name" and a "value" (or "nested" for nested
-    data structures). The rest will this module figure out.
+    Possible %args:
 
-FAULT HANDLING
-    As for version 0.60, this module has changed from holding errors in an
-    attribute to actively reporting errors, using "confess()", "carp()" and
-    the module autodie for reporting system errors from "open()" and
-    friends. Constructing the object, and changing attribute values are
-    still safe to do, but "encode" and "decode" might die.
+    *   mta_algorithm
+
+        This argument is required when encoding MTA config files. Can be set
+        to either empty string, "sha1" or "md5".
+
+    *   shared_secret
+
+        This argument is optional, but will be used as the shared secret
+        used to increase security between the cable modem and CMTS.
 
 ATTRIBUTES
-  shared_secret
-    Sets or gets the shared secret.
-
   advanced_output
-    Sets weither advanced output should be enabled. Takes 0 or 1 as
-    argument. Advanced output is off (0) by default.
+    Deprecated.
+
+  shared_secret
+    Deprecated. Use "encode_docsis" instead.
 
 METHODS
   new
-        $self = $class->new(\%args);
-
-    Arguments can be:
-
-     shared_secret   => Shared secret in encoded cm config file
-     advanced_output => Advanced decoded config format
-     mibs            => will set $ENV{MIBS} to load custom mibs
+    Deprecated. Use "decode_docsis" or "encode_docsis" instead.
 
   decode
-        $array_ref = $self->decode($path_to_file);
-        $array_ref = $self->decode(\$binary_string);
-        $array_ref = $self->decode($FH);
-
-    This method decodes a binary config file stored in either a file on
-    disk, a binary string, or a filehandle. It returns an array-ref of
-    hashes, containing the config as a perl data structure.
+    Deprecated. Use "decode_docsis" instead.
 
   encode
-        $binary_str = $self->encode([ { ... }, ... ]);
+    Deprecated. Use "encode_docsis" instead.
 
-    Encodes an array of hashes, containing the DOCSIS config-file settings
-    and returns a binary encoded string. See "DESCRIPTION" and the unit
-    tests for example input. For other structures, see the table generated
-    by "dump_symbol_tree" in DOCSIS::ConfigFile::Syminfo.
+COPYRIGHT AND LICENSE
+    Copyright (C) 2014, Jan Henning Thorsen
 
-    When enconding MTA config files another arugment is accepted:
-
-        $binary_str = $self->encode([ { ... }, ... ], 'md5|sha1');
-
-    As 'pktcMtaDevProvConfigHash' does not need to be included in the config
-    at all times this param is optional. Only two variants are accpted -
-    MD5, or SHA1 The algorithm will then be used to define value for
-    'pktcMtaDevProvConfigHash' and this line will be added just above
-    'MtaConfigDelimiter' closing tag resulting in
-
-        MtaConfigDelimiter 1;
-        ...
-        SnmpMibObject enterprises.4491.2.2.1.1.2.7.0 HexString 0x1a2b3c4d5e6f... ;
-        MtaConfigDelimiter 255;
-
-CONSTANTS
-  Decode
-    Returns DOCSIS::ConfigFile::Decode.
-
-  Encode
-    Returns DOCSIS::ConfigFile::Encode.
-
-  Syminfo
-    Returns DOCSIS::ConfigFile::Syminfo.
-
-AUTHOR
-    Jan Henning Thorsen, "<pm at flodhest.net>"
-
-BUGS
-    Please report any bugs or feature requests to "bug-docsis-perl at
-    rt.cpan.org", or through the web interface at
-    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DOCSIS-ConfigFile>. I
-    will be notified, and then you'll automatically be notified of progress
-    on your bug as I make changes.
-
-SUPPORT
-    You can find documentation for this module with the perldoc command.
-
-        perldoc DOCSIS::ConfigFile
-
-    You can also look for information at
-    <http://search.cpan.org/dist/DOCSIS-ConfigFile>
-
-ACKNOWLEDGEMENTS
-COPYRIGHT & LICENSE
     This program is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
 
-    Copyright (c) 2007 Jan Henning Thorsen
-
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by the
-    Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-    Public License for more details.
-
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    675 Mass Ave, Cambridge, MA 02139, USA.
-
-    DOCSIS is a registered trademark of Cablelabs, http://www.cablelabs.com
-
-    This module got its inspiration from the program docsis,
-    http://docsis.sf.net.
+AUTHOR
+    Jan Henning Thorsen - "jhthorsen@cpan.org"
 

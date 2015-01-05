@@ -21,7 +21,6 @@ WriteMakefile(
     'Digest::SHA1'     => '2.10',
     'Math::BigInt'     => '1.80',
     'Socket'           => '1.50',
-    'autodie'          => '2.00',
     'bytes'            => '1.00'
   },
   test => {TESTS => 't/*.t'},

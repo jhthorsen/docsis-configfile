@@ -54,5 +54,4 @@ my $input = {
   is_deeply decode_docsis($bytes), $input, 'decode_docsis';
 }
 
-
 done_testing;

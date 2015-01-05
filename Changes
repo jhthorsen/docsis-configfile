@@ -1,5 +1,9 @@
 Revision history for DOCSIS-ConfigFile
 
+0.67
+       * Add test for handling of 0x0A value in VendorSpecific
+         Contributor: dragic.dusan@gmail.com, RT#87812
+
 0.66     Mon Jan  5 02:09:43 2015
        * Fix SnmpCpeAccessControl should be uchar instead of uint
          Contributor: Josh Galvez, RT#99468

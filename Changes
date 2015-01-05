@@ -1,6 +1,6 @@
 Revision history for DOCSIS-ConfigFile
 
-0.68
+0.68     Mon Jan  5 10:15:21 2015
        * Add configuration tree structure to DOCSIS::ConfigFile::Syminfo pod
        * Require Perl 5.10.1
 

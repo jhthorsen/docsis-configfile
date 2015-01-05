@@ -3,6 +3,8 @@ Revision history for DOCSIS-ConfigFile
 0.66
        * Fix SnmpCpeAccessControl should be uchar instead of uint
          Contributor: Josh Galvez, RT#99468
+       * Use Digest::SHA instead of Digest::SHA1
+         Contributor: dragic.dusan@gmail.com, RT#87814
 
 0.65     Mon Jan  5 02:01:30 2015
        * New API: Will deprecate object oriented API with function based
@@ -12,7 +14,6 @@ Revision history for DOCSIS-ConfigFile
        * Add support for string OID with optional SNMP.pm dependency
 
 0.64     Fri Aug 16 23:33:13 2013
-       * Use Digest::SHA instead of Digest::SHA1
        * Fix handling of 0x0a value in vendorspec()
        * Add support for VendorSpecific TLVs in Service Flow configuration.
          Contributor Dušan Dragić

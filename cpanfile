@@ -2,7 +2,7 @@
 requires "bytes" => "1.00";
 requires "Digest::HMAC_MD5" => "1.00";
 requires "Digest::MD5" => "2.30";
-requires "Digest::SHA1" => "2.10";
+requires "Digest::SHA" => "5.00";
 requires "Math::BigInt" => "1.80";
 requires "Socket" => "1.50";
 

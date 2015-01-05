@@ -24,6 +24,11 @@ server. These files are L<binary encode|DOCSIS::ConfigFile::Encode> using a
 variety of functions, but all the data in the file are constructed by TLVs
 (type-length-value) blocks. These can be nested and concatenated.
 
+See L<DOCSIS::ConfigFile::Syminfo/CONFIGURATION TREE> for full
+set of possible parameters. Create an
+L<issue|https://github.com/jhthorsen/docsis-configfile/issues> if a parameter
+is missing or invalid.
+
 =head1 SYNOPSIS
 
   use DOCSIS::ConfigFile qw( encode_docsis decode_docsis );
@@ -57,6 +62,8 @@ variety of functions, but all the data in the file are constructed by TLVs
              }
            );
 
+See also L<DOCSIS::ConfigFile::Syminfo/CONFIGURATION TREE>.
+
 =head1 OPTIONAL MODULE
 
 You can install the L<SNMP.pm|SNMP> module to translate between SNMP
@@ -86,7 +93,7 @@ use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 
 use base 'Exporter';
 
-our $VERSION = '0.67';
+our $VERSION   = '0.67';
 our @EXPORT_OK = qw( decode_docsis encode_docsis );
 our $DEPTH     = 0;
 

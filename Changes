@@ -1,122 +1,119 @@
-Revision history for DOCSIS-Perl
+Revision history for DOCSIS-ConfigFile
 
 0.64     Fri Aug 16 23:33:13 2013
-      - Use Digest::SHA instead of Digest::SHA1
-      - Fix handling of 0x0a value in vendorspec()
-      - Add support for VendorSpecific TLVs in Service Flow configuration.
-      - Contributor Dušan Dragić
+       * Use Digest::SHA instead of Digest::SHA1
+       * Fix handling of 0x0a value in vendorspec()
+       * Add support for VendorSpecific TLVs in Service Flow configuration.
+         Contributor Dušan Dragić
 
 0.6302   Thu Jul 25 21:56:00 2013
-      - Fix RT83013: Using the right value when checking high/low values
+       * Fix RT83013: Using the right value when checking high/low values
 
 0.6301   Thu Jul 25 21:12:15 2013
-      - Fix RT87301: "return" binds stronger than "or".
-        Contributor rurban@x-ray.at
+       * Fix RT87301: "return" binds stronger than "or".
+         Contributor rurban@x-ray.at
 
 0.63     Wed Oct 10 00:49:37 2012
-      - Fix RT72511
-        Contributor velladecin@hotmail.com
+       * Fix RT72511
+         Contributor velladecin@hotmail.com
 
 0.62     Sun Apr 29 10:56:44 2012
-      - Add SnmpCpeAccessControl to Syminfo
-        Contributor: Elliot
+       * Add SnmpCpeAccessControl to Syminfo
+         Contributor: Elliot
 
 0.61     Mon Oct  3 21:58:40 CEST 2011
-      - Fix RT70882: ServiceClassName need to be zero-terminated
-        This is optional in input data structure and removed/not
-        visible in decoded tree either
+       * Fix RT70882: ServiceClassName need to be zero-terminated
+         This is optional in input data structure and removed/not
+         visible in decoded tree either
 
 0.6004   Sun Sep 12 21:51:02 CEST 2010
-      - Fix #61267: Encode::int() fails on 64b systems:
-        -1234567890 >> 8 == 72057594033105405 != 11954685
+       * Fix #61267: Encode::int() fails on 64b systems:
+         1234567890 >> 8 == 72057594033105405 != 11954685
 
 0.6003   Sun Sep  5 20:38:25 CEST 2010
-      - Fix uint() cannot return negative integers
-        Contributor: canni
-      - Add int() to handle (possible) signed integers
-        Contributor: canni
-      - Fix Decode::string() decodes % as %25
-      - Add no_value() dec/encode function
-      - Change Decode.pm and Encode.pm to confess on errors
-      - Change add_symbol() will confess if the symbol already exists
-      - Change Encode functions return a list (wantarray is history)
-      - Change examples/docsis.pl is renamed and use JSON instead
-        of YAML. Might change to Config::Any in the future.
+       * Fix uint() cannot return negative integers
+         Contributor: canni
+       * Add int() to handle (possible) signed integers
+         Contributor: canni
+       * Fix Decode::string() decodes % as %25
+       * Add no_value() dec/encode function
+       * Change Decode.pm and Encode.pm to confess on errors
+       * Change add_symbol() will confess if the symbol already exists
+       * Change Encode functions return a list (wantarray is history)
+       * Change examples/docsis.pl is renamed and use JSON instead
+         of YAML. Might change to Config::Any in the future.
 
 0.6002   Sat Sep  4 11:34:58 CEST 2010
-      - Fix dump_symbol_tree() can print large numbers
-      - Fix dump_symbol_tree() can also follow "vendorspec"
-      - Fix remove duplicates from Syminfo table
+       * Fix dump_symbol_tree() can print large numbers
+       * Fix dump_symbol_tree() can also follow "vendorspec"
+       * Fix remove duplicates from Syminfo table
 
 0.6001   Sat Sep  4 04:02:29 CEST 2010
-      - Fix use Carp qw/.../
-      - Add support for Syminfo->dump_symbol_tree()
-      - Restructured symbol table and documentation
-      - Don't need Data::Dumper to run tests
+       * Fix use Carp qw/.../
+       * Add support for Syminfo->dump_symbol_tree()
+       * Restructured symbol table and documentation
+       * Don't need Data::Dumper to run tests
 
 0.60     Sat Sep  4 00:26:27 CEST 2010
-      - Fix uninitialized warnings in Decode::uint()
-        Contributor: canni
-      - Change from logger() and errors() to carp() and confess()
-      - Add Encode::mic() to avoid warnings about
-        Undefined decode function for PCODE/CODE (0/255)
-      - Add DESCRIPTION
+       * Fix uninitialized warnings in Decode::uint()
+         Contributor: canni
+       * Change from logger() and errors() to carp() and confess()
+       * Add Encode::mic() to avoid warnings about
+         Undefined decode function for PCODE/CODE (0/255)
+       * Add DESCRIPTION
 
 0.5901   Sat Apr  3 13:04:38 CEST 2010
-      - Update t/
-      - Update Changes
-      - Fix dist structure
+       * Update t/
+       * Update Changes
+       * Fix dist structure
 
-0.59    Sat 23 Jan 10:19:00 CET 2010
-        Fix symbol table is read from a string
+0.59     Sat 23 Jan 10:19:00 CET 2010
+       * Fix symbol table is read from a string
 
-0.58    Tue  8 Dec 22:45:00 CET 2009
-        Fix 01-pod-coverage.t
+0.58     Tue  8 Dec 22:45:00 CET 2009
+       * Fix 01-pod-coverage.t
 
-0.57    Sun  8 Nov 16:52:00 CET 2009
-        Fix decode of uint
+0.57     Sun  8 Nov 16:52:00 CET 2009
+       * Fix decode of uint
 
-0.56    Tue  7 Apr 15:41:00 CEST 2009
-        Add decoding of TLV64
-        Fix string(): better detection for hexstrings
-        Add add_symbol() for custom syminfo symbols
+0.56     Tue  7 Apr 15:41:00 CEST 2009
+       * Add decoding of TLV64
+       * Fix string(): better detection for hexstrings
+       * Add add_symbol() for custom syminfo symbols
 
-0.55    ...
+0.54     Thu  8 Jan 23:00:00 CET 2009
+       * Fix SNMP objects starting with "0x30 0x82 ... " fail to decode
+       * Update POD and formatting of code
 
-0.54    Thu  8 Jan 23:00:00 CET 2009
-        Fix SNMP objects starting with "0x30 0x82 ... " fail to decode
-        Update POD and formatting of code
+0.52     Mon 14 Apr 12:40:00 CEST 2008
+       * Fix undefined $VERSION.
 
-0.52    Mon 14 Apr 12:40:00 CEST 2008
-        Fix undefined $VERSION.
+0.51     Mon 14 Apr 00:19:00 CEST 2008
+       * Update POD
 
-0.51    Mon 14 Apr 00:19:00 CEST 2008
-        Update POD
+0.5      Sun 13 Apr 21:15:00 CEST 2008
+       * Fix RT34547 should be able to handle ->unlimited values :)
+       * Fix RT34548 no warnings when decoding CmMic and CmtsMic
+       * Update 10-encode-decode test
+       * Change output format: hex-values start with '0x'
 
-0.5     Sun 13 Apr 21:15:00 CEST 2008
-        Fix RT34547 should be able to handle ->unlimited values :)
-        Fix RT34548 no warnings when decoding CmMic and CmtsMic
-        Update 10-encode-decode test
-        Change output format: hex-values start with '0x'
+0.4      Wed  5 Dec 11:23:00 CET 2007
+       * Hopefully made a decent release for CPAN.
+       * Add example script  which should be quite useful: docsis_yaml.pl.
 
-0.4     Wed  5 Dec 11:23:00 CET 2007
-        Hopefully made a decent release for CPAN.
-        Add example script  which should be quite useful: docsis_yaml.pl.
+0.3      Tue  4 Dec 22:32:00 CET 2007
+       * Update encode/decode test.
+       * API change: not compatible with old version.
+       * Add support for normal/advanced output.
+         (Sorry for the version jump - Really bad typo)
 
-0.3     Tue  4 Dec 22:32:00 CET 2007
-        Update encode/decode test.
-        API change: not compatible with old version.
-        Update POD.
-        Add support for normal/advanced output.
-        (Sorry for the version jump - Really bad typo)
+0.02     Tue  4 Dec 16:10:00 CET 2007
+       * Add deps to makefile.
+       * Change error reporting to Log4perl.
+       * Add encode/decode test.
+       * Move syminfo to DOCSIS::ConfigFile::Syminfo.
+       * Update POD.
 
-0.02    Tue  4 Dec 16:10:00 CET 2007
-        Add deps to makefile.
-        Change error reporting to Log4perl.
-        Add encode/decode test.
-        Move syminfo to DOCSIS::ConfigFile::Syminfo.
-        Update POD.
-
-0.01    Mon  3 Dec 23:49:00 CET 2007
-        First release of DOCSIS::ConfigFile
+0.01     Mon  3 Dec 23:49:00 CET 2007
+       * First release of DOCSIS::ConfigFile
 

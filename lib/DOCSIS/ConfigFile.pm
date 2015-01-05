@@ -254,8 +254,6 @@ sub encode_docsis {
 
   return $bytes if $args->{depth} != 1;
   return _mta_eof($bytes, $args) if defined $args->{mta_algorithm};
-  use Data::Dump;
-  dd $args;
   return _cm_eof($bytes, $mic, $args);
 }
 

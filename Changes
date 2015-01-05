@@ -1,6 +1,6 @@
 Revision history for DOCSIS-ConfigFile
 
-0.66
+0.66     Mon Jan  5 02:09:43 2015
        * Fix SnmpCpeAccessControl should be uchar instead of uint
          Contributor: Josh Galvez, RT#99468
        * Use Digest::SHA instead of Digest::SHA1

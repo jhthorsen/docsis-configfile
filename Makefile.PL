@@ -18,7 +18,7 @@ WriteMakefile(
   PREREQ_PM      => {
     'Digest::HMAC_MD5' => '1.00',
     'Digest::MD5'      => '2.30',
-    'Digest::SHA1'     => '2.10',
+    'Digest::SHA'      => '5.00',
     'Math::BigInt'     => '1.80',
     'Socket'           => '1.50',
     'bytes'            => '1.00'

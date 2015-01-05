@@ -1,5 +1,9 @@
 Revision history for DOCSIS-ConfigFile
 
+0.66
+       * Fix SnmpCpeAccessControl should be uchar instead of uint
+         Contributor: Josh Galvez, RT#99468
+
 0.65     Mon Jan  5 02:01:30 2015
        * New API: Will deprecate object oriented API with function based
        * Add decode_docsis() and encode_docsis()

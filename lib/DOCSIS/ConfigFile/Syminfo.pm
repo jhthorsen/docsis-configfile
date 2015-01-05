@@ -234,7 +234,7 @@ our $TREE = {
       PHSVerify         => {code => 11, func => "uchar",  lsize => 1, limit => [0, 1]},
     },
   },
-  SnmpCpeAccessControl => {code => 55, func => "uint",        lsize => 1, limit => [0, 1]},
+  SnmpCpeAccessControl => {code => 55, func => "uchar",       lsize => 1, limit => [0, 1]},
   SnmpMibObject        => {code => 11, func => "snmp_object", lsize => 1, limit => [1, 255]},
   SnmpV3Kickstart      => {
     code   => 34,
@@ -760,7 +760,7 @@ __PACKAGE__->add_symbol($_)
   [qw( SubMgmtControl           35     0   hexstr       3         3           1 )],
   [qw( SubMgmtCpeTable          36     0   hexstr       0         0           1 )],
   [qw( SubMgmtFilters           37     0   ushort_list  4         4           1 )],
-  [qw( SnmpCpeAccessControl     55     0   uint         0         1           1 )],
+  [qw( SnmpCpeAccessControl     55     0   uchar        0         1           1 )],
   [qw( SnmpMibObject            64     0   snmp_object  1         65535       2 )],
   [qw( TestMode                 40     0   hexstr       0         1           1 )],
 

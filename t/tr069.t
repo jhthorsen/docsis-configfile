@@ -5,26 +5,26 @@ use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
 
 my $input = 
 { 'name' => 'eRouter',
-	'nested' => [
-		{ 'name' => 'ManagementServer',
-			'nested' => [
-				{	'value' => 1,
-					'name' => 'EnableCWMP'},
-				{	'value' => 'http://tr069.example.com/',
-					'name' => 'URL'},
-				{	'value' => 'goodUser',
-					'name' => 'Username'},
-				{	'value' => 'passwordsAreGood',
-					'name' => 'Password'},
-				{	'value' => 'remoteUser',
-					'name' => 'ConnectionRequestUsername'},
-				{	'value' => 'securePasswordsAreBetter',
-					'name' => 'ConnectionRequestPassword'},
-				{	'value' => 1,
-					'name' => 'ACSOverride'},
-			]
-		}
-	]
+  'nested' => [
+    { 'name' => 'ManagementServer',
+      'nested' => [
+        { 'value' => 1,
+          'name' => 'EnableCWMP'},
+        { 'value' => 'http://tr069.example.com/',
+          'name' => 'URL'},
+        { 'value' => 'goodUser',
+          'name' => 'Username'},
+        { 'value' => 'passwordsAreGood',
+          'name' => 'Password'},
+        { 'value' => 'remoteUser',
+          'name' => 'ConnectionRequestUsername'},
+        { 'value' => 'securePasswordsAreBetter',
+          'name' => 'ConnectionRequestPassword'},
+        { 'value' => 1,
+          'name' => 'ACSOverride'},
+      ]
+    }
+  ]
 };
 
 my ($bytes, $output);

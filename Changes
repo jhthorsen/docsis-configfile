@@ -1,7 +1,9 @@
 Revision history for DOCSIS-ConfigFile
 
-0.69
+0.69     Tue Apr  7 21:13:47 2015
        * MtaConfigDelimiter is optional when creating MTA config files
+       * Add support for eRouter MangemnetServer TLV #5
+         Contributor: Josh Galvez
 
 0.68     Mon Jan  5 10:15:21 2015
        * Add configuration tree structure to DOCSIS::ConfigFile::Syminfo pod

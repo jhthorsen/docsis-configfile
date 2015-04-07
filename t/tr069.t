@@ -3,39 +3,29 @@ use warnings;
 use Test::More;
 use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
 
-my $input = 
-{ 'name' => 'eRouter',
-  'nested' => [
-    { 'name' => 'ManagementServer',
-      'nested' => [
-        { 'value' => 1,
-          'name' => 'EnableCWMP'},
-        { 'value' => 'http://tr069.example.com/',
-          'name' => 'URL'},
-        { 'value' => 'goodUser',
-          'name' => 'Username'},
-        { 'value' => 'passwordsAreGood',
-          'name' => 'Password'},
-        { 'value' => 'remoteUser',
-          'name' => 'ConnectionRequestUsername'},
-        { 'value' => 'securePasswordsAreBetter',
-          'name' => 'ConnectionRequestPassword'},
-        { 'value' => 1,
-          'name' => 'ACSOverride'},
-      ]
-    }
-  ]
+my $input = {
+	'eRouter' => {
+		'ManagementServer' => {
+			'EnableCWMP' => 1,
+			'URL' => 'http://tr069.example.com/',
+			'Username' => 'goodUser',
+			'Password' => 'passwordsAreGood',
+			'ConnectionRequestUsername' => 'remoteUser',
+			'ConnectionRequestPassword' => 'securePasswordsAreBetter',
+			'ACSOverride' => 1,
+		}
+	}
 };
 
 my ($bytes, $output);
 
 {
   $bytes = encode_docsis($input);
-  is length $bytes, 48, 'encode_docsis';
+  is length $bytes, 144, 'encode_docsis';
 
   $output = decode_docsis($bytes);
   delete $output->{$_} for qw( CmtsMic CmMic GenericTLV );
-  is_deeply $output, $input, 'decode_docsis';
+  is_deeply $output, $input, 'decode_docsis';  
 }
 
 done_testing;

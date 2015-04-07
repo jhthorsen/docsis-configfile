@@ -4,17 +4,17 @@ use Test::More;
 use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
 
 my $input = {
-	'eRouter' => {
-		'ManagementServer' => {
-			'EnableCWMP' => 1,
-			'URL' => 'http://tr069.example.com/',
-			'Username' => 'goodUser',
-			'Password' => 'passwordsAreGood',
-			'ConnectionRequestUsername' => 'remoteUser',
-			'ConnectionRequestPassword' => 'securePasswordsAreBetter',
-			'ACSOverride' => 1,
-		}
-	}
+  'eRouter' => {
+    'ManagementServer' => {
+      'EnableCWMP' => 1,
+      'URL' => 'http://tr069.example.com/',
+      'Username' => 'goodUser',
+      'Password' => 'passwordsAreGood',
+      'ConnectionRequestUsername' => 'remoteUser',
+      'ConnectionRequestPassword' => 'securePasswordsAreBetter',
+      'ACSOverride' => 1,
+    }
+  }
 };
 
 my ($bytes, $output);

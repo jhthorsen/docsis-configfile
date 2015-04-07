@@ -535,6 +535,29 @@ our $TREE = {
       UsVendorSpecific     => {code => 43, func => "vendor",  lsize => 1, limit => [0, 0]},
     },
   },
+  eRouter  => {
+    code   => 202,
+    func   => "nested",
+    lsize  => 1,
+    limit  => [0, 0],
+    nested => {
+      ManagementServer  => {
+        code   => 2,
+        func   => "nested",
+        lsize  => 1,
+        limit  => [0, 0],
+        nested => {
+          EnableCWMP                => {code => 1,  func => "uchar",  lsize => 1, limit => [0, 1]},
+          URL                       => {code => 2,  func => "string", lsize => 1, limit => [0, 0]},
+          Username                  => {code => 3,  func => "string", lsize => 1, limit => [0, 0]},
+          Password                  => {code => 4,  func => "string", lsize => 1, limit => [0, 0]},
+          ConnectionRequestUsername => {code => 5,  func => "string", lsize => 1, limit => [0, 0]},
+          ConnectionRequestPassword => {code => 6,  func => "string", lsize => 1, limit => [0, 0]},
+          ACSOverride               => {code => 7,  func => "uchar",  lsize => 1, limit => [0, 1]},
+        },
+      },
+    },
+  },
   VendorSpecific => {code => 43, func => "vendor", lsize => 1, limit => [0, 0],},
 };
 
@@ -958,6 +981,17 @@ __PACKAGE__->add_symbol($_)
   [qw( DefaultScanTimeout        3    41   ushort       0         65535       1 )],
   [qw( TftpTimestamp            19     0   uint         0         4294967295  1 )],
   [qw( TftpModemAddress         20     0   ip           0         0           1 )],
+
+  # eRouter
+  [qw( eRouter                 202     0   nested       0         0           1 )],
+  [qw( ManagementServer          2   202   nested       0         0           1 )],
+  [qw( EnableCWMP                1     2   uchar        0         1           1 )],
+  [qw( URL                       2     2   string       0         0           1 )],
+  [qw( Username                  3     2   string       0         0           1 )],
+  [qw( Password                  4     2   string       0         0           1 )],
+  [qw( ConnectionRequestUsername 5     2   string       0         0           1 )],
+  [qw( ConnectionRequestPassword 6     2   string       0         0           1 )],
+  [qw( ACSOverride               7     2   uchar        0         1           1 )],
 
   # Generic TLV... we only use the limits  code and length dont matter
   [qw( GenericTLV              255     0   no_value     0         0           1 )],

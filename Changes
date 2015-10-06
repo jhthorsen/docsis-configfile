@@ -1,5 +1,9 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
+0.70 Not Released
+ - Add support for decode_docsis \$path_to_file
+ - Remove deprecated methods
+
 0.69 2015-04-07T21:13:47Z
  - MtaConfigDelimiter is optional when creating MTA config files
  - Add support for eRouter MangemnetServer TLV #5 Contributor: Josh Galvez

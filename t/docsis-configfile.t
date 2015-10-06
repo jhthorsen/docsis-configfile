@@ -1,91 +1,57 @@
+BEGIN { $ENV{DOCSIS_CAN_TRANSLATE_OID} = 0; }
 use strict;
 use warnings;
 use Test::More;
-use DOCSIS::ConfigFile;
+use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
 
-#$DOCSIS::ConfigFile::TRACE = 1;
+my $bytes;
+my $input = {
+  GlobalPrivacyEnable => 1,
+  MaxCPE              => 2,
+  NetworkAccess       => 1,
+  BaselinePrivacy     => {
+    AuthTimeout       => 10,
+    ReAuthTimeout     => 10,
+    AuthGraceTime     => 600,
+    OperTimeout       => 1,
+    ReKeyTimeout      => 1,
+    TEKGraceTime      => 600,
+    AuthRejectTimeout => 60,
+    SAMapWaitTimeout  => 1,
+    SAMapMaxRetries   => 4
+  },
+  UsServiceFlow => {UsServiceFlowRef => 2, QosParamSetType => 7, MaxConcatenatedBurst => 0},
+  UsPacketClass => {
+    ClassifierRef      => 2,
+    ServiceFlowRef     => 2,
+    RulePriority       => 64,
+    IpPacketClassifier => {IpProto => 17, SrcPortStart => 1000, SrcPortEnd => 2000}
+  },
+  SnmpMibObject => [
+    {oid => '1.3.6.1.4.1.1.77.1.6.1.1.6.2',    INTEGER => 1},
+    {oid => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', STRING  => 'bootfile.bin'},
+  ],
+  VendorSpecific => {id => '0x0011ee', options => [30 => '0xff', 31 => '0x00', 32 => '0x28']},
+};
 
-my $original = config();
-my $docsis   = DOCSIS::ConfigFile->new;
-my $encoded  = $docsis->encode($original);
-my $decoded  = $docsis->decode(\$encoded);
-my $i        = 0;
+{
+  $bytes = encode_docsis($input);
+  is length $bytes, 216, 'encode_docsis';
 
-plan tests => scalar(@$original);
-
-for my $o (@$original) {
-  is($decoded->[$i]->{'name'}, $o->{'name'}, "$o->{'name'} is ok");
-  $i++;
+  local $input->{CmtsMic}    = '0xbedbbbc3a8ecd0f15a44092cc5b6c5bc';
+  local $input->{CmMic}      = '0x08481e28d2c97902fc6c52f547cbbcac';
+  local $input->{GenericTLV} = '';
+  is_deeply decode_docsis($bytes), $input, 'decode_docsis';
 }
 
-sub config {
-  return [
-    {'name' => 'NetworkAccess',       'value' => '1',},
-    {'name' => 'GlobalPrivacyEnable', 'value' => '1',},
-    {'name' => 'MaxCPE',              'value' => '10',},
-    {
-      'name'   => 'BaselinePrivacy',
-      'nested' => [
-        {'name' => 'AuthTimeout',       'value' => 10,},
-        {'name' => 'ReAuthTimeout',     'value' => 10,},
-        {'name' => 'AuthGraceTime',     'value' => 600,},
-        {'name' => 'OperTimeout',       'value' => 1,},
-        {'name' => 'ReKeyTimeout',      'value' => 1,},
-        {'name' => 'TEKGraceTime',      'value' => 600,},
-        {'name' => 'AuthRejectTimeout', 'value' => 60,},
-        {'name' => 'SAMapWaitTimeout',  'value' => 1,},
-        {'name' => 'SAMapMaxRetries',   'value' => 4,}
-      ],
-    },
-    {
-      'name'   => 'DsServiceFlow',
-      'nested' => [{'name' => 'DsServiceFlowRef', 'value' => 1,}, {'name' => 'QosParamSetType', 'value' => '7',}],
-    },
-    {
-      'name'   => 'UsServiceFlow',
-      'nested' => [
-        {'name' => 'UsServiceFlowRef',     'value' => 2,},
-        {'name' => 'QosParamSetType',      'value' => '7',},
-        {'name' => 'MaxConcatenatedBurst', 'value' => 0,}
-      ],
-    },
-    {
-      'name' => 'MfgCVCData',
-      'value' =>
-        '0xfd620bb324fb572b125078840666300d06092a8648801197310b30090603550406130255533139303706a3051197310b30090603550406130255533139303706a305203666c65205365727669636520496e7465726661636203593353051b00005040613025553311d301b060355',
-    },
-    {
-      'name'   => 'VendorSpecific',
-      'value'  => '0x0011ee',
-      'nested' => [
-        {'length' => 1, 'value' => '0xff', 'type' => 30},
-        {'length' => 1, 'value' => '0x00', 'type' => 31},
-        {'length' => 1, 'value' => '0x28', 'type' => 32},
-      ],
-    },
-    {
-      'name'   => 'UsPacketClass',
-      'nested' => [
-        {'value' => '2',  'name' => 'ClassifierRef'},
-        {'value' => 2,    'name' => 'ServiceFlowRef'},
-        {'value' => '64', 'name' => 'RulePriority'},
-        {
-          'name'   => 'IpPacketClassifier',
-          'nested' => [
-            {'value' => 17,   'name' => 'IpProto'},
-            {'value' => 2000, 'name' => 'SrcPortStart'},
-            {'value' => 1000, 'name' => 'SrcPortEnd'}
-          ]
-        }
-      ]
-    },
-    {
-      'name'  => 'SnmpMibObject',
-      'value' => {'value' => 'foo-42.bin', 'oid' => '1.3.6.1.4.1.1429.77.1.6.1.1.6.2', 'type' => 'STRING'},
-    },
-    {
-      'name'  => 'SnmpMibObject',
-      'value' => {'value' => '1.6.4.1', 'oid' => '1.3.6.1.4.1.1429.77.1.6.1.1.7.2', 'type' => 'IPADDRESS'},
-    },
-  ];
+{
+  $bytes = encode_docsis($input, {shared_secret => 's3cret'});
+  is length $bytes, 216, 'encode_docsis';
+
+  local $input->{CmtsMic}    = '0xc5ab82b1738136be0a4a75badb454b4e';
+  local $input->{CmMic}      = '0x08481e28d2c97902fc6c52f547cbbcac';
+  local $input->{GenericTLV} = '';
+  is_deeply decode_docsis($bytes), $input, 'decode_docsis';
 }
+
+done_testing;

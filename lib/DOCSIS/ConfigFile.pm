@@ -93,7 +93,7 @@ use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 
 use base 'Exporter';
 
-our $VERSION = '0.69';
+our $VERSION   = '0.69';
 our @EXPORT_OK = qw( decode_docsis encode_docsis );
 our $DEPTH     = 0;
 
@@ -102,6 +102,7 @@ our $DEPTH     = 0;
 =head2 decode_docsis
 
   $data = decode_docsis($byte_string);
+  $data = decode_docsis(\$path_to_file);
 
 Used to decode a DOCSIS config file into a data structure. The output
 C<$data> can be used as input to L</encode_docsis>. Note: C<$data>
@@ -111,16 +112,26 @@ once.
 =cut
 
 sub decode_docsis {
-  my $args = ref $_[-1] eq 'HASH' ? $_[-1] : {};
+  my $args    = ref $_[-1] eq 'HASH' ? $_[-1] : {};
+  my $bytes   = shift;
   my $current = $args->{blueprint} || $DOCSIS::ConfigFile::Syminfo::TREE;
-  my $end     = $args->{end}       || length $_[0];
-  my $pos     = $args->{pos}       || 0;
+  my $pos     = $args->{pos} || 0;
   my $data    = {};
+  my $end;
+
+  if (ref $bytes eq 'SCALAR') {
+    my ($file, $r) = ($$bytes, 0);
+    $bytes = '';
+    open my $BYTES, '<', $file or die "decode_docsis $file: $!";
+    while ($r = sysread $BYTES, my $buf, 131072, 0) { $bytes .= $buf }
+    die "decode_docsis $file: $!" unless defined $r;
+  }
 
   local $DEPTH = $DEPTH + 1 if DEBUG;
+  $end = $args->{end} || length $bytes;
 
   while ($pos < $end) {
-    my $code = unpack 'C', substr $_[0], $pos++, 1 or next;    # next on $code=0
+    my $code = unpack 'C', substr $bytes, $pos++, 1 or next;    # next on $code=0
     my ($length, $t, $name, $syminfo, $value);
 
     for (keys %$current) {
@@ -138,17 +149,17 @@ sub decode_docsis {
     # Document: PKT-SP-PROV1.5-I03-070412
     # Chapter:  9.1 MTA Configuration File
     $t = $syminfo->{lsize} == 1 ? 'C' : 'n';    # 1=C, 2=n
-    $length = unpack $t, substr $_[0], $pos, $syminfo->{lsize};
+    $length = unpack $t, substr $bytes, $pos, $syminfo->{lsize};
     $pos += $syminfo->{lsize};
 
     if ($syminfo->{nested}) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with decode_docsis\n" if DEBUG;
       local @$args{qw( blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
-      $value = decode_docsis($_[0], $args);
+      $value = decode_docsis($bytes, $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
       warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $syminfo->{func}\n" if DEBUG;
-      $value = $f->(substr $_[0], $pos, $length);
+      $value = $f->(substr $bytes, $pos, $length);
       $value = {oid => @$value{qw( oid type value )}} if $name eq 'SnmpMibObject';
     }
     else {

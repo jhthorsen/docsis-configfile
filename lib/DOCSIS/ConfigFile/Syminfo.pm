@@ -70,7 +70,7 @@ Here is the complete structure of possible config parameters:
       IpProto      => ushort, # 0..257
       IpSrcAddr    => ip, # 1.2.3.4
       IpSrcMask    => ip, # 1.2.3.4
-      IpTos        => hexstr, # 3..3
+      IpTos        => hexstr,
       SrcPortEnd   => ushort, # 0..65535
       SrcPortStart => ushort, # 0..65535
     },
@@ -161,7 +161,7 @@ Here is the complete structure of possible config parameters:
       IpProto      => ushort, # 0..257
       IpSrcAddr    => ip, # 1.2.3.4
       IpSrcMask    => ip, # 1.2.3.4
-      IpTos        => hexstr, # 3..3
+      IpTos        => hexstr,
       SrcPortEnd   => ushort, # 0..65535
       SrcPortStart => ushort, # 0..65535
     },
@@ -332,7 +332,7 @@ our $TREE = {
           IpProto      => {code => 2,  func => "ushort", lsize => 1, limit => [0, 257]},
           IpSrcAddr    => {code => 3,  func => "ip",     lsize => 1, limit => [0, 0]},
           IpSrcMask    => {code => 4,  func => "ip",     lsize => 1, limit => [0, 0]},
-          IpTos        => {code => 1,  func => "hexstr", lsize => 1, limit => [3, 3]},
+          IpTos        => {code => 1,  func => "hexstr", lsize => 1, limit => [0, 0]},
           SrcPortEnd   => {code => 8,  func => "ushort", lsize => 1, limit => [0, 65535]},
           SrcPortStart => {code => 7,  func => "ushort", lsize => 1, limit => [0, 65535]},
         },
@@ -484,7 +484,7 @@ our $TREE = {
           IpProto      => {code => 2,  func => "ushort", lsize => 1, limit => [0, 257]},
           IpSrcAddr    => {code => 3,  func => "ip",     lsize => 1, limit => [0, 0]},
           IpSrcMask    => {code => 4,  func => "ip",     lsize => 1, limit => [0, 0]},
-          IpTos        => {code => 1,  func => "hexstr", lsize => 1, limit => [3, 3]},
+          IpTos        => {code => 1,  func => "hexstr", lsize => 1, limit => [0, 0]},
           SrcPortEnd   => {code => 8,  func => "ushort", lsize => 1, limit => [0, 65535]},
           SrcPortStart => {code => 7,  func => "ushort", lsize => 1, limit => [0, 65535]},
         }
@@ -810,7 +810,7 @@ __PACKAGE__->add_symbol($_)
   [qw( ActivationState           6    22   uchar        0         1           1 )],
   [qw( DscAction                 7    22   uchar        0         2           1 )],
   [qw( IpPacketClassifier        9    22   nested       0         0           1 )],
-  [qw( IpTos                     1     9   hexstr       3         3           1 )],
+  [qw( IpTos                     1     9   hexstr       0         0           1 )],
   [qw( IpProto                   2     9   ushort       0         257         1 )],
   [qw( IpSrcAddr                 3     9   ip           0         0           1 )],
   [qw( IpSrcMask                 4     9   ip           0         0           1 )],
@@ -839,7 +839,7 @@ __PACKAGE__->add_symbol($_)
   [qw( DscAction                 7    23   uchar        0         2           1 )],
   [qw( IpPacketClassifier        9    23   nested       0         0           1 )],
 
-  #[qw( IpTos                     1     9   hexstr       3         3           1 )], # already defined
+  #[qw( IpTos                     1     9   hexstr       0         0           1 )], # already defined
   #[qw( IpProto                   2     9   ushort       0         257         1 )], # already defined
   #[qw( IpSrcAddr                 3     9   ip           0         0           1 )], # already defined
   #[qw( IpSrcMask                 4     9   ip           0         0           1 )], # already defined

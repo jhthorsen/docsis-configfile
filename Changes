@@ -1,5 +1,8 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
+0.71 Not Released
+ - Fix encoding config with IpTos #jhthorsen/app-docsisious#2
+
 0.70 2015-10-15T01:30:14+0200
  - Add support for decode_docsis \$path_to_file
  - Remove deprecated methods

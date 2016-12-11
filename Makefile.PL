@@ -28,5 +28,5 @@ WriteMakefile(
   'perl' => '5.010001'
 }
 ,
-  test => { TESTS => 't/*.t' },
+  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );

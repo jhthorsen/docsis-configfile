@@ -1,6 +1,6 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
-0.71 Not Released
+0.71 2016-12-11T10:08:41+0100
  - Fix encoding config with IpTos #jhthorsen/app-docsisious#2
 
 0.70 2015-10-15T01:30:14+0200

@@ -24,8 +24,6 @@ my ($bytes, $output);
 {
   $bytes = encode_docsis($input);
 
-  print length( $bytes )."\n";
-
   is length $bytes, 120, 'encode_docsis';
 
   $output = decode_docsis($bytes);

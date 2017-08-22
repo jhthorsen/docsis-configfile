@@ -2,6 +2,7 @@ Revision history for perl distribution DOCSIS-ConfigFile
 
 0.72 Not Released
  - Add missing Types for TLV 202 #9
+ - Will die when pack()-ing invalid length
 
 0.71 2016-12-11T10:08:41+0100
  - Fix encoding config with IpTos #jhthorsen/app-docsisious#2

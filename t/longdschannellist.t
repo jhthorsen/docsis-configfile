@@ -33,6 +33,6 @@ my $input = {
 };
 
 eval { encode_docsis($input) };
-like $@, qr{xxxx}, 'encode_docsis failed';
+like $@, qr{pack}, 'encode_docsis failed';
 
 done_testing;

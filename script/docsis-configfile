@@ -1,0 +1,61 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+load_module($_) for qw(DOCSIS::ConfigFile YAML::PP);
+run(@ARGV);
+
+sub load_module {
+  eval "require $_[-1];1" or die "You need to install $_. Example:\n\n\$ cpanm -n $_\n\n";
+}
+
+sub run {
+  my %argv;
+  while (@_) {
+    my $arg = shift;
+    @argv{qw(action file)} = (run_decode => shift) if $arg =~ /^-d/;
+    @argv{qw(action file)} = (run_encode => shift) if $arg =~ /^-e/;
+    $argv{config} = shift if $arg =~ /^-c/;
+  }
+
+  die usage() unless $argv{action};
+  __PACKAGE__->can($argv{action})->(\%argv);
+}
+
+sub run_encode {
+  my $argv = shift;
+  die "File missing.\n" unless $argv->{file};
+  my $args = $argv->{config} ? YAML::PP->new->load_file($argv->{config}) : {};
+  my $data = YAML::PP->new->load_file($argv->{file});
+  print DOCSIS::ConfigFile::encode_docsis($data, $args);
+}
+
+sub run_decode {
+  my $argv = shift;
+  die "File missing.\n" unless $argv->{file};
+  print YAML::PP->new->dump_string(DOCSIS::ConfigFile::decode_docsis(\$argv->{file}));
+}
+
+sub usage {
+  return <<"HERE";
+# Decode file to YAML
+
+docsis-configfile -d path/to/binary.file
+
+# Encode YAML file
+
+docsis-configfile -e path/to/yaml.file
+docsis-configfile -e path/to/yaml.file -c myconfig.yaml
+
+# Example myconfig.yaml
+
+---
+mta_algorithm: sha1
+shared_secret: supersecretstring
+
+# See also
+
+See https://metacpan.org/pod/DOCSIS::ConfigFile for more information.
+
+HERE
+}

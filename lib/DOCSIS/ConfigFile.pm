@@ -11,7 +11,7 @@ use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 
 use base 'Exporter';
 
-our $VERSION   = '0.73';
+our $VERSION   = '0.74';
 our @EXPORT_OK = qw(decode_docsis encode_docsis);
 our $DEPTH     = 0;
 
@@ -198,7 +198,7 @@ DOCSIS::ConfigFile - Decodes and encodes DOCSIS config files
 
 =head1 VERSION
 
-0.73
+0.74
 
 =head1 DESCRIPTION
 

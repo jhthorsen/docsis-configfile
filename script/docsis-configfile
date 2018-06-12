@@ -10,41 +10,45 @@ sub load_module {
 }
 
 sub run {
-  my %argv;
+  my $self = bless {}, __PACKAGE__;
   while (@_) {
     my $arg = shift;
-    @argv{qw(action file)} = (run_decode => shift) if $arg =~ /^-d/;
-    @argv{qw(action file)} = (run_encode => shift) if $arg =~ /^-e/;
-    $argv{config} = shift if $arg =~ /^-c/;
+    @$self{qw(action file)} = (run_decode => shift) if $arg =~ /^-d/;
+    @$self{qw(action file)} = (run_encode => shift) if $arg =~ /^-e/;
+    $self->{output} = shift if $arg =~ /^-o/;
+    $self->{config} = shift if $arg =~ /^-c/;
   }
 
-  die usage() unless $argv{action};
-  __PACKAGE__->can($argv{action})->(\%argv);
+  die $self->usage unless $self->{action};
+  $self->can($self->{action})->($self);
 }
 
 sub run_encode {
-  my $argv = shift;
-  die "File missing.\n" unless $argv->{file};
-  my $args = $argv->{config} ? YAML::PP->new->load_file($argv->{config}) : {};
-  my $data = YAML::PP->new->load_file($argv->{file});
-  print DOCSIS::ConfigFile::encode_docsis($data, $args);
+  my $self = shift;
+  die "File missing.\n" unless $self->{file};
+  my $args = $self->{config} ? YAML::PP->new->load_file($self->{config}) : {};
+  my $data = YAML::PP->new->load_file($self->{file});
+  $self->_write(DOCSIS::ConfigFile::encode_docsis($data, $args));
 }
 
 sub run_decode {
-  my $argv = shift;
-  die "File missing.\n" unless $argv->{file};
-  print YAML::PP->new->dump_string(DOCSIS::ConfigFile::decode_docsis(\$argv->{file}));
+  my $self = shift;
+  die "File missing.\n" unless $self->{file};
+  $self->_write(YAML::PP->new->dump_string(DOCSIS::ConfigFile::decode_docsis(\$self->{file})));
 }
 
 sub usage {
+  my $self = shift;
   return <<"HERE";
 # Decode file to YAML
 
-docsis-configfile -d path/to/binary.file
+docsis-configfile -d path/to/binary.file > out.yaml
+docsis-configfile -d path/to/binary.file -o out.yaml
 
 # Encode YAML file
 
-docsis-configfile -e path/to/yaml.file
+docsis-configfile -e path/to/yaml.file > out.bin
+docsis-configfile -e path/to/yaml.file -o out.bin
 docsis-configfile -e path/to/yaml.file -c myconfig.yaml
 
 # Example myconfig.yaml
@@ -53,9 +57,24 @@ docsis-configfile -e path/to/yaml.file -c myconfig.yaml
 mta_algorithm: sha1
 shared_secret: supersecretstring
 
+# Options
+
+  -e in.yaml     - YAML DOCSIS file to encode
+  -d in.bin      - Binary DOCSIS file to decode
+  -o out.file    - Which file to write output to. Default is to write to STDOUT
+  -c config.yaml - Extra config parameters for encoding
+
 # See also
 
 See https://metacpan.org/pod/DOCSIS::ConfigFile for more information.
 
 HERE
+}
+
+sub _write {
+  my ($self, $data) = @_;
+  return print $data unless $self->{output};
+  open my $FH, '>', $self->{output} or die "Can't write to $self->{output}: $!\n";
+  my $written = syswrite $FH, $data;
+  die "Can't write to $self->{output}: $!\n" unless defined $written and $written != length $data;
 }

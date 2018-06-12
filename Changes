@@ -1,6 +1,6 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
-0.75 Not Released
+0.75 2018-06-12T11:09:15+0800
  - Add support for "-o" parameter for bundled script
 
 0.74 2018-06-08T11:20:12+0800

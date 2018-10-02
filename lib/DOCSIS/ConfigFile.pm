@@ -1,12 +1,14 @@
 package DOCSIS::ConfigFile;
 use strict;
 use warnings;
+
 use Digest::MD5 ();
 use Digest::HMAC_MD5;
 use Digest::SHA;
 use DOCSIS::ConfigFile::Syminfo;
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
+
 use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
 
 use base 'Exporter';
@@ -324,7 +326,7 @@ increase security between the cable modem and CMTS.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, Jan Henning Thorsen
+Copyright (C) 2014-2018, Jan Henning Thorsen
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

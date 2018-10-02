@@ -3,7 +3,6 @@ use strict;
 use warnings;
 use bytes;
 use Carp 'confess';
-use DOCSIS::ConfigFile::Syminfo;
 use Math::BigInt;
 use Socket;
 
@@ -238,7 +237,7 @@ sub _snmp_oid {
 
   if ($_[0] =~ /[A-Za-z]/) {
     die "[DOCSIS] Need to install SNMP.pm http://www.net-snmp.org/ to encode non-numberic OID $oid"
-      unless DOCSIS::ConfigFile::Syminfo::CAN_TRANSLATE_OID;
+      unless DOCSIS::ConfigFile::CAN_TRANSLATE_OID;
     $oid = SNMP::translateObj($oid) or confess "Could not translate OID '$_[0]'";
   }
 
@@ -368,8 +367,8 @@ Returns a list of bytes representing the C<$str> with a zero
 terminator at the end. The "\0" byte will be added unless
 seen as the last element in the list.
 
-Only ServiceClassName needs this, see L<DOCSIS::ConfigFile::Syminfo>
-for more details.
+Only ServiceClassName needs this, see C<$DOCSIS::ConfigFile::TREE> for more
+details.
 
 =head2 uchar
 

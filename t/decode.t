@@ -1,7 +1,7 @@
 BEGIN { $ENV{DOCSIS_CAN_TRANSLATE_OID} = 0; }
 use warnings;
 use strict;
-use DOCSIS::ConfigFile::Decode;
+use DOCSIS::ConfigFile;
 use Test::More;
 
 our $AUTOLOAD;

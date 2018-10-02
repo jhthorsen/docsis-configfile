@@ -1,5 +1,8 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
+0.76 Not Released
+ - Removed DOCSIS::ConfigFile::Syminfo
+
 0.75 2018-06-12T11:09:15+0800
  - Add support for "-o" parameter for bundled script
 

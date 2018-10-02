@@ -4,7 +4,6 @@ use warnings;
 use bytes;
 
 use Carp 'confess';
-use DOCSIS::ConfigFile::Syminfo;
 use Math::BigInt;
 use Socket;
 
@@ -230,7 +229,7 @@ sub _snmp_oid {
     $oid[1] -= 80;
   }
 
-  return SNMP::translateObj(join '.', @oid) || join '.', @oid if DOCSIS::ConfigFile::Syminfo::CAN_TRANSLATE_OID;
+  return SNMP::translateObj(join '.', @oid) || join '.', @oid if DOCSIS::ConfigFile::CAN_TRANSLATE_OID;
   return join '.', @oid;
 }
 

@@ -1,6 +1,6 @@
 use warnings;
 use strict;
-use DOCSIS::ConfigFile::Encode;
+use DOCSIS::ConfigFile;
 use Test::More;
 
 our $AUTOLOAD;

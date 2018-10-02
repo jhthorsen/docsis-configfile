@@ -4,6 +4,7 @@ use warnings;
 
 use constant CAN_TRANSLATE_OID => $ENV{DOCSIS_CAN_TRANSLATE_OID} // eval 'require SNMP;1' || 0;
 use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
+use if DEBUG, 'Data::Dumper';
 
 if (CAN_TRANSLATE_OID) {
   require File::Basename;
@@ -55,8 +56,14 @@ sub decode_docsis {
       last;
     }
 
-    if (!$name) {
+    unless ($name) {
       warn "[DOCSIS] Internal error: No syminfo defined for code=$code.";
+      next;
+    }
+
+    unless ($syminfo->{lsize}) {
+      warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=0\n", join('', (' ' x $DEPTH)), $name, $code, $code
+        if DEBUG;
       next;
     }
 
@@ -66,13 +73,15 @@ sub decode_docsis {
     $length = unpack $t, substr $bytes, $pos, $syminfo->{lsize};
     $pos += $syminfo->{lsize};
 
+    warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=%s, with %s()\n", join('', (' ' x $DEPTH)), $name, $code,
+      $code, $length, $syminfo->{func} // 'unknown'
+      if DEBUG;
+
     if ($syminfo->{nested}) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with decode_docsis\n" if DEBUG;
       local @$args{qw(blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
       $value = decode_docsis($bytes, $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $syminfo->{func}\n" if DEBUG;
       $value = $f->(substr $bytes, $pos, $length);
       $value = {oid => @$value{qw(oid type value)}} if $name eq 'SnmpMibObject';
     }
@@ -115,7 +124,7 @@ sub encode_docsis {
     my $syminfo = $current->{$name};
     my ($type, $length, $value);
 
-    for my $item (ref $data->{$name} eq 'ARRAY' ? @{$data->{$name}} : $data->{$name}) {
+    for my $item (_to_list($data->{$name}, $syminfo)) {
       if ($syminfo->{nested}) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with encode_docsis\n" if DEBUG;
         local @$args{qw(blueprint)} = ($current->{$name}{nested});
@@ -123,7 +132,10 @@ sub encode_docsis {
       }
       elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
-        if ($name eq 'SnmpMibObject') {
+        if ($syminfo->{func} =~ /_list$/) {
+          $value = pack 'C*', $f->({value => _validate($item, $syminfo)});
+        }
+        elsif ($name eq 'SnmpMibObject') {
           my @k = qw(type value);
           local $item->{oid} = $item->{oid};
           $value = pack 'C*', $f->({value => {oid => delete $item->{oid}, map { shift(@k), $_ } %$item}});
@@ -182,6 +194,12 @@ sub _mta_eof {
   return $hash . $_[0] . encode_docsis({MtaConfigDelimiter => 255}, {depth => 1});
 }
 
+sub _to_list {
+  return $_[0] if $_[1]->{func} =~ /_list$/;
+  return @{$_[0]} if ref $_[0] eq 'ARRAY';
+  return $_[0];
+}
+
 # _validate($value, $syminfo);
 sub _validate {
   if ($_[1]->{limit}[1]) {
@@ -190,7 +208,7 @@ sub _validate {
       die "[DOCSIS] $_[1]->{name} holds a too low value. ($_[0])"  if $_[0] < $_[1]->{limit}[0];
     }
     else {
-      my $length = length $_[0];
+      my $length = ref $_[0] eq 'ARRAY' ? @{$_[0]} : length $_[0];
       die "[DOCSIS] $_[1]->{name} is too long. ($_[0])"  if $_[1]->{limit}[1] < $length;
       die "[DOCSIS] $_[1]->{name} is too short. ($_[0])" if $length < $_[1]->{limit}[0];
     }
@@ -352,7 +370,7 @@ $CONFIG_TREE = {
       TrafficPriority     => {code => 7,  func => 'uchar',   lsize => 1, limit => [0, 7]},
     },
   },
-  GenericTLV          => {code => 255, func => 'no_value', lsize => 1, limit => [0, 0]},
+  GenericTLV          => {code => 255, func => 'no_value', lsize => 0, limit => [0, 0]},
   GlobalPrivacyEnable => {code => 29,  func => 'uchar',    lsize => 1, limit => [0, 0]},
   MaxClassifiers      => {code => 28,  func => 'ushort',   lsize => 1, limit => [0, 0]},
   MaxCPE              => {code => 18,  func => 'uchar',    lsize => 1, limit => [1, 254]},
@@ -422,7 +440,7 @@ $CONFIG_TREE = {
   },
   SubMgmtControl    => {code => 35, func => 'hexstr',      lsize => 1, limit => [3, 3]},
   SubMgmtCpeTable   => {code => 36, func => 'hexstr',      lsize => 1, limit => [0, 0]},
-  SubMgmtFilters    => {code => 37, func => 'ushort_list', lsize => 1, limit => [4, 4]},
+  SubMgmtFilters    => {code => 37, func => 'ushort_list', lsize => 1, limit => [0, 20]},
   SwUpgradeFilename => {code => 9,  func => 'string',      lsize => 1, limit => [0, 0]},
   SwUpgradeServer   => {code => 21, func => 'ip',          lsize => 1, limit => [0, 0]},
   TestMode          => {code => 40, func => 'hexstr',      lsize => 1, limit => [0, 1]},

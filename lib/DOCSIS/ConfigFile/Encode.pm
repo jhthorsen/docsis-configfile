@@ -180,6 +180,10 @@ sub ushort {
   return @bytes ? @bytes : (0);
 }
 
+sub ushort_list {
+  map { ushort({value => $_}) } @{$_[0]->{value} || []};
+}
+
 sub vendor {
   my $options = $_[0]->{value}{options};
   my @vendor  = ether({value => $_[0]->{value}{id}});
@@ -381,6 +385,11 @@ Returns a list of bytes representing the C<$uint>. This can be any
 positive number which can be representing using 32 bits.
 
 =head2 ushort
+
+Returns a list of bytes representing the C<$ushort>. This can be any
+positive number which can be representing using 16 bits.
+
+=head2 ushort_list
 
 Returns a list of bytes representing the C<$ushort>. This can be any
 positive number which can be representing using 16 bits.

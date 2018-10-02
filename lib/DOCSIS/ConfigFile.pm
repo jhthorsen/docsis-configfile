@@ -66,13 +66,15 @@ sub decode_docsis {
     $length = unpack $t, substr $bytes, $pos, $syminfo->{lsize};
     $pos += $syminfo->{lsize};
 
+    warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=%s, with %s()\n", join('', (' ' x $DEPTH)), $name, $code,
+      $code, $length, $syminfo->{func} // 'unknown'
+      if DEBUG;
+
     if ($syminfo->{nested}) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with decode_docsis\n" if DEBUG;
       local @$args{qw(blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
       $value = decode_docsis($bytes, $args);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
-      warn "[DOCSIS]@{[' 'x$DEPTH]}Decode $name [$pos, $length] with $syminfo->{func}\n" if DEBUG;
       $value = $f->(substr $bytes, $pos, $length);
       $value = {oid => @$value{qw(oid type value)}} if $name eq 'SnmpMibObject';
     }
@@ -422,7 +424,7 @@ $CONFIG_TREE = {
   },
   SubMgmtControl    => {code => 35, func => 'hexstr',      lsize => 1, limit => [3, 3]},
   SubMgmtCpeTable   => {code => 36, func => 'hexstr',      lsize => 1, limit => [0, 0]},
-  SubMgmtFilters    => {code => 37, func => 'ushort_list', lsize => 1, limit => [4, 4]},
+  SubMgmtFilters    => {code => 37, func => 'ushort_list', lsize => 1, limit => [0, 8]},
   SwUpgradeFilename => {code => 9,  func => 'string',      lsize => 1, limit => [0, 0]},
   SwUpgradeServer   => {code => 21, func => 'ip',          lsize => 1, limit => [0, 0]},
   TestMode          => {code => 40, func => 'hexstr',      lsize => 1, limit => [0, 1]},

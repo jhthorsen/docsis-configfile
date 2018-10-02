@@ -112,6 +112,10 @@ sub uint {
 
 sub ushort { unpack 'n', _test_length(ushort => $_[0], 'short int') }
 
+sub ushort_list {
+  [map { ushort($_) } $_[0] =~ /(..)/g];
+}
+
 sub vendorspec {
   my $bin = $_[0] || '';
   my ($vendor, @ret, $length);
@@ -252,12 +256,8 @@ sub _truncate_and_unpack {
   my ($bin_ref, $type) = @_;
   my $n = ($type =~ /C/ ? 1 : 2) * ($type =~ /(\d+)/)[0];
 
-  if ($$bin_ref =~ s/^(.{$n})//s) {
-    return unpack $type, $1;
-  }
-  else {
-    confess "_truncate_and_unpack('...', $type) failed to truncate binary string";
-  }
+  return unpack $type, $1 if $$bin_ref =~ s/^(.{$n})//s;
+  confess "_truncate_and_unpack('...', $type) failed to truncate binary string";
 }
 
 1;
@@ -335,6 +335,8 @@ Will unpack the input string and return an integer, from 0 to 4294967295.
 =head2 ushort
 
 Will unpack the input string and return a short integer, from 0 to 65535.
+
+=head2 ushort_list
 
 =head2 vendor
 

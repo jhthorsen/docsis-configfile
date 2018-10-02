@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
-use DOCSIS::ConfigFile qw( encode_docsis decode_docsis );
+use DOCSIS::ConfigFile qw(encode_docsis decode_docsis);
 
 plan skip_all => 'http://sourceforge.net/projects/net-snmp/files/net-snmp/5.7.2/net-snmp-5.7.2.tar.gz/download'
   unless DOCSIS::ConfigFile::Syminfo::CAN_TRANSLATE_OID;

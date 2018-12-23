@@ -9,7 +9,7 @@ RUN apk add -U perl perl-io-socket-ssl \
   && apk add -t builddeps build-base curl perl-dev wget \
   && wget -q -O - https://github.com/jhthorsen/docsis-configfile/archive/master.tar.gz | tar xvz \
   && curl -L https://cpanmin.us | perl - App::cpanminus \
-  && cpanm -M https://cpan.metacpan.org --installdeps ./docsis-configfile-master \
+  && cpanm -M https://cpan.metacpan.org ./docsis-configfile-master \
   && cpanm -M https://cpan.metacpan.org Mojolicious YAML::XS \
   && apk del builddeps curl wget \
   && rm -rf /root/.cpanm /var/cache/apk/*

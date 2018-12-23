@@ -12,4 +12,5 @@ MANIFEST*
 *META.*
 /local
 /cover_db
+t/storage/
 DOCSIS-*.gz

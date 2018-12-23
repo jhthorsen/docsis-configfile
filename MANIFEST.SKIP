@@ -1,4 +1,3 @@
-#!start included /home/jhthorsen/.perlbrew/perls/perl-5.20.1/lib/5.20.1/ExtUtils/MANIFEST.SKIP
 # Avoid version control files.
 \bRCS\b
 \bCVS\b
@@ -62,3 +61,4 @@
 ^README\.pod
 
 ^\.travis\.yml
+storage

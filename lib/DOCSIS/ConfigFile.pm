@@ -633,6 +633,25 @@ like the example below, instead of using numeric OIDs:
     },
   );
 
+=head1 WEB APPLICATION
+
+There is an example web application bundled with this distribution called
+"Docsisious". To run this application, you need to install L<Mojolicious> and
+L<YAML::XS>:
+
+  $ curl -L https://cpanmin.us \
+    | perl - -M https://cpan.metacpan.org \
+      DOCSIS::ConfigFile \
+      Mojolicious \
+      YAML::XS
+
+After installing the modules above, you can run the web app like this:
+
+  $ docsisious --listen http://*:8000
+
+And then open your favorite browser at L<http://localhost:8000>. To see a live
+demo, you can visit L<https://app.thorsen.pm/docsisious>.
+
 =head1 FUNCTIONS
 
 =head2 decode_docsis
@@ -686,10 +705,28 @@ increase security between the cable modem and CMTS.
 
 =head1 COPYRIGHT AND LICENSE
 
+=head2 DOCSIS::ConfigFile
+
 Copyright (C) 2014-2018, Jan Henning Thorsen
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
+
+=head2 Docsisious icons
+
+=over 2
+
+=item * [Daniel Bruce](http://www.flaticon.com/free-icon/question-mark_3711)
+
+=item * [Dave Gandy](http://www.flaticon.com/free-icon/fullscreen-arrows-symbol_25183)
+
+=item * [Egor Rumyantsev](http://www.flaticon.com/free-icon/settings-work-tool_70367&#x22;)
+
+=item * [Freepik](http://www.flaticon.com/free-icon/save-icon_64052)
+
+=item * [Google](http://www.flaticon.com/free-icon/download-button_60721)
+
+=back
 
 =head1 AUTHOR
 

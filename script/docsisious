@@ -176,14 +176,6 @@ window.addEventListener('load', function() {
   resize();
 });
 @@ css/docsis.css.ep
-@font-face { font-family: "Flaticon"; src: url("../../icons/flaticon.eot"); src: url("../../icons/flaticon.eot#iefix") format("embedded-opentype"), url("../../icons/flaticon.woff") format("woff"), url("../../icons/flaticon.ttf") format("truetype"), url("../../icons/flaticon.svg") format("svg"); font-weight: normal; font-style: normal; }
-[class^="flaticon-"]:before, [class*=" flaticon-"]:before, [class^="flaticon-"]:after, [class*=" flaticon-"]:after { font-family: Flaticon; font-style: normal; }
-.flaticon-download164:before { content: "\e000"; }
-.flaticon-fullscreen4:before { content: "\e001"; }
-.flaticon-gear39:before { content: "\e002"; }
-.flaticon-question58:before { content: "\e003"; }
-.flaticon-save28:before { content: "\e004"; }
-.flaticon-uploading18:before { content: "\e005"; }
 * { box-sizing: border-box; }
 body, html {
   margin: 0;
@@ -281,6 +273,7 @@ textarea {
 <head>
   <title>DOCSIS config file editor</title>
   <meta charset="utf-8">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
   %= stylesheet "/css/docsis/$VERSION.css"
 </head>
 <body>
@@ -295,11 +288,11 @@ textarea {
   <div id="header">
     <div id="title_box">&nbsp;</div>
     <h1><%= link_to 'DOCSIS config file editor', 'editor' %></h1>
-    <button class="btn" name="save" value="1" title="Save for later."><i class="icon flaticon-save28"></i></button>
-    <button class="btn settings" type="button" title="Settings."><i class="icon flaticon-gear39"></i></a>
-    <button class="btn" name="download" value="1" title="Download binary config."><i class="icon flaticon-download164"></i></a>
-    <button class="btn upload" type="button" title="Upload binary config."><i class="icon flaticon-uploading18"></i></button>
-    <button class="btn help" type="button" title="Help and about."><i class="icon flaticon-question58"></i></button>
+    <button class="btn" name="save" value="1" title="Save for later."><i class="fa fa-save"></i></button>
+    <button class="btn settings" type="button" title="Settings."><i class="fa fa-cog"></i></a>
+    <button class="btn" name="download" value="1" title="Download binary config."><i class="fa fa-download"></i></a>
+    <button class="btn upload" type="button" title="Upload binary config."><i class="fa fa-upload"></i></button>
+    <button class="btn help" type="button" title="Help and about."><i class="fa fa-question"></i></button>
   % if ($error) {
     <div class="error"><%= $error %></div>
   % }

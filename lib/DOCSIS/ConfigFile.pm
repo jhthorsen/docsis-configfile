@@ -585,6 +585,9 @@ server. These files are L<binary encode|DOCSIS::ConfigFile::Encode> using a
 variety of functions, but all the data in the file are constructed by TLVs
 (type-length-value) blocks. These can be nested and concatenated.
 
+See the source code or L<https://app.thorsen.pm/docsisious> for list of
+supported parameters.
+
 =head1 SYNOPSIS
 
   use DOCSIS::ConfigFile qw(encode_docsis decode_docsis);

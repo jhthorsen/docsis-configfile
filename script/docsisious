@@ -3,9 +3,9 @@ use Mojolicious::Lite;
 
 use Mojo::File 'path';
 use Mojo::Util 'steady_time';
-use DOCSIS::ConfigFile qw( decode_docsis encode_docsis );
+use DOCSIS::ConfigFile qw(decode_docsis encode_docsis);
 use File::Basename;
-use File::Spec::Functions qw( catdir catfile );
+use File::Spec::Functions qw(catdir catfile);
 use FindBin;
 use YAML::XS;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
@@ -16,6 +16,7 @@ mkdir $STORAGE or die "mkdir $STORAGE: $!" unless -d $STORAGE;
 app->log->info("Will store DOCSIS config files in $STORAGE");
 
 get '/' => {layout => 'default'} => 'editor';
+get '/parameters' => {links => {}, tree => $DOCSIS::ConfigFile::CONFIG_TREE, layout => 'default'} => 'parameters';
 get '/css/docsis/:version' => [format => ['css']] => {template => 'css/docsis'};
 get '/js/docsis/:version'  => [format => ['js']]  => {template => 'js/docsis'};
 
@@ -24,7 +25,7 @@ my $download = sub {
 
   eval {
     my $config = YAML::XS::Load($c->param('config'));
-    delete $config->{$_} for qw( CmMic CmtsMic );
+    delete $config->{$_} for qw(CmMic CmtsMic);
     my $binary = encode_docsis $config, {shared_secret => $c->param('shared_secret')};
     my $filename = $c->param('filename') || $config->{filename} || sprintf '%s.bin', $c->paste_id;
     $filename =~ s![^\w\.-]!-!g;
@@ -116,6 +117,12 @@ helper paste_id => sub {
   die "Invalid id: $id" unless $id =~ /^\w+$/;
   die "Invalid id: $id" if $id eq 'example';
   return $id;
+};
+
+helper sort_parameters => sub {
+  my ($c, $p) = @_;
+
+  return sort { $p->{$a}{code} <=> $p->{$b}{code} } keys %$p;
 };
 
 $ENV{X_REQUEST_BASE} and hook before_dispatch => sub {
@@ -254,6 +261,30 @@ textarea {
 .icon {
   font-size: 18px;
 }
+.parameters {
+  margin-bottom: 3rem;
+}
+.parameters h2,
+.parameters h3,
+.parameters h4,
+.parameters h5 {
+  margin: 0.8em 0 0.2em 0;
+  padding: 0;
+}
+.parameters h2 a,
+.parameters h3 a,
+.parameters h4 a,
+.parameters h5 a {
+  text-decoration: none;
+}
+.parameters p {
+  margin: 0;
+}
+.parameters ul {
+  margin: 0;
+  margin-left: 1.5rem;
+  padding: 0;
+}
 .wrapper {
   max-width: 70em;
   margin: 0 auto;
@@ -310,17 +341,17 @@ textarea {
         <li>Can download/upload binary format.</li>
         <li>Can save config for later use.</li>
         <li>Allow setting of shared secret.</li>
-        <li><a href="https://github.com/jhthorsen/app-docsisious">Open source</a>.</li>
+        <li><a href="https://metacpan.org/pod/DOCSIS::ConfigFile">Open source</a>.</li>
       </ul>
       <p>
         The program is built on top of the powerful <a href="http://perl.org">Perl</a> based
         <a href="https://metacpan.org/pod/DOCSIS::ConfigFile">DOCSIS::ConfigFile</a> library.
-        Have a look at the complete <a href="https://metacpan.org/pod/DOCSIS::ConfigFile::Syminfo#CONFIGURATION-TREE">configuration tree</a>
+        Have a look at the complete <%= link_to 'configuration parameters', 'parameters', target => '_blank' %>
         to see what is possible or simply try out an <%= link_to 'example config', 'example' %>
         and start editing.
       </p>
       <p>
-        Please report any bugs to the <a href="https://github.com/jhthorsen/app-docsisious/issues">github</a>
+        Please report any bugs to the <a href="https://github.com/jhthorsen/docsis-configfile/issues">github</a>
         issue tracker.
       </p>
     </div>
@@ -440,3 +471,36 @@ UsServiceFlow:
     options:
     - 4
     - 0x0100a3123a8f4a50
+@@ parameter.html.ep
+% my $path = length $parent ? "$parent-$param->{code}" : $param->{code};
+% my $link = lc "param-$path-$name"; $link =~ s!\W+!-!g;
+<h<%= $level %> id="<%= $link %>"><a href="#<%= $link %>"><%= $path %> - <%= $name %></a></h<%= $level %>>
+% unless ($param->{func} eq 'nested') {
+  <p>
+    Type: <%= $param->{func} %>.
+    % if ($param->{limit}[0] or $param->{limit}[1]) {
+      Limit: <%= $param->{limit}[0] %> &lt;=&gt; <%= $param->{limit}[1] %>.
+    % }
+  </p>
+% }
+% if ($param->{nested}) {
+  <ul>
+  % for my $name (sort_parameters $param->{nested}) {
+    <li>
+      %= include 'parameter', level => $level + 1, name => $name, param => $param->{nested}{$name}, parent => $path
+    </li>
+  % }
+  </ul>
+% }
+@@ parameters.html.ep
+<h1>DOCSIS config parameters</h1>
+<p>
+  Here is a complete list of the parameters supported by 
+  <a href="https://metacpan.org/pod/DOCSIS::ConfigFile">DOCSIS::ConfigFile</a> and
+  <%= link_to 'Docsisious', 'editor' %>.
+</p>
+<div class="parameters">
+  % for my $name (sort_parameters $tree) {
+    %= include 'parameter', level => 2, name => $name, param => $tree->{$name}, parent => ''
+  % }
+</parameters>

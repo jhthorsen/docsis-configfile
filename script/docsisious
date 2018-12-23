@@ -346,7 +346,7 @@ textarea {
       <p>
         The program is built on top of the powerful <a href="http://perl.org">Perl</a> based
         <a href="https://metacpan.org/pod/DOCSIS::ConfigFile">DOCSIS::ConfigFile</a> library.
-        Have a look at the complete <%= link_to 'configuration parameters', 'parameters', target => '_blank' %>
+        Have a look at the complete <%= link_to 'configuration parameters', 'parameters' %>
         to see what is possible or simply try out an <%= link_to 'example config', 'example' %>
         and start editing.
       </p>

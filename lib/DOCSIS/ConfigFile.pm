@@ -3,13 +3,14 @@ use strict;
 use warnings;
 
 use constant CAN_TRANSLATE_OID => $ENV{DOCSIS_CAN_TRANSLATE_OID} // eval 'require SNMP;1' || 0;
-use constant DEBUG => $ENV{DOCSIS_CONFIGFILE_DEBUG} || 0;
+use constant DEBUG             => $ENV{DOCSIS_CONFIGFILE_DEBUG}                           || 0;
 use if DEBUG, 'Data::Dumper';
 
 if (CAN_TRANSLATE_OID) {
   require File::Basename;
   require File::Spec;
-  our $OID_DIR = File::Spec->rel2abs(File::Spec->catdir(File::Basename::dirname(__FILE__), 'ConfigFile', 'mibs'));
+  our $OID_DIR = File::Spec->rel2abs(
+    File::Spec->catdir(File::Basename::dirname(__FILE__), 'ConfigFile', 'mibs'));
   warn "[DOCSIS] Adding OID directory $OID_DIR\n" if DEBUG;
   SNMP::addMibDirs($OID_DIR);
   SNMP::loadModules('ALL');
@@ -30,7 +31,7 @@ sub decode_docsis {
   my $args    = ref $_[-1] eq 'HASH' ? $_[-1] : {};
   my $bytes   = shift;
   my $current = $args->{blueprint} || $CONFIG_TREE;
-  my $pos     = $args->{pos} || 0;
+  my $pos     = $args->{pos}       || 0;
   my $data    = {};
   my $end;
 
@@ -62,7 +63,8 @@ sub decode_docsis {
     }
 
     unless ($syminfo->{lsize}) {
-      warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=0\n", join('', (' ' x $DEPTH)), $name, $code, $code
+      warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=0\n", join('', (' ' x $DEPTH)),
+        $name, $code, $code
         if DEBUG;
       next;
     }
@@ -73,8 +75,8 @@ sub decode_docsis {
     $length = unpack $t, substr $bytes, $pos, $syminfo->{lsize};
     $pos += $syminfo->{lsize};
 
-    warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=%s, with %s()\n", join('', (' ' x $DEPTH)), $name, $code,
-      $code, $length, $syminfo->{func} // 'unknown'
+    warn sprintf "[DOCSIS]%sDecode %s type=%s (0x%02x), len=%s, with %s()\n",
+      join('', (' ' x $DEPTH)), $name, $code, $code, $length, $syminfo->{func} // 'unknown'
       if DEBUG;
 
     if ($syminfo->{nested}) {
@@ -86,7 +88,8 @@ sub decode_docsis {
       $value = {oid => @$value{qw(oid type value)}} if $name eq 'SnmpMibObject';
     }
     else {
-      die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Decode");
+      die
+        qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Decode");
     }
 
     $pos += $length;
@@ -138,7 +141,8 @@ sub encode_docsis {
         elsif ($name eq 'SnmpMibObject') {
           my @k = qw(type value);
           local $item->{oid} = $item->{oid};
-          $value = pack 'C*', $f->({value => {oid => delete $item->{oid}, map { shift(@k), $_ } %$item}});
+          $value = pack 'C*',
+            $f->({value => {oid => delete $item->{oid}, map { shift(@k), $_ } %$item}});
         }
         else {
           local $syminfo->{name} = $name;
@@ -146,12 +150,13 @@ sub encode_docsis {
         }
       }
       else {
-        die qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
+        die
+          qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
       }
 
       {
         use warnings FATAL => 'all';
-        $type = pack 'C', $syminfo->{code};
+        $type   = pack 'C', $syminfo->{code};
         $length = $syminfo->{lsize} == 2 ? pack('n', length $value) : pack('C', length $value);
       }
 
@@ -160,7 +165,7 @@ sub encode_docsis {
     }
   }
 
-  return $bytes if $args->{depth} != 1;
+  return $bytes                  if $args->{depth} != 1;
   return _mta_eof($bytes, $args) if defined $args->{mta_algorithm};
   return _cm_eof($bytes, $mic, $args);
 }
@@ -175,7 +180,8 @@ sub _cm_eof {
   $mic->{CmMic} = pack('C*', 6, 16) . Digest::MD5::md5($_[0]);
 
   $cmts_mic .= $mic->{$_} || '' for @CMTS_MIC;
-  $cmts_mic = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $args->{shared_secret} || '');
+  $cmts_mic
+    = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $args->{shared_secret} || '');
   $eod_pad = pack('C', 255) . ("\0" x $pads);
 
   return $_[0] . $mic->{CmMic} . $cmts_mic . $eod_pad;
@@ -183,19 +189,21 @@ sub _cm_eof {
 
 sub _mta_eof {
   my $mta_algorithm = $_[1]->{mta_algorithm} || '';
-  my $hash = '';
+  my $hash          = '';
 
   if ($mta_algorithm) {
     $hash = $mta_algorithm eq 'md5' ? Digest::MD5::md5_hex($_[0]) : Digest::SHA::sha1_hex($_[0]);
     $hash
-      = encode_docsis({SnmpMibObject => {oid => '1.3.6.1.4.1.4491.2.2.1.1.2.7.0', STRING => "0x$hash"}}, {depth => 1});
+      = encode_docsis(
+      {SnmpMibObject => {oid => '1.3.6.1.4.1.4491.2.2.1.1.2.7.0', STRING => "0x$hash"}},
+      {depth         => 1});
   }
 
   return $hash . $_[0] . encode_docsis({MtaConfigDelimiter => 255}, {depth => 1});
 }
 
 sub _to_list {
-  return $_[0] if $_[1]->{func} =~ /_list$/;
+  return $_[0]    if $_[1]->{func} =~ /_list$/;
   return @{$_[0]} if ref $_[0] eq 'ARRAY';
   return $_[0];
 }
@@ -277,9 +285,9 @@ $CONFIG_TREE = {
         lsize  => 1,
         limit  => [1, 255],
         nested => {
-          DsFreqRangeEnd      => {code => 3, func => 'uint',   lsize => 1, limit => [0, 4294967295]},
-          DsFreqRangeStart    => {code => 2, func => 'uint',   lsize => 1, limit => [0, 4294967295]},
-          DsFreqRangeStepSize => {code => 4, func => 'uint',   lsize => 1, limit => [0, 4294967295]},
+          DsFreqRangeEnd      => {code => 3, func => 'uint', lsize => 1, limit => [0, 4294967295]},
+          DsFreqRangeStart    => {code => 2, func => 'uint', lsize => 1, limit => [0, 4294967295]},
+          DsFreqRangeStepSize => {code => 4, func => 'uint', lsize => 1, limit => [0, 4294967295]},
           DsFreqRangeTimeout  => {code => 1, func => 'ushort', lsize => 1, limit => [0, 65535]},
         },
       },
@@ -564,10 +572,6 @@ $CONFIG_TREE = {
 =head1 NAME
 
 DOCSIS::ConfigFile - Decodes and encodes DOCSIS config files
-
-=head1 VERSION
-
-0.76
 
 =head1 DESCRIPTION
 

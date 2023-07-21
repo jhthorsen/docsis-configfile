@@ -23,7 +23,7 @@ use Exporter 'import';
 use DOCSIS::ConfigFile::Decode;
 use DOCSIS::ConfigFile::Encode;
 
-our $VERSION   = '0.76';
+our $VERSION   = '0.77';
 our @EXPORT_OK = qw(decode_docsis encode_docsis);
 our ($DEPTH, $CONFIG_TREE, @CMTS_MIC) = (0, {});
 

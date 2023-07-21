@@ -2,23 +2,19 @@
 
 DOCSIS::ConfigFile - Decodes and encodes DOCSIS config files
 
-# VERSION
-
-0.76
-
 # DESCRIPTION
 
-[DOCSIS::ConfigFile](https://metacpan.org/pod/DOCSIS::ConfigFile) is a class which provides functionality to decode and
+[DOCSIS::ConfigFile](https://metacpan.org/pod/DOCSIS%3A%3AConfigFile) is a class which provides functionality to decode and
 encode [DOCSIS](http://www.cablelabs.com) (Data over Cable Service Interface
 Specifications) config files.
 
 This module is used as a layer between any human readable data and
 the binary structure.
 
-The files are usually served using a [TFTP server](https://metacpan.org/pod/Mojo::TFTPd), after a
+The files are usually served using a [TFTP server](https://metacpan.org/pod/Mojo%3A%3ATFTPd), after a
 [cable modem](http://en.wikipedia.org/wiki/Cable_modem) or MTA (Multimedia
-Terminal Adapter) has recevied an IP address from a [DHCP](https://metacpan.org/pod/Net::ISC::DHCPd)
-server. These files are [binary encode](https://metacpan.org/pod/DOCSIS::ConfigFile::Encode) using a
+Terminal Adapter) has recevied an IP address from a [DHCP](https://metacpan.org/pod/Net%3A%3AISC%3A%3ADHCPd)
+server. These files are [binary encode](https://metacpan.org/pod/DOCSIS%3A%3AConfigFile%3A%3AEncode) using a
 variety of functions, but all the data in the file are constructed by TLVs
 (type-length-value) blocks. These can be nested and concatenated.
 
@@ -77,7 +73,7 @@ like the example below, instead of using numeric OIDs:
 
 There is an example web application bundled with this distribution called
 "Docsisious". To run this application, you need to install [Mojolicious](https://metacpan.org/pod/Mojolicious) and
-[YAML::XS](https://metacpan.org/pod/YAML::XS):
+[YAML::XS](https://metacpan.org/pod/YAML%3A%3AXS):
 
     $ curl -L https://cpanmin.us \
       | perl - -M https://cpan.metacpan.org \
@@ -141,20 +137,10 @@ Possible `%args`:
 
 # COPYRIGHT AND LICENSE
 
-## DOCSIS::ConfigFile
-
 Copyright (C) 2014-2018, Jan Henning Thorsen
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
-
-## Docsisious icons
-
-- \[Daniel Bruce\](http://www.flaticon.com/free-icon/question-mark\_3711)
-- \[Dave Gandy\](http://www.flaticon.com/free-icon/fullscreen-arrows-symbol\_25183)
-- \[Egor Rumyantsev\](http://www.flaticon.com/free-icon/settings-work-tool\_70367&amp;#x22;)
-- \[Freepik\](http://www.flaticon.com/free-icon/save-icon\_64052)
-- \[Google\](http://www.flaticon.com/free-icon/download-button\_60721)
 
 # AUTHOR
 

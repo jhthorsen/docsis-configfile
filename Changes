@@ -1,6 +1,6 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
-0.77 Not Released
+0.77 2023-07-21T20:15:34
  - Bundled docsisious with this distribution
  - Add /parameters to docsisious
  - Add support for docsis-configfile -c option=value

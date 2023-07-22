@@ -1,6 +1,7 @@
 package DOCSIS::ConfigFile;
 use strict;
 use warnings;
+use Carp qw(carp confess croak);
 
 use constant CAN_TRANSLATE_OID => $ENV{DOCSIS_CAN_TRANSLATE_OID} // eval 'require SNMP;1' || 0;
 use constant DEBUG             => $ENV{DOCSIS_CONFIGFILE_DEBUG}                           || 0;
@@ -28,23 +29,24 @@ our @EXPORT_OK = qw(decode_docsis encode_docsis);
 our ($DEPTH, $CONFIG_TREE, @CMTS_MIC) = (0, {});
 
 sub decode_docsis {
-  my $args    = ref $_[-1] eq 'HASH' ? $_[-1] : {};
+  my $options = ref $_[-1] eq 'HASH' ? $_[-1] : {};
   my $bytes   = shift;
-  my $current = $args->{blueprint} || $CONFIG_TREE;
-  my $pos     = $args->{pos}       || 0;
+  my $current = $options->{blueprint} || $CONFIG_TREE;
+  my $pos     = $options->{pos}       || 0;
   my $data    = {};
   my $end;
 
   if (ref $bytes eq 'SCALAR') {
     my ($file, $r) = ($$bytes, 0);
     $bytes = '';
-    open my $BYTES, '<', $file or die "decode_docsis $file: $!";
+    open my $BYTES, '<', $file or croak "Can't decode DOCSIS file $file: $!";
     while ($r = sysread $BYTES, my $buf, 131072, 0) { $bytes .= $buf }
-    die "decode_docsis $file: $!" unless defined $r;
+    croak "Can't decode DOCSIS file $file: $!" unless defined $r;
+    warn "[DOCSIS] Decode @{[length $bytes]} bytes from $file\n" if DEBUG;
   }
 
   local $DEPTH = $DEPTH + 1 if DEBUG;
-  $end = $args->{end} || length $bytes;
+  $end = $options->{end} || length $bytes;
 
   while ($pos < $end) {
     my $code = unpack 'C', substr $bytes, $pos++, 1 or next;    # next on $code=0
@@ -58,7 +60,7 @@ sub decode_docsis {
     }
 
     unless ($name) {
-      warn "[DOCSIS] Internal error: No syminfo defined for code=$code.";
+      carp "[DOCSIS] Internal error: No syminfo defined for code=$code.";
       next;
     }
 
@@ -80,15 +82,15 @@ sub decode_docsis {
       if DEBUG;
 
     if ($syminfo->{nested}) {
-      local @$args{qw(blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
-      $value = decode_docsis($bytes, $args);
+      local @$options{qw(blueprint end pos)} = ($syminfo->{nested}, $length + $pos, $pos);
+      $value = decode_docsis($bytes, $options);
     }
     elsif (my $f = DOCSIS::ConfigFile::Decode->can($syminfo->{func})) {
       $value = $f->(substr $bytes, $pos, $length);
       $value = {oid => @$value{qw(oid type value)}} if $name eq 'SnmpMibObject';
     }
     else {
-      die
+      confess
         qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Decode");
     }
 
@@ -109,15 +111,15 @@ sub decode_docsis {
 }
 
 sub encode_docsis {
-  my ($data, $args) = @_;
-  my $current = $args->{blueprint} || $CONFIG_TREE;
+  my ($data, $options) = @_;
+  my $current = $options->{blueprint} || $CONFIG_TREE;
   my $mic     = {};
   my $bytes   = '';
 
-  local $args->{depth} = ($args->{depth} || 0) + 1;
-  local $DEPTH = $args->{depth} if DEBUG;
+  local $options->{depth} = ($options->{depth} || 0) + 1;
+  local $DEPTH = $options->{depth} if DEBUG;
 
-  if ($args->{depth} == 1 and defined $args->{mta_algorithm}) {
+  if ($options->{depth} == 1 and defined $options->{mta_algorithm}) {
     delete $data->{MtaConfigDelimiter};
     $bytes .= encode_docsis({MtaConfigDelimiter => 1}, {depth => 1});
   }
@@ -130,8 +132,8 @@ sub encode_docsis {
     for my $item (_to_list($data->{$name}, $syminfo)) {
       if ($syminfo->{nested}) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with encode_docsis\n" if DEBUG;
-        local @$args{qw(blueprint)} = ($current->{$name}{nested});
-        $value = encode_docsis($item, $args);
+        local @$options{qw(blueprint)} = ($current->{$name}{nested});
+        $value = encode_docsis($item, $options);
       }
       elsif (my $f = DOCSIS::ConfigFile::Encode->can($syminfo->{func})) {
         warn "[DOCSIS]@{[' 'x$DEPTH]}Encode $name with $syminfo->{func}\n" if DEBUG;
@@ -150,7 +152,7 @@ sub encode_docsis {
         }
       }
       else {
-        die
+        confess
           qq(Can't locate object method "$syminfo->{func}" via package "DOCSIS::ConfigFile::Encode");
       }
 
@@ -165,14 +167,14 @@ sub encode_docsis {
     }
   }
 
-  return $bytes                  if $args->{depth} != 1;
-  return _mta_eof($bytes, $args) if defined $args->{mta_algorithm};
-  return _cm_eof($bytes, $mic, $args);
+  return $bytes                     if $options->{depth} != 1;
+  return _mta_eof($bytes, $options) if defined $options->{mta_algorithm};
+  return _cm_eof($bytes, $mic, $options);
 }
 
 sub _cm_eof {
   my $mic      = $_[1];
-  my $args     = $_[2];
+  my $options  = $_[2];
   my $cmts_mic = '';
   my $pads     = 4 - (1 + length $_[0]) % 4;
   my $eod_pad;
@@ -181,7 +183,7 @@ sub _cm_eof {
 
   $cmts_mic .= $mic->{$_} || '' for @CMTS_MIC;
   $cmts_mic
-    = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $args->{shared_secret} || '');
+    = pack('C*', 7, 16) . Digest::HMAC_MD5::hmac_md5($cmts_mic, $options->{shared_secret} || '');
   $eod_pad = pack('C', 255) . ("\0" x $pads);
 
   return $_[0] . $mic->{CmMic} . $cmts_mic . $eod_pad;
@@ -192,6 +194,8 @@ sub _mta_eof {
   my $hash          = '';
 
   if ($mta_algorithm) {
+    croak "mta_algorithm must be empty string, md5 or sha1."
+      unless $mta_algorithm =~ /^(md5|sha1)$/;
     $hash = $mta_algorithm eq 'md5' ? Digest::MD5::md5_hex($_[0]) : Digest::SHA::sha1_hex($_[0]);
     $hash
       = encode_docsis(
@@ -212,13 +216,13 @@ sub _to_list {
 sub _validate {
   if ($_[1]->{limit}[1]) {
     if ($_[0] =~ /^-?\d+$/) {
-      die "[DOCSIS] $_[1]->{name} holds a too high value. ($_[0])" if $_[1]->{limit}[1] < $_[0];
-      die "[DOCSIS] $_[1]->{name} holds a too low value. ($_[0])"  if $_[0] < $_[1]->{limit}[0];
+      croak "[DOCSIS] $_[1]->{name} holds a too high value. ($_[0])" if $_[1]->{limit}[1] < $_[0];
+      croak "[DOCSIS] $_[1]->{name} holds a too low value. ($_[0])"  if $_[0] < $_[1]->{limit}[0];
     }
     else {
       my $length = ref $_[0] eq 'ARRAY' ? @{$_[0]} : length $_[0];
-      die "[DOCSIS] $_[1]->{name} is too long. ($_[0])"  if $_[1]->{limit}[1] < $length;
-      die "[DOCSIS] $_[1]->{name} is too short. ($_[0])" if $length < $_[1]->{limit}[0];
+      croak "[DOCSIS] $_[1]->{name} is too long. ($_[0])"  if $_[1]->{limit}[1] < $length;
+      croak "[DOCSIS] $_[1]->{name} is too short. ($_[0])" if $length < $_[1]->{limit}[0];
     }
   }
   return $_[0];
@@ -652,7 +656,6 @@ demo, you can visit L<https://app.thorsen.pm/docsisious>.
 =head2 decode_docsis
 
   $data = decode_docsis($byte_string);
-  $data = decode_docsis($filehandle);
   $data = decode_docsis(\$path_to_file);
 
 Used to decode a DOCSIS config file into a data structure. The output
@@ -662,7 +665,6 @@ once.
 
 =head2 encode_docsis
 
-  $byte_string = encode_docsis($filehandle, \%args);
   $byte_string = encode_docsis(\%data, \%args);
 
 Used to encode a data structure into a DOCSIS config file. Each of the keys

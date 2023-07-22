@@ -77,5 +77,5 @@ sub _write {
   return print $data unless $self->{output};
   open my $FH, '>', $self->{output} or die "Can't write to $self->{output}: $!\n";
   my $written = syswrite $FH, $data;
-  die "Can't write to $self->{output}: $!\n" unless defined $written and $written != length $data;
+  die "Can't write to $self->{output}: $!\n" if !defined $written or $written != length $data;
 }

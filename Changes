@@ -1,5 +1,9 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
+1.00 Not Released
+ - Add support for docsis-configfile --version and -V
+ - Improved exceptions by using croak and confess
+
 0.77 2023-07-21T20:15:34
  - Bundled docsisious with this distribution
  - Add /parameters to docsisious

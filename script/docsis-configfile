@@ -15,10 +15,12 @@ sub run {
     my $arg = shift;
     @$self{qw(action file)} = (run_decode => shift) if $arg =~ /^-d/;
     @$self{qw(action file)} = (run_encode => shift) if $arg =~ /^-e/;
+    $self->{version}        = 1     if $arg eq '-V' or $arg eq '--version';
     $self->{output}         = shift if $arg =~ /^-o/;
     $self->parse_config(shift) if $arg =~ /^-c/;
   }
 
+  return print "docsis-configfile version $DOCSIS::ConfigFile::VERSION\n" if $self->{version};
   die $self->usage unless $self->{action};
   $self->can($self->{action})->($self);
 }
@@ -66,6 +68,7 @@ Options:
   -d in.bin       - Binary DOCSIS file to decode
   -o out.bin      - Which file to write output to. Default is to write to STDOUT
   -c option=value - Extra config parameters for encoding
+  -V, --version   - Show version number
 
 See https://metacpan.org/pod/DOCSIS::ConfigFile for more information.
 

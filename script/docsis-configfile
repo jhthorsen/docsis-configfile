@@ -25,7 +25,7 @@ sub run {
 
 sub parse_config {
   my ($self, $param) = @_;
-  die "Example usage: docsis-configfile -c foo=bar\n" unless $param;
+  die "Example usage: docsis-configfile -c shared_secret=mysecret\n" unless $param;
   return $self->{args}{$1} = $2 if $param =~ /^(.*?)=(.*)$/;
   my $args = YAML::PP->new->load_file($param);
   $self->{args}{$_} = $args->{$_} for keys %$args;
@@ -49,22 +49,22 @@ sub usage {
   return <<'HERE';
 Decode DOCSIS binary file to YAML:
 
-  $ docsis-configfile -d path/to/binary.file > out.yaml
-  $ docsis-configfile -d path/to/binary.file -o out.yaml
+  $ docsis-configfile -d cm.bin > cm.yaml
+  $ docsis-configfile -d mta.bin -o mta.yaml
 
 Encode YAML file to DOCSIS config file:
 
-  $ docsis-configfile -e path/to/yaml.file > out.bin
-  $ docsis-configfile -e path/to/yaml.file -o out.bin
-  $ docsis-configfile -e path/to/yaml.file -o cpe.bin -c shared_secret=mysecret
-  $ docsis-configfile -e path/to/yaml.file -o mta.bin -c mta_algorithm=md5
-  $ docsis-configfile -e path/to/yaml.file -o mta.bin -c mta_algorithm=sha1
+  $ docsis-configfile -e cm.yaml > cm.bin
+  $ docsis-configfile -e mta.yaml -o mta.bin
+  $ docsis-configfile -e cm.yaml -o cm.bin -c shared_secret=mysecret
+  $ docsis-configfile -e mta.yaml -o mta.bin -c mta_algorithm=md5
+  $ docsis-configfile -e cm.yaml -o mta.bin -c mta_algorithm=sha1
 
 Options:
 
   -e in.yaml      - YAML DOCSIS file to encode
   -d in.bin       - Binary DOCSIS file to decode
-  -o out.file     - Which file to write output to. Default is to write to STDOUT
+  -o out.bin      - Which file to write output to. Default is to write to STDOUT
   -c option=value - Extra config parameters for encoding
 
 See https://metacpan.org/pod/DOCSIS::ConfigFile for more information.

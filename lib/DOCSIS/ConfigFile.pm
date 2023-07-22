@@ -597,33 +597,27 @@ supported parameters.
   use DOCSIS::ConfigFile qw(encode_docsis decode_docsis);
 
   $data = decode_docsis $bytes;
-
-  $bytes = encode_docsis(
-             {
-               GlobalPrivacyEnable => 1,
-               MaxCPE              => 2,
-               NetworkAccess       => 1,
-               BaselinePrivacy => {
-                 AuthTimeout       => 10,
-                 ReAuthTimeout     => 10,
-                 AuthGraceTime     => 600,
-                 OperTimeout       => 1,
-                 ReKeyTimeout      => 1,
-                 TEKGraceTime      => 600,
-                 AuthRejectTimeout => 60,
-                 SAMapWaitTimeout  => 1,
-                 SAMapMaxRetries   => 4
-               },
-               SnmpMibObject => [
-                 {oid => "1.3.6.1.4.1.1.77.1.6.1.1.6.2",    INTEGER => 1},
-                 {oid => "1.3.6.1.4.1.1429.77.1.6.1.1.6.2", STRING  => "bootfile.bin"}
-               ],
-               VendorSpecific => {
-                 id => "0x0011ee",
-                 options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]
-               }
-             }
-           );
+  $bytes = encode_docsis({
+    GlobalPrivacyEnable => 1,
+    MaxCPE              => 2,
+    NetworkAccess       => 1,
+    BaselinePrivacy     => {
+      AuthTimeout       => 10,
+      ReAuthTimeout     => 10,
+      AuthGraceTime     => 600,
+      OperTimeout       => 1,
+      ReKeyTimeout      => 1,
+      TEKGraceTime      => 600,
+      AuthRejectTimeout => 60,
+      SAMapWaitTimeout  => 1,
+      SAMapMaxRetries   => 4
+    },
+    SnmpMibObject => [
+      {oid => "1.3.6.1.4.1.1.77.1.6.1.1.6.2",    INTEGER => 1},
+      {oid => "1.3.6.1.4.1.1429.77.1.6.1.1.6.2", STRING  => "bootfile.bin"}
+    ],
+    VendorSpecific => {id => "0x0011ee", options => [30 => "0xff", 31 => "0x00", 32 => "0x28"]}
+  });
 
 =head1 OPTIONAL MODULE
 
@@ -631,14 +625,12 @@ You can install the L<SNMP.pm|SNMP> module to translate between SNMP
 OID formats. With the module installed, you can define the C<SnmpMibObject>
 like the example below, instead of using numeric OIDs:
 
-  encode_docsis(
-    {
-      SnmpMibObject => [
-        {oid => "docsDevNmAccessIp.1",     IPADDRESS => "10.0.0.1"},
-        {oid => "docsDevNmAccessIpMask.1", IPADDRESS => "255.255.255.255"},
-      ]
-    },
-  );
+  encode_docsis({
+    SnmpMibObject => [
+      {oid => "docsDevNmAccessIp.1",     IPADDRESS => "10.0.0.1"},
+      {oid => "docsDevNmAccessIpMask.1", IPADDRESS => "255.255.255.255"},
+    ]
+  });
 
 =head1 WEB APPLICATION
 
@@ -646,15 +638,11 @@ There is an example web application bundled with this distribution called
 "Docsisious". To run this application, you need to install L<Mojolicious> and
 L<YAML::XS>:
 
-  $ curl -L https://cpanmin.us \
-    | perl - -M https://cpan.metacpan.org \
-      DOCSIS::ConfigFile \
-      Mojolicious \
-      YAML::XS
+  $ curl -L https://cpanmin.us | perl - -M https://cpan.metacpan.org DOCSIS::ConfigFile Mojolicious;
 
 After installing the modules above, you can run the web app like this:
 
-  $ docsisious --listen http://*:8000
+  $ docsisious --listen http://*:8000;
 
 And then open your favorite browser at L<http://localhost:8000>. To see a live
 demo, you can visit L<https://app.thorsen.pm/docsisious>.
@@ -664,6 +652,7 @@ demo, you can visit L<https://app.thorsen.pm/docsisious>.
 =head2 decode_docsis
 
   $data = decode_docsis($byte_string);
+  $data = decode_docsis($filehandle);
   $data = decode_docsis(\$path_to_file);
 
 Used to decode a DOCSIS config file into a data structure. The output
@@ -673,6 +662,7 @@ once.
 
 =head2 encode_docsis
 
+  $byte_string = encode_docsis($filehandle, \%args);
   $byte_string = encode_docsis(\%data, \%args);
 
 Used to encode a data structure into a DOCSIS config file. Each of the keys

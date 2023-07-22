@@ -709,6 +709,12 @@ Copyright (C) 2014-2018, Jan Henning Thorsen
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
+=head1 CREDITS
+
+=head2 Font Awesome
+
+C<docsisious> bundles L<Font Awesome|https://fontawesome.com/>.
+
 =head1 AUTHOR
 
 Jan Henning Thorsen - C<jhthorsen@cpan.org>

@@ -18,7 +18,7 @@ server. These files are [binary encode](https://metacpan.org/pod/DOCSIS%3A%3ACon
 variety of functions, but all the data in the file are constructed by TLVs
 (type-length-value) blocks. These can be nested and concatenated.
 
-See the source code or [https://app.thorsen.pm/docsisious](https://app.thorsen.pm/docsisious) for list of
+See the source code or [https://thorsen.pm/docsisious](https://thorsen.pm/docsisious) for list of
 supported parameters.
 
 # SYNOPSIS
@@ -86,7 +86,7 @@ After installing the modules above, you can run the web app like this:
     $ docsisious --listen http://*:8000
 
 And then open your favorite browser at [http://localhost:8000](http://localhost:8000). To see a live
-demo, you can visit [https://app.thorsen.pm/docsisious](https://app.thorsen.pm/docsisious).
+demo, you can visit [https://thorsen.pm/docsisious](https://thorsen.pm/docsisious).
 
 # FUNCTIONS
 

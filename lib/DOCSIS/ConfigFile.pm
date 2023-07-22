@@ -593,7 +593,7 @@ server. These files are L<binary encode|DOCSIS::ConfigFile::Encode> using a
 variety of functions, but all the data in the file are constructed by TLVs
 (type-length-value) blocks. These can be nested and concatenated.
 
-See the source code or L<https://app.thorsen.pm/docsisious> for list of
+See the source code or L<https://thorsen.pm/docsisious> for list of
 supported parameters.
 
 =head1 SYNOPSIS
@@ -649,7 +649,7 @@ After installing the modules above, you can run the web app like this:
   $ docsisious --listen http://*:8000;
 
 And then open your favorite browser at L<http://localhost:8000>. To see a live
-demo, you can visit L<https://app.thorsen.pm/docsisious>.
+demo, you can visit L<https://thorsen.pm/docsisious>.
 
 =head1 FUNCTIONS
 

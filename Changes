@@ -1,6 +1,6 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
-1.00 Not Released
+1.00 2023-07-22T09:37:59
  - Add support for docsis-configfile --version and -V
  - Add support for piping data in/out from docsis-configfile
  - Improved exceptions by using croak and confess

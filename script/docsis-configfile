@@ -3,6 +3,8 @@ use strict;
 use warnings;
 
 load_module($_) for qw(DOCSIS::ConfigFile YAML::PP);
+my $pp = YAML::PP->new;
+
 run(@ARGV);
 
 sub load_module {
@@ -29,21 +31,26 @@ sub parse_config {
   my ($self, $param) = @_;
   die "Example usage: docsis-configfile -c shared_secret=mysecret\n" unless $param;
   return $self->{args}{$1} = $2 if $param =~ /^(.*?)=(.*)$/;
-  my $args = YAML::PP->new->load_file($param);
+  my $args = $pp->load_file($param);
   $self->{args}{$_} = $args->{$_} for keys %$args;
 }
 
 sub run_encode {
   my ($self) = @_;
   die "File missing.\n" unless $self->{file};
-  my $data = YAML::PP->new->load_file($self->{file});
+  my $data = $self->{file} eq '-' ? $pp->load_string(stdin()) : $pp->load_file($self->{file});
   $self->_write(DOCSIS::ConfigFile::encode_docsis($data, $self->{args}));
 }
 
 sub run_decode {
   my ($self) = @_;
   die "File missing.\n" unless $self->{file};
-  $self->_write(YAML::PP->new->dump_string(DOCSIS::ConfigFile::decode_docsis(\$self->{file})));
+  my $data = $self->{file} eq '-' ? stdin() : \$self->{file};
+  $self->_write($pp->dump_string(DOCSIS::ConfigFile::decode_docsis($data)));
+}
+
+sub stdin() {
+  return do { local $/; <STDIN> };
 }
 
 sub usage {

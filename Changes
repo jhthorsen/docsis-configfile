@@ -1,6 +1,6 @@
 Revision history for perl distribution DOCSIS-ConfigFile
 
-1.01 Not Released
+1.01 2023-07-24T11:09:45
  - docsis-configfile will detect unknown arguments
 
 1.00 2023-07-22T09:37:59

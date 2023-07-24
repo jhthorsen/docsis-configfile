@@ -13,15 +13,19 @@ sub load_module {
 
 sub run {
   my $self = bless {args => {}}, __PACKAGE__;
+  my @unknown;
   while (@_) {
     my $arg = shift;
-    @$self{qw(action file)} = (run_decode => shift) if $arg =~ /^-d/;
-    @$self{qw(action file)} = (run_encode => shift) if $arg =~ /^-e/;
-    $self->{version}        = 1     if $arg eq '-V' or $arg eq '--version';
-    $self->{output}         = shift if $arg =~ /^-o/;
-    $self->parse_config(shift) if $arg =~ /^-c/;
+    if ($arg =~ /^-d/)                   { @$self{qw(action file)} = (run_decode => shift); next }
+    if ($arg =~ /^-e/)                   { @$self{qw(action file)} = (run_encode => shift); next }
+    if ($arg =~ /^-c/)                   { $self->parse_config(shift); next }
+    if ($arg =~ /^-o/)                   { $self->{output} = shift; next }
+    if ($arg =~ /^-+h/)                  { $self->{help} = 1; next }
+    if ($arg =~ /^-V/ or $arg =~ /^--v/) { $self->{version} = 1; next }
+    push @unknown, $arg;
   }
 
+  die sprintf "Unknown argument%s: %s\n", @unknown == 1 ? '' : 's', join ', ', @unknown if @unknown;
   return print "docsis-configfile version $DOCSIS::ConfigFile::VERSION\n" if $self->{version};
   die $self->usage unless $self->{action};
   $self->can($self->{action})->($self);
@@ -37,14 +41,14 @@ sub parse_config {
 
 sub run_encode {
   my ($self) = @_;
-  die "File missing.\n" unless $self->{file};
+  die "Usage: docsis-configfile -e path/to/file.yaml\n" unless $self->{file};
   my $data = $self->{file} eq '-' ? $pp->load_string(stdin()) : $pp->load_file($self->{file});
   $self->_write(DOCSIS::ConfigFile::encode_docsis($data, $self->{args}));
 }
 
 sub run_decode {
   my ($self) = @_;
-  die "File missing.\n" unless $self->{file};
+  die "Usage: docsis-configfile -d path/to/file.bin\n" unless $self->{file};
   my $data = $self->{file} eq '-' ? stdin() : \$self->{file};
   $self->_write($pp->dump_string(DOCSIS::ConfigFile::decode_docsis($data)));
 }
